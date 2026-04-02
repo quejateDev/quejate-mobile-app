@@ -1,0 +1,23 @@
+node_modules/
+.expo/
+dist/
+web-build/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# Environment variables
+.env
+# .env.example is intentionally NOT ignored — it serves as documentation
+
+# AI context files (local-only, not for version control)
+ai/
+
+# macOS
+.DS_Store
