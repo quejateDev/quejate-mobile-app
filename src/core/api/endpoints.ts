@@ -1,0 +1,73 @@
+export const ENDPOINTS = {
+  AUTH: {
+    CSRF:    '/auth/csrf',
+    SESSION: '/auth/session',
+    SIGNIN:  '/auth/callback/credentials',
+    SIGNOUT: '/auth/signout',
+  },
+  PQR: {
+    LIST:     '/pqr',
+    CREATE:   '/pqr',
+    TOP:      '/pqr/top',
+    DETAIL:   (id: string) => `/pqr/${id}`,
+    BY_USER:  (id: string) => `/pqr/user/${id}`,
+    STATUS:   (id: string) => `/pqr/${id}/status`,
+    PRIVACY:  (id: string) => `/pqr/${id}/privacy`,
+    COMMENTS: (id: string) => `/pqr/${id}/comments`,
+    LIKE:     (id: string) => `/pqr/${id}/like`,
+  },
+  ENTITIES: {
+    LIST:   '/entities',
+    DETAIL: (id: string) => `/entities/${id}`,
+  },
+  AREAS: {
+    LIST:       '/area',
+    DETAIL:     (id: string) => `/area/${id}`,
+    PQR_CONFIG: (id: string) => `/area/${id}/pqr-config`,
+  },
+  LOCATIONS: {
+    DEPARTMENTS:    '/regional-departments',
+    MUNICIPALITIES: '/municipalities',
+  },
+  UPLOAD: {
+    DIRECT:    '/upload',
+    PRESIGNED: '/upload/presigned',
+  },
+  NOTIFICATIONS: {
+    LIST:      '/notifications',
+    MARK_READ: '/notifications',
+  },
+  USERS: {
+    LIST:      '/users',
+    SEARCH:    '/users/search',
+    DETAIL:    (id: string) => `/users/${id}`,
+    FOLLOW:    (id: string) => `/users/${id}/follow`,
+    FAVORITES: (id: string) => `/users/${id}/favorite-entities`,
+  },
+  LAWYERS: {
+    LIST:          '/lawyer',
+    REGISTER:      '/lawyer/register',
+    DETAIL:        (id: string) => `/lawyer/${id}`,
+    PROFILE:       '/lawyer/profile',
+    VALIDATE:      '/lawyer/validate',
+    REQUEST:       '/lawyer/request',
+    MY_REQUESTS:   '/lawyer/my-requests',
+    RATING:        '/lawyer/rating',
+    MY_RATING:     '/lawyer/rating/my-rating',
+    RATING_UPDATE: '/lawyer/rating/update',
+    VERIFICATION:  '/lawyer-verification',
+  },
+  OVERSIGHT: {
+    LIST:          '/oversight-entity',
+    BY_LOCATION:   '/oversight-entity/by-location',
+    SEND_DOCUMENT: '/oversight/send-document',
+  },
+  LEGAL_DOCS: {
+    TUTELA:           '/legal-docs',
+    OVERSIGHT_REPORT: '/legal-docs/oversight',
+  },
+  CATEGORIES: {
+    LIST:   '/category',
+    DETAIL: (id: string) => `/category/${id}`,
+  },
+} as const;
