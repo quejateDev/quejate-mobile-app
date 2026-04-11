@@ -1,9 +1,11 @@
 export const ENDPOINTS = {
   AUTH: {
-    CSRF:    '/auth/csrf',
-    SESSION: '/auth/session',
-    SIGNIN:  '/auth/callback/credentials',
-    SIGNOUT: '/auth/signout',
+    CSRF:          '/auth/csrf',
+    SESSION:       '/auth/session',
+    SIGNIN:        '/auth/callback/credentials',
+    SIGNOUT:       '/auth/signout',
+    REGISTER:      '/register',
+    MOBILE_GOOGLE: '/auth/mobile/google',
   },
   PQR: {
     LIST:     '/pqr',

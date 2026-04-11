@@ -321,14 +321,14 @@ export interface OversightEntity {
 // Paginated responses
 // =============================================================================
 
-/** Respuesta paginada estilo PQR list — hasMore + nextPage */
+/** Respuesta paginada estilo PQR list - hasMore + nextPage */
 export interface PaginatedResponse<T> {
   data: T[];
   hasMore: boolean;
   nextPage: number | null;
 }
 
-/** Respuesta paginada estilo Lawyers / Ratings — objeto pagination */
+/** Respuesta paginada estilo Lawyers / Ratings - objeto pagination */
 export interface PaginatedResponseAlt<T> {
   data: T[];
   pagination: {
