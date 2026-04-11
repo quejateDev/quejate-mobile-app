@@ -9,7 +9,6 @@ export const apiClient = axios.create({
   },
 });
 
-// REQUEST interceptor — attach session cookie on every request
 apiClient.interceptors.request.use(async (config) => {
   const token = await SecureStorage.getSessionToken();
   if (token) {
@@ -18,7 +17,6 @@ apiClient.interceptors.request.use(async (config) => {
   return config;
 });
 
-// RESPONSE interceptor — clear token on 401; redirect is handled by AuthProvider
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -29,21 +27,31 @@ apiClient.interceptors.response.use(
   },
 );
 
-/**
- * Extracts the session token value from a raw set-cookie header string.
- * Handles both dev (next-auth.session-token) and prod (__Secure-next-auth.session-token) names.
- */
 export function extractSessionToken(setCookieHeader: string): string | null {
-  const parts = setCookieHeader.split(';');
-  for (const part of parts) {
-    const trimmed = part.trim();
+  const segments = setCookieHeader.split(',');
+  for (const segment of segments) {
+    const nameValue = segment.split(';')[0].trim();
     if (
-      trimmed.startsWith('next-auth.session-token=') ||
-      trimmed.startsWith('__Secure-next-auth.session-token=')
+      nameValue.startsWith('authjs.session-token=') ||
+      nameValue.startsWith('__Secure-authjs.session-token=')
     ) {
-      const eqIndex = trimmed.indexOf('=');
-      return trimmed.slice(eqIndex + 1);
+      return nameValue.slice(nameValue.indexOf('=') + 1);
     }
   }
   return null;
+}
+
+export function extractCsrfCookie(setCookieHeader: string): string {
+  const segments = setCookieHeader.split(',');
+  let lastCsrf = '';
+  for (const segment of segments) {
+    const nameValue = segment.split(';')[0].trim();
+    if (
+      nameValue.startsWith('authjs.csrf-token=') ||
+      nameValue.startsWith('__Host-authjs.csrf-token=')
+    ) {
+      lastCsrf = nameValue;
+    }
+  }
+  return lastCsrf;
 }
