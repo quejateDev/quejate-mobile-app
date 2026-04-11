@@ -1,8 +1,9 @@
 import * as SecureStore from 'expo-secure-store';
 
-export const SESSION_TOKEN_KEY = __DEV__
-  ? 'next-auth.session-token'
-  : '__Secure-next-auth.session-token';
+const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? '';
+export const SESSION_TOKEN_KEY = apiUrl.startsWith('https://')
+  ? '__Secure-authjs.session-token'
+  : 'authjs.session-token';
 
 export const SecureStorage = {
   getSessionToken: (): Promise<string | null> => SecureStore.getItemAsync(SESSION_TOKEN_KEY),
