@@ -6,6 +6,7 @@ export const ENDPOINTS = {
     SIGNOUT:       '/auth/signout',
     REGISTER:      '/register',
     MOBILE_GOOGLE: '/auth/mobile/google',
+    MOBILE_CREDENTIALS: '/auth/mobile/credentials',
   },
   PQR: {
     LIST:     '/pqr',
