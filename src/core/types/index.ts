@@ -91,6 +91,7 @@ export interface Entity {
   municipality?: string;
   department?: string;
   pqrConfig?: PQRConfig;
+  departments?: Department[];
   _count?: { pqrs: number };
 }
 

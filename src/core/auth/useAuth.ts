@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { SessionUser } from '@core/types';
 import { SecureStorage, SESSION_TOKEN_KEY } from '@core/auth/SecureStorage';
-import { apiClient, extractSessionToken, extractCsrfCookie } from '@core/api/client';
+import { apiClient, extractCsrfCookie } from '@core/api/client';
 import { ENDPOINTS } from '@core/api/endpoints';
 
 interface SessionResponse {
@@ -36,37 +36,21 @@ export const useAuth = create<AuthState>((set, get) => ({
 
   signInWithCredentials: async (email: string, password: string) => {
     const { setUser } = get();
-    const BASE_URL = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') ?? '';
 
-    const csrfRes = await fetch(`${BASE_URL}/api/auth/csrf`);
-    const { csrfToken } = await csrfRes.json();
-    const csrfCookie = extractCsrfCookie(csrfRes.headers.get('set-cookie') ?? '');
+    const res = await apiClient.post<{ sessionToken: string; user?: SessionUser }>(
+      ENDPOINTS.AUTH.MOBILE_CREDENTIALS,
+      { email, password },
+    );
+    const { sessionToken, user } = res.data;
 
-    const loginRes = await fetch(`${BASE_URL}/api/auth/callback/credentials`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Cookie: csrfCookie,
-      },
-      body: new URLSearchParams({
-        email,
-        password,
-        csrfToken,
-        redirect: 'false',
-        json: 'true',
-      }).toString(),
-    });
+    await SecureStorage.setSessionToken(sessionToken);
 
-    const setCookie = loginRes.headers.get('set-cookie') ?? '';
-    const token = extractSessionToken(setCookie);
-
-    if (!token) {
-      const errorParam = new URL(loginRes.url).searchParams.get('error');
-      if (errorParam === 'AccessDenied') throw new Error('EMAIL_NOT_VERIFIED');
-      throw new Error('INVALID_CREDENTIALS');
+    if (user) {
+      setUser(user);
+      return;
     }
 
-    await SecureStorage.setSessionToken(token);
+    // Fallback: consultar sesión si el backend no devuelve el usuario
     const sessionRes = await apiClient.get<SessionResponse>(ENDPOINTS.AUTH.SESSION);
     if (!sessionRes.data?.user) throw new Error('SESSION_INVALID');
     setUser(sessionRes.data.user);
