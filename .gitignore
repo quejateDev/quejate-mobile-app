@@ -12,12 +12,12 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# Environment variables
 .env
-# .env.example is intentionally NOT ignored — it serves as documentation
+.env.local
+.env.local.bak
 
-# AI context files (local-only, not for version control)
+android/
+
 ai/
 
-# macOS
 .DS_Store

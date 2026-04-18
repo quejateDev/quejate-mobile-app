@@ -9,6 +9,14 @@ export const apiClient = axios.create({
   },
 });
 
+// Callback registrado por AuthProvider para limpiar el estado de auth cuando
+// el servidor responde 401 (token expirado). Evita dependencia circular con useAuth.
+let sessionExpiredHandler: (() => void) | null = null;
+
+export function setSessionExpiredHandler(handler: (() => void) | null): void {
+  sessionExpiredHandler = handler;
+}
+
 apiClient.interceptors.request.use(async (config) => {
   const token = await SecureStorage.getSessionToken();
   if (token) {
@@ -22,6 +30,7 @@ apiClient.interceptors.response.use(
   async (error) => {
     if (error.response?.status === 401) {
       await SecureStorage.removeSessionToken();
+      sessionExpiredHandler?.();
     }
     return Promise.reject(error);
   },
