@@ -361,11 +361,11 @@ export const typeMap: Record<PQRSType, { label: string; color: string }> = {
   REPORT:     { label: 'Denuncia',   color: '#CA8A04' },
 };
 
-export const statusMap: Record<PQRSStatus, { label: string; badgeVariant: string }> = {
-  PENDING:     { label: 'Pendiente',  badgeVariant: 'pending'     },
-  IN_PROGRESS: { label: 'En Proceso', badgeVariant: 'in_progress' },
-  RESOLVED:    { label: 'Resuelto',   badgeVariant: 'resolved'    },
-  CLOSED:      { label: 'Cerrado',    badgeVariant: 'rejected'    },
+export const statusMap: Record<PQRSStatus, { label: string }> = {
+  PENDING:     { label: 'Pendiente'  },
+  IN_PROGRESS: { label: 'En Proceso' },
+  RESOLVED:    { label: 'Resuelto'   },
+  CLOSED:      { label: 'Cerrado'    },
 };
 
 export const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];

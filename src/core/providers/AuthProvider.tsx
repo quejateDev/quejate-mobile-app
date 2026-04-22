@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { apiClient, setSessionExpiredHandler } from '@core/api/client';
 import { ENDPOINTS } from '@core/api/endpoints';
 import { SecureStorage } from '@core/auth/SecureStorage';
@@ -11,10 +12,20 @@ interface SessionResponse {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { setUser, clearUser, setLoading } = useAuth();
+  const { setUser, clearUser, setLoading, isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
+  const wasAuthenticated = useRef(isAuthenticated);
 
-  // Registra el handler de sesión expirada para que el interceptor 401
-  // de apiClient pueda limpiar el estado de auth sin dependencia circular.
+  useEffect(() => {
+    const prev = wasAuthenticated.current;
+    wasAuthenticated.current = isAuthenticated;
+    if (prev && !isAuthenticated) {
+      queryClient.clear();
+    } else if (!prev && isAuthenticated) {
+      queryClient.invalidateQueries({ queryKey: ['pqrs-by-user'] });
+    }
+  }, [isAuthenticated, queryClient]);
+
   useEffect(() => {
     setSessionExpiredHandler(clearUser);
     return () => setSessionExpiredHandler(null);
@@ -22,6 +33,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     async function refreshSession() {
+      if (isAuthenticated) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       try {
         const token = await SecureStorage.getSessionToken();

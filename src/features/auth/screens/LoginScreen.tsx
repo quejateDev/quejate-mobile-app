@@ -9,7 +9,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -73,160 +75,177 @@ export default function LoginScreen() {
   const isLoading = isSubmitting || google.isLoading;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Logo */}
-        <View style={styles.header}>
-          <Text style={styles.logo}>Quéjate</Text>
-          <Text style={styles.tagline}>Tu voz importa</Text>
-        </View>
-
-        {/* Email */}
-        <View style={styles.fieldContainer}>
-          <Text style={styles.label}>Correo electrónico</Text>
-          <Controller
-            control={control}
-            name="email"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                style={[styles.input, errors.email && styles.inputError]}
-                placeholder="tu@correo.com"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-                editable={!isLoading}
-              />
-            )}
-          />
-          {errors.email && <Text style={styles.fieldError}>{errors.email.message}</Text>}
-        </View>
-
-        {/* Contraseña */}
-        <View style={styles.fieldContainer}>
-          <Text style={styles.label}>Contraseña</Text>
-          <View style={styles.passwordRow}>
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  style={[styles.input, styles.passwordInput, errors.password && styles.inputError]}
-                  placeholder="••••••"
-                  secureTextEntry={!showPassword}
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  value={value}
-                  editable={!isLoading}
-                />
-              )}
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.brandSection}>
+            <Image
+              source={require('../../../../assets/LogotipoEditableterpng.png')}
+              style={styles.brandLogo}
+              resizeMode="contain"
             />
+            <Text style={styles.brandTagline}>Haz valer tus derechos</Text>
+          </View>
+
+          <View style={styles.formSection}>
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>Correo electrónico</Text>
+              <Controller
+                control={control}
+                name="email"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput
+                    style={[styles.input, errors.email && styles.inputError]}
+                    placeholder="tu@correo.com"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={value}
+                    editable={!isLoading}
+                  />
+                )}
+              />
+              {errors.email && <Text style={styles.fieldError}>{errors.email.message}</Text>}
+            </View>
+
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>Contraseña</Text>
+              <View style={styles.passwordRow}>
+                <Controller
+                  control={control}
+                  name="password"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <TextInput
+                      style={[styles.input, styles.passwordInput, errors.password && styles.inputError]}
+                      placeholder="••••••"
+                      placeholderTextColor="#9CA3AF"
+                      secureTextEntry={!showPassword}
+                      onBlur={onBlur}
+                      onChangeText={onChange}
+                      value={value}
+                      editable={!isLoading}
+                    />
+                  )}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword((v) => !v)}
+                  accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  <Text style={styles.eyeText}>{showPassword ? 'Ocultar' : 'Ver'}</Text>
+                </TouchableOpacity>
+              </View>
+              {errors.password && <Text style={styles.fieldError}>{errors.password.message}</Text>}
+            </View>
+
+            {(serverError || google.error) && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{serverError ?? google.error}</Text>
+              </View>
+            )}
+
             <TouchableOpacity
-              style={styles.eyeButton}
-              onPress={() => setShowPassword((v) => !v)}
-              accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              testID="login-button"
+              style={[styles.button, isLoading && styles.buttonDisabled]}
+              onPress={handleSubmit(onSubmit)}
+              disabled={isLoading}
+              accessibilityRole="button"
+              accessibilityLabel="Iniciar sesión"
             >
-              <Text style={styles.eyeText}>{showPassword ? 'Ocultar' : 'Ver'}</Text>
+              {isSubmitting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Iniciar sesión</Text>
+              )}
             </TouchableOpacity>
+
+            <View style={styles.separatorRow}>
+              <View style={styles.separatorLine} />
+              <Text style={styles.separatorText}>o continúa con</Text>
+              <View style={styles.separatorLine} />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.googleButton, (isLoading || !google.isReady) && styles.buttonDisabled]}
+              onPress={() => {
+                setServerError(null);
+                google.signIn();
+              }}
+              disabled={isLoading || !google.isReady}
+              accessibilityRole="button"
+              accessibilityLabel="Iniciar sesión con Google"
+            >
+              {google.isLoading ? (
+                <ActivityIndicator color="#374151" />
+              ) : (
+                <Text style={styles.googleButtonText}>Continuar con Google</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.link}
+              onPress={() => WebBrowser.openBrowserAsync('https://quejate.com.co/auth/reset')}
+            >
+              <Text style={styles.linkText}>¿Olvidaste tu contraseña?</Text>
+            </TouchableOpacity>
+
+            <View style={styles.registerRow}>
+              <Text style={styles.registerText}>¿No tienes cuenta? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                <Text style={styles.registerLink}>Regístrate</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-          {errors.password && <Text style={styles.fieldError}>{errors.password.message}</Text>}
-        </View>
-
-        {/* Error servidor */}
-        {(serverError || google.error) && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{serverError ?? google.error}</Text>
-          </View>
-        )}
-
-        {/* Botón iniciar sesión */}
-        <TouchableOpacity
-          testID="login-button"
-          style={[styles.button, isLoading && styles.buttonDisabled]}
-          onPress={handleSubmit(onSubmit)}
-          disabled={isLoading}
-          accessibilityRole="button"
-          accessibilityLabel="Iniciar sesión"
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Iniciar sesión</Text>
-          )}
-        </TouchableOpacity>
-
-        {/* Separador */}
-        <View style={styles.separatorRow}>
-          <View style={styles.separatorLine} />
-          <Text style={styles.separatorText}>o continúa con</Text>
-          <View style={styles.separatorLine} />
-        </View>
-
-        {/* Botón Google */}
-        <TouchableOpacity
-          style={[styles.googleButton, (isLoading || !google.isReady) && styles.buttonDisabled]}
-          onPress={() => {
-            setServerError(null);
-            google.signIn();
-          }}
-          disabled={isLoading || !google.isReady}
-          accessibilityRole="button"
-          accessibilityLabel="Iniciar sesión con Google"
-        >
-          {google.isLoading ? (
-            <ActivityIndicator color="#374151" />
-          ) : (
-            <Text style={styles.googleButtonText}>Google</Text>
-          )}
-        </TouchableOpacity>
-
-        {/* Links */}
-        <TouchableOpacity
-          style={styles.link}
-          onPress={() => WebBrowser.openBrowserAsync('https://quejate.com.co/auth/reset')}
-        >
-          <Text style={styles.linkText}>¿Olvidaste tu contraseña?</Text>
-        </TouchableOpacity>
-
-        <View style={styles.registerRow}>
-          <Text style={styles.registerText}>¿No tienes cuenta? </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.registerLink}>Regístrate</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#fff' },
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#1E3A8A',
+  },
+  flex: {
+    flex: 1,
+  },
   container: {
     flexGrow: 1,
-    justifyContent: 'center',
-    padding: 24,
   },
-  header: {
+  brandSection: {
+    backgroundColor: '#1E3A8A',
     alignItems: 'center',
-    marginBottom: 40,
+    paddingTop: 48,
+    paddingBottom: 40,
   },
-  logo: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: '#2563EB',
+  brandLogo: {
+    width: 220,
+    height: 72,
+    marginBottom: 10,
   },
-  tagline: {
+  brandTagline: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#93C5FD',
     marginTop: 4,
+  },
+  formSection: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingTop: 28,
   },
   fieldContainer: {
     marginBottom: 16,
@@ -241,10 +260,10 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 1,
     borderColor: '#D1D5DB',
-    borderRadius: 8,
+    borderRadius: 10,
     paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
+    paddingVertical: 13,
+    fontSize: 15,
     color: '#111827',
     backgroundColor: '#F9FAFB',
   },
@@ -288,7 +307,7 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#2563EB',
-    borderRadius: 8,
+    borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
     marginBottom: 16,
@@ -319,7 +338,7 @@ const styles = StyleSheet.create({
   googleButton: {
     borderWidth: 1,
     borderColor: '#D1D5DB',
-    borderRadius: 8,
+    borderRadius: 10,
     paddingVertical: 13,
     alignItems: 'center',
     backgroundColor: '#fff',
@@ -350,6 +369,6 @@ const styles = StyleSheet.create({
   registerLink: {
     fontSize: 14,
     color: '#2563EB',
-    fontWeight: '500',
+    fontWeight: '600',
   },
 });
