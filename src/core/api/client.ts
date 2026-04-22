@@ -1,6 +1,15 @@
 import axios from 'axios';
 import { SecureStorage, SESSION_TOKEN_KEY } from '@core/auth/SecureStorage';
 
+declare module 'axios' {
+  interface InternalAxiosRequestConfig {
+    skipAuth401?: boolean;
+  }
+  interface AxiosRequestConfig {
+    skipAuth401?: boolean;
+  }
+}
+
 export const apiClient = axios.create({
   baseURL: process.env.EXPO_PUBLIC_API_URL,
   timeout: 15000,
@@ -9,8 +18,6 @@ export const apiClient = axios.create({
   },
 });
 
-// Callback registrado por AuthProvider para limpiar el estado de auth cuando
-// el servidor responde 401 (token expirado). Evita dependencia circular con useAuth.
 let sessionExpiredHandler: (() => void) | null = null;
 
 export function setSessionExpiredHandler(handler: (() => void) | null): void {
@@ -21,6 +28,7 @@ apiClient.interceptors.request.use(async (config) => {
   const token = await SecureStorage.getSessionToken();
   if (token) {
     config.headers['Cookie'] = `${SESSION_TOKEN_KEY}=${token}`;
+    config.headers['Authorization'] = `Bearer ${token}`;
   }
   return config;
 });
@@ -28,7 +36,7 @@ apiClient.interceptors.request.use(async (config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !error.config?.skipAuth401) {
       await SecureStorage.removeSessionToken();
       sessionExpiredHandler?.();
     }

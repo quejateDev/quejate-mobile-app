@@ -529,6 +529,7 @@ export default function CreatePQRScreen() {
                 testID="subject-input"
                 style={styles.input}
                 placeholder="Resumen breve del problema"
+                placeholderTextColor="#9CA3AF"
                 onBlur={onBlur}
                 onChangeText={onChange}
                 value={value}
@@ -549,6 +550,7 @@ export default function CreatePQRScreen() {
                 testID="description-input"
                 style={[styles.input, styles.textArea]}
                 placeholder="Describe el problema con el mayor detalle posible"
+                placeholderTextColor="#9CA3AF"
                 onBlur={onBlur}
                 onChangeText={onChange}
                 value={value}
@@ -628,6 +630,7 @@ export default function CreatePQRScreen() {
                   testID={`custom-field-${field.name}`}
                   style={styles.input}
                   placeholder={field.placeholder ?? field.name}
+                  placeholderTextColor="#9CA3AF"
                   value={customFieldValues[field.name] ?? ''}
                   onChangeText={(text) =>
                     setCustomFieldValues((prev) => ({
