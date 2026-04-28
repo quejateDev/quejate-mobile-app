@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AppStackParamList } from '@navigation/AppNavigator';
+import { AppStackParamList } from '@navigation/navigationRef';
 import { usePQRList } from '@features/pqr/hooks/usePQRList';
 import PQRCard from '@features/pqr/components/PQRCard';
 import { typeMap } from '@core/types';

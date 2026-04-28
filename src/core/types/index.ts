@@ -241,7 +241,13 @@ export interface PQRS {
 // Notification
 // =============================================================================
 
-export type NotificationData = Record<string, unknown>;
+export interface NotificationData {
+  pqrId?: string;
+  userId?: string;
+  followerId?: string;
+  requestId?: string;
+  [key: string]: unknown;
+}
 
 export interface Notification {
   id: string;

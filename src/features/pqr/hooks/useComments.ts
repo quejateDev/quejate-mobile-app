@@ -28,6 +28,8 @@ export function useAddComment(pqrId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pqr', pqrId, 'comments'] });
       queryClient.invalidateQueries({ queryKey: ['pqr', pqrId] });
+      queryClient.invalidateQueries({ queryKey: ['pqrs'] });
+      queryClient.invalidateQueries({ queryKey: ['pqrs-by-user'] });
     },
   });
 }
