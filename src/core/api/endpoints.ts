@@ -40,6 +40,7 @@ export const ENDPOINTS = {
     LIST:      '/notifications',
     MARK_READ: '/notifications',
   },
+  PUSH_TOKEN: '/push-token',
   USERS: {
     LIST:      '/users',
     SEARCH:    '/users/search',
