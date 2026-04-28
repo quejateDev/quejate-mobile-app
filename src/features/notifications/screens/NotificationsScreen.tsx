@@ -9,8 +9,11 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNotifications, useMarkNotificationRead } from '@features/notifications/hooks/useNotifications';
 import type { Notification } from '@core/types';
+import type { AppStackParamList } from '@navigation/navigationRef';
 
 const typeLabels: Record<string, string> = {
   follow: 'Nuevo seguidor',
@@ -33,15 +36,28 @@ function timeAgo(date: Date): string {
 function NotificationItem({
   item,
   onMarkRead,
+  onNavigatePQR,
+  onNavigateProfile,
 }: {
   item: Notification;
   onMarkRead: (id: string) => void;
+  onNavigatePQR: (pqrId: string) => void;
+  onNavigateProfile: (userId: string) => void;
 }) {
+  const handlePress = () => {
+    if (!item.read) onMarkRead(item.id);
+    if (item.type === 'follow' && item.data?.followerId) {
+      onNavigateProfile(item.data.followerId as string);
+    } else if (item.data?.pqrId) {
+      onNavigatePQR(item.data.pqrId);
+    }
+  };
+
   return (
     <TouchableOpacity
       style={[styles.item, !item.read && styles.itemUnread]}
-      onPress={() => !item.read && onMarkRead(item.id)}
-      activeOpacity={item.read ? 1 : 0.7}
+      onPress={handlePress}
+      activeOpacity={0.7}
     >
       {!item.read && <View style={styles.unreadDot} />}
       <View style={styles.itemContent}>
@@ -54,6 +70,7 @@ function NotificationItem({
 }
 
 export default function NotificationsScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const { data, isLoading, isRefetching, refetch } = useNotifications();
   const markRead = useMarkNotificationRead();
 
@@ -83,6 +100,8 @@ export default function NotificationsScreen() {
             <NotificationItem
               item={item}
               onMarkRead={(id) => markRead.mutate({ notificationId: id })}
+              onNavigatePQR={(pqrId) => navigation.navigate('PQRDetail', { id: pqrId })}
+              onNavigateProfile={(userId) => navigation.navigate('PublicProfile', { userId })}
             />
           )}
           ListEmptyComponent={
