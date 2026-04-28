@@ -55,7 +55,7 @@ function CommentItem({ comment }: { comment: Comment }) {
   );
 }
 
-function DetailHeader({ pqrId }: { pqrId: string }) {
+function DetailHeader({ pqrId, commentCount }: { pqrId: string; commentCount: number }) {
   const { user, isAuthenticated } = useAuth();
   const { data: pqr, isLoading } = usePQRDetail(pqrId);
   const likeMutation = useLikePQR(pqrId);
@@ -216,7 +216,7 @@ function DetailHeader({ pqrId }: { pqrId: string }) {
       )}
 
       <Text style={styles.sectionTitle}>
-        Comentarios ({pqr._count?.comments ?? 0})
+        Comentarios ({commentCount})
       </Text>
     </View>
   );
@@ -257,7 +257,7 @@ export default function PQRDetailScreen() {
         data={commentList}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <CommentItem comment={item} />}
-        ListHeaderComponent={<DetailHeader pqrId={id} />}
+        ListHeaderComponent={<DetailHeader pqrId={id} commentCount={commentList.length} />}
         ListEmptyComponent={
           !loadingComments ? (
             <View style={styles.emptyComments}>
