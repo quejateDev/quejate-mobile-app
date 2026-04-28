@@ -1,30 +1,23 @@
-import React from 'react';
-import { Image, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { Image, Linking, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { navigationRef } from '@navigation/navigationRef';
+import type { AppStackParamList, AppTabParamList } from '@navigation/navigationRef';
 import PQRListScreen from '@features/pqr/screens/PQRListScreen';
 import CreatePQRScreen from '@features/pqr/screens/CreatePQRScreen';
 import PQRDetailScreen from '@features/pqr/screens/PQRDetailScreen';
 import MyPQRsScreen from '@features/pqr/screens/MyPQRsScreen';
 import NotificationsScreen from '@features/notifications/screens/NotificationsScreen';
+import PublicProfileScreen from '@features/users/screens/PublicProfileScreen';
 import UserProfileScreen from '@features/users/screens/UserProfileScreen';
+import { useNotifications } from '@features/notifications/hooks/useNotifications';
+import { usePushNotifications } from '@core/notifications/usePushNotifications';
 
 // ---------------------------------------------------------------------------
 // Param lists
 // ---------------------------------------------------------------------------
 
-type AppTabParamList = {
-  PQRSDs: undefined;
-  Notificaciones: undefined;
-  Perfil: undefined;
-};
-
-export type AppStackParamList = {
-  Tabs: undefined;
-  CreatePQR: undefined;
-  PQRDetail: { id: string };
-  MyPQRs: undefined;
-};
 
 function PersonIcon({ color, size }: { color: string; size: number }) {
   return (
@@ -55,6 +48,11 @@ const Tab = createBottomTabNavigator<AppTabParamList>();
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
 function AppTabs() {
+  const { data: notifications } = useNotifications();
+  const unreadCount = notifications?.filter((n) => !n.read).length ?? 0;
+
+  usePushNotifications();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -91,13 +89,31 @@ function AppTabs() {
       })}
     >
       <Tab.Screen name="PQRSDs" component={PQRListScreen} />
-      <Tab.Screen name="Notificaciones" component={NotificationsScreen} />
+      <Tab.Screen
+        name="Notificaciones"
+        component={NotificationsScreen}
+        options={{ tabBarBadge: unreadCount > 0 ? unreadCount : undefined }}
+      />
       <Tab.Screen name="Perfil" component={UserProfileScreen} />
     </Tab.Navigator>
   );
 }
 
+function parseDeepLink(url: string | null): void {
+  if (!url || url.includes('expo-development-client')) return;
+  const match = url.match(/quejate:\/\/pqr\/([^/?#]+)/);
+  if (match?.[1] && navigationRef.isReady()) {
+    navigationRef.navigate('PQRDetail', { id: match[1] });
+  }
+}
+
 export default function AppNavigator() {
+  useEffect(() => {
+    Linking.getInitialURL().then(parseDeepLink);
+    const sub = Linking.addEventListener('url', ({ url }) => parseDeepLink(url));
+    return () => sub.remove();
+  }, []);
+
   return (
     <Stack.Navigator>
       <Stack.Screen
@@ -135,6 +151,18 @@ export default function AppNavigator() {
         options={{
           headerShown: true,
           headerTitle: 'Mis PQRSDs',
+          headerBackTitle: 'Volver',
+          headerTintColor: '#2563EB',
+          headerShadowVisible: false,
+          headerStyle: { backgroundColor: '#fff' },
+        }}
+      />
+      <Stack.Screen
+        name="PublicProfile"
+        component={PublicProfileScreen}
+        options={{
+          headerShown: true,
+          headerTitle: 'Perfil',
           headerBackTitle: 'Volver',
           headerTintColor: '#2563EB',
           headerShadowVisible: false,

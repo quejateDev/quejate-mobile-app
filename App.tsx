@@ -5,12 +5,13 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryProvider } from '@core/providers/QueryProvider';
 import { AuthProvider } from '@core/providers/AuthProvider';
 import RootNavigator from '@navigation/RootNavigator';
+import { navigationRef } from '@navigation/navigationRef';
 
 export default function App() {
   return (
     <SafeAreaProvider>
       <QueryProvider>
-        <NavigationContainer>
+        <NavigationContainer ref={navigationRef}>
           <AuthProvider>
             <RootNavigator />
             <StatusBar style="dark" />

@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AppStackParamList } from '@navigation/AppNavigator';
+import { AppStackParamList } from '@navigation/navigationRef';
 import { useMyPQRs } from '@features/pqr/hooks/useMyPQRs';
 import { useAuth } from '@core/auth/useAuth';
 import PQRCard from '@features/pqr/components/PQRCard';
