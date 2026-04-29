@@ -25,6 +25,12 @@ export function useMarkNotificationRead() {
   return useMutation<void, unknown, { notificationId: string }>({
     mutationFn: (body) =>
       apiClient.patch(ENDPOINTS.NOTIFICATIONS.MARK_READ, body, { skipAuth401: true }).then((r) => r.data),
+    onMutate: async ({ notificationId }) => {
+      await queryClient.cancelQueries({ queryKey: ['notifications'] });
+      queryClient.setQueryData<Notification[]>(['notifications'], (prev) =>
+        prev?.map((n) => (n.id === notificationId ? { ...n, read: true } : n)) ?? [],
+      );
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
