@@ -15,6 +15,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AppStackParamList } from '@navigation/navigationRef';
 import { usePQRList } from '@features/pqr/hooks/usePQRList';
 import PQRCard from '@features/pqr/components/PQRCard';
+import { ErrorState } from '@shared/components/ui/ErrorState';
 import { typeMap } from '@core/types';
 import type { PQRS, PQRSType } from '@core/types';
 
@@ -106,17 +107,32 @@ export default function PQRListScreen() {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
+    isError,
     refetch,
     isRefetching,
   } = usePQRList(activeType ? { type: activeType } : {});
 
   const pqrs: PQRS[] = data?.pages.flatMap((p) => p.pqrs) ?? [];
 
+  if (isError) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ErrorState
+          message="No se pudieron cargar las PQRSDs. Verifica tu conexión."
+          onRetry={refetch}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <FlatList
         data={pqrs}
         keyExtractor={(item) => item.id}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={5}
         renderItem={({ item }) => (
           <PQRCard
             pqr={item}
