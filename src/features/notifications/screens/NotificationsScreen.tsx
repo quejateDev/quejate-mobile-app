@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNotifications, useMarkNotificationRead } from '@features/notifications/hooks/useNotifications';
+import { ErrorState } from '@shared/components/ui/ErrorState';
 import type { Notification } from '@core/types';
 import type { AppStackParamList } from '@navigation/navigationRef';
 
@@ -33,7 +34,7 @@ function timeAgo(date: Date): string {
   return `Hace ${Math.floor(diff / 86400)} d`;
 }
 
-function NotificationItem({
+const NotificationItem = React.memo(function NotificationItem({
   item,
   onMarkRead,
   onNavigatePQR,
@@ -53,11 +54,17 @@ function NotificationItem({
     }
   };
 
+  const typeLabel = typeLabels[item.type] ?? item.type;
+  const readLabel = item.read ? 'leída' : 'no leída';
+
   return (
     <TouchableOpacity
       style={[styles.item, !item.read && styles.itemUnread]}
       onPress={handlePress}
       activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={`Notificación ${typeLabel}: ${item.message}. Estado: ${readLabel}`}
+      accessibilityHint={item.read ? 'Toca para navegar' : 'Toca para marcar como leída y navegar'}
     >
       {!item.read && <View style={styles.unreadDot} />}
       <View style={styles.itemContent}>
@@ -67,15 +74,26 @@ function NotificationItem({
       </View>
     </TouchableOpacity>
   );
-}
+});
 
 export default function NotificationsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
-  const { data, isLoading, isRefetching, refetch } = useNotifications();
+  const { data, isLoading, isError, isRefetching, refetch } = useNotifications();
   const markRead = useMarkNotificationRead();
 
   const notifications: Notification[] = data ?? [];
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  if (isError) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ErrorState
+          message="No se pudieron cargar las notificaciones."
+          onRetry={refetch}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -96,6 +114,9 @@ export default function NotificationsScreen() {
         <FlatList<Notification>
           data={notifications}
           keyExtractor={(item) => item.id}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={5}
           renderItem={({ item }) => (
             <NotificationItem
               item={item}

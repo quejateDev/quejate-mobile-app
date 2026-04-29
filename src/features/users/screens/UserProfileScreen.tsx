@@ -18,6 +18,7 @@ import { useAuth } from '@core/auth/useAuth';
 import { useMyPQRs } from '@features/pqr/hooks/useMyPQRs';
 import { apiClient } from '@core/api/client';
 import { ENDPOINTS } from '@core/api/endpoints';
+import { ErrorState } from '@shared/components/ui/ErrorState';
 import type { AppStackParamList } from '@navigation/navigationRef';
 import type { UserProfile } from '@core/types';
 import PQRCard from '@features/pqr/components/PQRCard';
@@ -87,7 +88,7 @@ export default function UserProfileScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const [modal, setModal] = useState<'followers' | 'following' | null>(null);
 
-  const { data: profile } = useQuery<UserProfile>({
+  const { data: profile, isError: isProfileError, refetch: refetchProfile } = useQuery<UserProfile>({
     queryKey: ['user', sessionUser?.id],
     queryFn: async () => {
       const res = await apiClient.get(ENDPOINTS.USERS.DETAIL(sessionUser!.id));
@@ -98,6 +99,17 @@ export default function UserProfileScreen() {
 
   const pqrsQuery = useMyPQRs();
   const allPqrs = pqrsQuery.data?.pages.flatMap((p) => p.pqrs) ?? [];
+
+  if (isProfileError) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ErrorState
+          message="No se pudo cargar tu perfil. Verifica tu conexión."
+          onRetry={refetchProfile}
+        />
+      </SafeAreaView>
+    );
+  }
 
   function handleSignOut() {
     Alert.alert(
@@ -121,6 +133,9 @@ export default function UserProfileScreen() {
         style={styles.container}
         data={allPqrs}
         keyExtractor={(item) => item.id}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={5}
         onEndReached={() => {
           if (pqrsQuery.hasNextPage && !pqrsQuery.isFetchingNextPage) {
             pqrsQuery.fetchNextPage();

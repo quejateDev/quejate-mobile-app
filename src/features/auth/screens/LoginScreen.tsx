@@ -112,6 +112,8 @@ export default function LoginScreen() {
                     onChangeText={onChange}
                     value={value}
                     editable={!isLoading}
+                    accessibilityLabel="Correo electrónico"
+                    accessibilityHint="Ingresa tu correo electrónico registrado"
                   />
                 )}
               />
@@ -134,6 +136,8 @@ export default function LoginScreen() {
                       onChangeText={onChange}
                       value={value}
                       editable={!isLoading}
+                      accessibilityLabel="Contraseña"
+                      accessibilityHint="Ingresa tu contraseña, mínimo 6 caracteres"
                     />
                   )}
                 />
@@ -161,6 +165,7 @@ export default function LoginScreen() {
               disabled={isLoading}
               accessibilityRole="button"
               accessibilityLabel="Iniciar sesión"
+              accessibilityHint="Toca para ingresar con tu correo y contraseña"
             >
               {isSubmitting ? (
                 <ActivityIndicator color="#fff" />

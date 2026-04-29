@@ -8,7 +8,7 @@ interface Props {
   onPress: () => void;
 }
 
-export default function PQRCard({ pqr, onPress }: Props) {
+function PQRCardBase({ pqr, onPress }: Props) {
   const type = typeMap[pqr.type];
   const status = statusMap[pqr.status];
   const authorName = pqr.anonymous ? 'Anónimo' : (pqr.creator?.name ?? 'Desconocido');
@@ -19,7 +19,13 @@ export default function PQRCard({ pqr, onPress }: Props) {
   const comments = pqr._count?.comments ?? 0;
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={onPress}
+      activeOpacity={0.75}
+      accessibilityRole="button"
+      accessibilityLabel={`Ver PQRSD: ${pqr.subject ?? pqr.type}`}
+    >
       <View style={styles.header}>
         <View style={[styles.typeBadge, { backgroundColor: type.color + '18' }]}>
           <Text style={[styles.typeBadgeText, { color: type.color }]}>{type.label}</Text>
@@ -63,6 +69,9 @@ export default function PQRCard({ pqr, onPress }: Props) {
     </TouchableOpacity>
   );
 }
+
+const PQRCard = React.memo(PQRCardBase);
+export default PQRCard;
 
 const styles = StyleSheet.create({
   card: {
