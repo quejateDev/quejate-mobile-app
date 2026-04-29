@@ -26,7 +26,7 @@ import { useEntities } from '@features/pqr/hooks/useEntities';
 import { usePQRConfig } from '@features/pqr/hooks/usePQRConfig';
 import { useCreatePQR } from '@features/pqr/hooks/useCreatePQR';
 import type { LocalAttachment } from '@features/pqr/hooks/useCreatePQR';
-import type { AppStackParamList } from '@navigation/AppNavigator';
+import type { AppStackParamList } from '@navigation/navigationRef';
 
 const schema = z.object({
   entityId: z.string().min(1, 'Selecciona una entidad'),

@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppStackParamList } from '@navigation/AppNavigator';
+import type { AppStackParamList } from '@navigation/navigationRef';
 import { useAuth } from '@core/auth/useAuth';
 import { typeMap, statusMap } from '@core/types';
 import type { Comment } from '@core/types';
@@ -28,6 +28,7 @@ import {
   useUpdateStatus,
   useUpdatePrivacy,
 } from '@features/pqr/hooks/usePQRActions';
+import { ErrorState } from '@shared/components/ui/ErrorState';
 
 type Route = RouteProp<AppStackParamList, 'PQRDetail'>;
 
@@ -37,7 +38,7 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function CommentItem({ comment }: { comment: Comment }) {
+const CommentItem = React.memo(function CommentItem({ comment }: { comment: Comment }) {
   return (
     <View style={styles.commentItem}>
       {comment.user.image ? (
@@ -53,7 +54,7 @@ function CommentItem({ comment }: { comment: Comment }) {
       </View>
     </View>
   );
-}
+});
 
 function DetailHeader({ pqrId, commentCount }: { pqrId: string; commentCount: number }) {
   const { user, isAuthenticated } = useAuth();
@@ -154,6 +155,9 @@ function DetailHeader({ pqrId, commentCount }: { pqrId: string; commentCount: nu
           style={[styles.likeButton, isLiked && styles.likeButtonActive]}
           onPress={handleLike}
           disabled={!isAuthenticated || likeMutation.isPending}
+          accessibilityRole="button"
+          accessibilityLabel="Dar like"
+          accessibilityState={{ checked: isLiked }}
         >
           <Text style={[styles.likeButtonText, isLiked && styles.likeButtonTextActive]}>
             {isLiked ? '♥' : '♡'} {pqr._count?.likes ?? pqr.likes.length}
@@ -229,10 +233,19 @@ export default function PQRDetailScreen() {
   const insets = useSafeAreaInsets();
 
   const { data: comments, isLoading: loadingComments, refetch: refetchComments } = useComments(id);
-  const { refetch: refetchDetail, isRefetching } = usePQRDetail(id);
+  const { isError: isDetailError, refetch: refetchDetail, isRefetching } = usePQRDetail(id);
   const addComment = useAddComment(id);
 
   const [commentText, setCommentText] = useState('');
+
+  if (isDetailError) {
+    return (
+      <ErrorState
+        message="No se pudo cargar la PQRSD. Verifica tu conexión."
+        onRetry={refetchDetail}
+      />
+    );
+  }
 
   function handleSendComment() {
     if (!commentText.trim() || !user) return;
@@ -256,6 +269,9 @@ export default function PQRDetailScreen() {
       <FlatList<Comment>
         data={commentList}
         keyExtractor={(item) => item.id}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={5}
         renderItem={({ item }) => <CommentItem comment={item} />}
         ListHeaderComponent={<DetailHeader pqrId={id} commentCount={commentList.length} />}
         ListEmptyComponent={

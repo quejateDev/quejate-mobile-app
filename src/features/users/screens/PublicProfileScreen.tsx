@@ -16,9 +16,10 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@core/api/client';
 import { ENDPOINTS } from '@core/api/endpoints';
+import { ErrorState } from '@shared/components/ui/ErrorState';
 import { useAuth } from '@core/auth/useAuth';
 import type { AppStackParamList } from '@navigation/navigationRef';
-import type { UserProfile } from '@core/types';
+import type { UserProfile, PQRS } from '@core/types';
 import PQRCard from '@features/pqr/components/PQRCard';
 
 const ROLE_LABEL: Record<string, string> = {
@@ -42,7 +43,7 @@ export default function PublicProfileScreen() {
   const queryClient = useQueryClient();
   const { userId } = route.params;
 
-  const { data: user, isLoading, isError } = useQuery<UserProfile>({
+  const { data: user, isLoading, isError, refetch } = useQuery<UserProfile>({
     queryKey: ['user', userId],
     queryFn: async () => {
       const res = await apiClient.get(ENDPOINTS.USERS.DETAIL(userId));
@@ -84,9 +85,10 @@ export default function PublicProfileScreen() {
   if (isError || !user) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.center}>
-          <Text style={styles.errorText}>No se pudo cargar el perfil</Text>
-        </View>
+        <ErrorState
+          message="No se pudo cargar el perfil. Verifica tu conexión."
+          onRetry={refetch}
+        />
       </SafeAreaView>
     );
   }
@@ -100,6 +102,9 @@ export default function PublicProfileScreen() {
       style={styles.container}
       data={pqrs}
       keyExtractor={(item) => item.id}
+      removeClippedSubviews={true}
+      maxToRenderPerBatch={10}
+      windowSize={5}
       renderItem={({ item }) => (
         <PQRCard
           pqr={item}
