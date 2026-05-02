@@ -127,8 +127,44 @@ describe('useCreatePQR', () => {
 
     expect(apiClient.post).toHaveBeenCalledWith(
       ENDPOINTS.PQR.CREATE,
-      expect.any(FormData),
+      expect.any(Object),
+      expect.objectContaining({ headers: { 'Content-Type': 'multipart/form-data' } }),
     );
+
+    appendSpy.mockRestore();
+  });
+
+  it('incluye latitude y longitude en el payload JSON cuando se proporcionan', async () => {
+    const appendSpy = jest.spyOn(FormData.prototype, 'append');
+
+    const { result } = renderHook(() => useCreatePQR('user-1'), { wrapper });
+
+    await act(async () => {
+      await result.current.createPQR({ ...baseInput, latitude: 4.711, longitude: -74.0721 });
+    });
+
+    const dataCall = appendSpy.mock.calls.find(([key]) => key === 'data');
+    expect(dataCall).toBeDefined();
+    const parsed = JSON.parse(dataCall![1] as unknown as string);
+    expect(parsed.latitude).toBe(4.711);
+    expect(parsed.longitude).toBe(-74.0721);
+
+    appendSpy.mockRestore();
+  });
+
+  it('incluye latitude:null cuando la ubicación no fue seleccionada', async () => {
+    const appendSpy = jest.spyOn(FormData.prototype, 'append');
+
+    const { result } = renderHook(() => useCreatePQR('user-1'), { wrapper });
+
+    await act(async () => {
+      await result.current.createPQR({ ...baseInput, latitude: null, longitude: null });
+    });
+
+    const dataCall = appendSpy.mock.calls.find(([key]) => key === 'data');
+    const parsed = JSON.parse(dataCall![1] as unknown as string);
+    expect(parsed.latitude).toBeNull();
+    expect(parsed.longitude).toBeNull();
 
     appendSpy.mockRestore();
   });

@@ -4,6 +4,18 @@ import LoginScreen from '../LoginScreen';
 import { useAuth } from '@core/auth/useAuth';
 import * as WebBrowser from 'expo-web-browser';
 
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ navigate: jest.fn(), goBack: jest.fn() }),
+}));
+
+jest.mock('@features/auth/hooks/useGoogleAuth', () => ({
+  useGoogleAuth: () => ({
+    signInWithGoogle: jest.fn(),
+    isPending: false,
+    error: null,
+  }),
+}));
+
 jest.mock('@core/auth/useAuth');
 jest.mock('@core/api/client', () => ({
   apiClient: { get: jest.fn() },
@@ -11,6 +23,7 @@ jest.mock('@core/api/client', () => ({
 }));
 jest.mock('expo-web-browser', () => ({
   openBrowserAsync: jest.fn(),
+  maybeCompleteAuthSession: jest.fn(),
 }));
 
 const mockSignIn = jest.fn();

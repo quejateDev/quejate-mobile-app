@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useNotifications, useMarkNotificationRead } from '@features/notifications/hooks/useNotifications';
+import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from '@features/notifications/hooks/useNotifications';
 import { ErrorState } from '@shared/components/ui/ErrorState';
 import type { Notification } from '@core/types';
 import type { AppStackParamList } from '@navigation/navigationRef';
@@ -80,6 +80,7 @@ export default function NotificationsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const { data, isLoading, isError, isRefetching, refetch } = useNotifications();
   const markRead = useMarkNotificationRead();
+  const markAll = useMarkAllNotificationsRead();
 
   const notifications: Notification[] = data ?? [];
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -99,11 +100,25 @@ export default function NotificationsScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.headerRow}>
         <Text style={styles.title}>Notificaciones</Text>
-        {unreadCount > 0 && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{unreadCount}</Text>
-          </View>
-        )}
+        <View style={styles.headerRight}>
+          {unreadCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadCount}</Text>
+            </View>
+          )}
+          <TouchableOpacity
+            onPress={() => markAll.mutate()}
+            disabled={unreadCount === 0 || markAll.isPending}
+            activeOpacity={0.7}
+          >
+            <Text style={[
+              styles.markAllText,
+              (unreadCount === 0 || markAll.isPending) && styles.markAllTextDisabled,
+            ]}>
+              Marcar todas
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {isLoading ? (
@@ -149,12 +164,15 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 8,
-    gap: 8,
   },
   title: { fontSize: 22, fontWeight: '700', color: '#111827' },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  markAllText: { fontSize: 13, fontWeight: '600', color: '#2563EB' },
+  markAllTextDisabled: { color: '#93C5FD' },
   badge: {
     backgroundColor: '#2563EB',
     borderRadius: 99,

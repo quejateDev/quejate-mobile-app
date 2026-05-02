@@ -42,11 +42,13 @@ export const ENDPOINTS = {
   },
   PUSH_TOKEN: '/push-token',
   USERS: {
-    LIST:      '/users',
-    SEARCH:    '/users/search',
-    DETAIL:    (id: string) => `/users/${id}`,
-    FOLLOW:    (id: string) => `/users/${id}/follow`,
-    FAVORITES: (id: string) => `/users/${id}/favorite-entities`,
+    LIST:            '/users',
+    SEARCH:          '/users/search',
+    DETAIL:          (id: string) => `/users/${id}`,
+    UPDATE:          (id: string) => `/users/${id}`,
+    DELETE:          (id: string) => `/users/${id}`,
+    FOLLOW:          (id: string) => `/users/${id}/follow`,
+    FAVORITES:       (id: string) => `/users/${id}/favorite-entities`,
   },
   LAWYERS: {
     LIST:          '/lawyer',

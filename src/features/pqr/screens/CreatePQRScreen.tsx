@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,17 +9,22 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Dimensions,
+  Modal,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Recaptcha, { RecaptchaRef } from 'react-native-recaptcha-that-works';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import * as Location from 'expo-location';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '@core/auth/useAuth';
 import { typeMap } from '@core/types';
+import { MiniMap } from '@features/map/components/MiniMap';
 import type { PQRSType, CustomField } from '@core/types';
 import { useDepartments, useMunicipalities } from '@features/pqr/hooks/useLocations';
 import { useEntities } from '@features/pqr/hooks/useEntities';
@@ -56,6 +61,7 @@ const PQRS_TYPES: PQRSType[] = [
 export default function CreatePQRScreen() {
   const navigation = useNavigation<Nav>();
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const recaptchaRef = useRef<RecaptchaRef>(null);
 
@@ -64,6 +70,21 @@ export default function CreatePQRScreen() {
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
   const [attachments, setAttachments] = useState<LocalAttachment[]>([]);
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const [pinLatitude, setPinLatitude] = useState<number | null>(null);
+  const [pinLongitude, setPinLongitude] = useState<number | null>(null);
+  const [pinAddress, setPinAddress] = useState<string | null>(null);
+  const [mapModalVisible, setMapModalVisible] = useState(false);
+
+  useEffect(() => {
+    if (currentStep !== 4 || pinLatitude != null) return;
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const loc = await Location.getCurrentPositionAsync({});
+      setPinLatitude(loc.coords.latitude);
+      setPinLongitude(loc.coords.longitude);
+    })();
+  }, [currentStep, pinLatitude]);
 
   const [isDeptOpen, setIsDeptOpen] = useState(false);
   const [isMunOpen, setIsMunOpen] = useState(false);
@@ -152,6 +173,8 @@ export default function CreatePQRScreen() {
         return;
       }
       setCurrentStep(4);
+    } else if (currentStep === 4) {
+      setCurrentStep(5);
     }
   }
 
@@ -232,6 +255,8 @@ export default function CreatePQRScreen() {
         isAnonymous: values.isAnonymous,
         isPrivate: values.isPrivate,
         creatorId: user?.id,
+        latitude: pinLatitude,
+        longitude: pinLongitude,
         customFields: customFieldsPayload,
         localAttachments: attachments,
         recaptchaToken,
@@ -257,7 +282,7 @@ export default function CreatePQRScreen() {
   function renderStepIndicator() {
     return (
       <View style={styles.stepIndicator}>
-        {[1, 2, 3, 4].map((step) => (
+        {[1, 2, 3, 4, 5].map((step) => (
           <View
             key={step}
             style={[
@@ -688,14 +713,86 @@ export default function CreatePQRScreen() {
   }
 
   function renderStep4() {
+    return (
+      <View testID="step4-content">
+        <Text style={styles.stepTitle}>Paso 4 — Ubicación en el mapa (opcional)</Text>
+        <Text style={styles.stepHint}>
+          Marca dónde ocurrió el problema. Este paso es opcional.
+        </Text>
+
+        <View style={styles.locationCard}>
+          {pinAddress ? (
+            <Text style={styles.locationCardText} numberOfLines={3}>{pinAddress}</Text>
+          ) : pinLatitude != null ? (
+            <Text style={styles.locationCardText}>
+              {pinLatitude.toFixed(5)}, {pinLongitude!.toFixed(5)}
+            </Text>
+          ) : (
+            <Text style={styles.locationCardEmpty}>Sin ubicación seleccionada</Text>
+          )}
+          <TouchableOpacity
+            style={styles.locationCardBtn}
+            onPress={() => setMapModalVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.locationCardBtnText}>
+              {pinLatitude != null ? 'Cambiar ubicación' : 'Seleccionar en mapa'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <Modal
+          visible={mapModalVisible}
+          animationType="slide"
+          transparent={false}
+          onRequestClose={() => setMapModalVisible(false)}
+        >
+          <View style={[styles.mapModalContainer, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+            <View style={styles.mapModalHeader}>
+              <TouchableOpacity
+                onPress={() => setMapModalVisible(false)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={styles.mapModalBack}>✕</Text>
+              </TouchableOpacity>
+              <Text style={styles.mapModalTitle}>Seleccionar ubicación</Text>
+              <TouchableOpacity
+                onPress={() => setMapModalVisible(false)}
+                disabled={pinLatitude == null}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={[styles.mapModalDone, pinLatitude == null && styles.mapModalDoneDisabled]}>
+                  Listo
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ flex: 1 }}>
+              <MiniMap
+                latitude={pinLatitude}
+                longitude={pinLongitude}
+                mapHeight={Dimensions.get('window').height - insets.top - insets.bottom - 140}
+                onLocationChange={(lat, lng, addr) => {
+                  setPinLatitude(lat);
+                  setPinLongitude(lng);
+                  setPinAddress(addr);
+                }}
+              />
+            </View>
+          </View>
+        </Modal>
+      </View>
+    );
+  }
+
+  function renderStep5() {
     const values = getValues();
     const selectedEntity = entities.find((e) => e.id === values.entityId);
     const selectedEntityDept = entityDepartments.find((d) => d.id === values.entityDepartmentId);
     const visibleFields = getVisibleCustomFields();
 
     return (
-      <View testID="step4-content">
-        <Text style={styles.stepTitle}>Paso 4 — Confirmación</Text>
+      <View testID="step5-content">
+        <Text style={styles.stepTitle}>Paso 5 — Confirmación</Text>
         <Text style={styles.confirmNote}>
           Revisa los datos antes de enviar tu PQRSD.
         </Text>
@@ -727,6 +824,12 @@ export default function CreatePQRScreen() {
               value={customFieldValues[field.name] ?? '—'}
             />
           ))}
+          {pinLatitude != null && (
+            <SummaryRow
+              label="Ubicación"
+              value={pinAddress ?? `${pinLatitude.toFixed(4)}, ${pinLongitude!.toFixed(4)}`}
+            />
+          )}
           <SummaryRow
             label="Adjuntos"
             value={
@@ -792,15 +895,16 @@ export default function CreatePQRScreen() {
       {currentStep === 2 && renderStep2()}
       {currentStep === 3 && renderStep3()}
       {currentStep === 4 && renderStep4()}
+      {currentStep === 5 && renderStep5()}
 
-      {stepError && currentStep !== 4 && (
+      {stepError && currentStep !== 5 && (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{stepError}</Text>
         </View>
       )}
 
-      {/* Navigation buttons (steps 1-3) */}
-      {currentStep < 4 && (
+      {/* Navigation buttons (steps 1-4) */}
+      {currentStep < 5 && (
         <View style={styles.navRow}>
           {currentStep > 1 && (
             <TouchableOpacity
@@ -1057,6 +1161,79 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
+  stepHint: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  pinAddressHint: {
+    fontSize: 12,
+    color: '#15803D',
+    marginTop: 8,
+    lineHeight: 18,
+  },
+  locationCard: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    padding: 14,
+    backgroundColor: '#F9FAFB',
+    gap: 12,
+  },
+  locationCardText: {
+    fontSize: 13,
+    color: '#374151',
+    lineHeight: 18,
+  },
+  locationCardEmpty: {
+    fontSize: 13,
+    color: '#9CA3AF',
+  },
+  locationCardBtn: {
+    backgroundColor: '#2563EB',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  locationCardBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  mapModalContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  mapModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  mapModalBack: {
+    fontSize: 18,
+    color: '#6B7280',
+    minWidth: 32,
+  },
+  mapModalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  mapModalDone: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#2563EB',
+    minWidth: 42,
+    textAlign: 'right',
+  },
+  mapModalDoneDisabled: {
+    color: '#93C5FD',
+  },
   confirmNote: {
     fontSize: 14,
     color: '#6B7280',

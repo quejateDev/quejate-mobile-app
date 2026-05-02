@@ -32,6 +32,8 @@ export interface CreatePQRInput {
   guestName?: string;
   guestEmail?: string;
   guestPhone?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   customFields: CustomFieldEntry[];
   localAttachments: LocalAttachment[];
   recaptchaToken: string;
