@@ -58,12 +58,17 @@ export const useAuth = create<AuthState>((set, get) => ({
   signInWithGoogle: async (idToken: string) => {
     const { setUser } = get();
 
-    const res = await apiClient.post<{ sessionToken: string }>(
+    const res = await apiClient.post<{ sessionToken: string; user?: SessionUser }>(
       ENDPOINTS.AUTH.MOBILE_GOOGLE,
       { idToken },
     );
-    const { sessionToken } = res.data;
+    const { sessionToken, user } = res.data;
     await SecureStorage.setSessionToken(sessionToken);
+
+    if (user) {
+      setUser(user);
+      return;
+    }
 
     const sessionRes = await apiClient.get<SessionResponse>(ENDPOINTS.AUTH.SESSION);
     if (!sessionRes.data?.user) throw new Error('SESSION_INVALID');

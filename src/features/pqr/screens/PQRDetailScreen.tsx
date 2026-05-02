@@ -5,9 +5,10 @@ import {
   FlatList,
   Image,
   KeyboardAvoidingView,
-  Linking,
+  Modal,
   Platform,
   RefreshControl,
+  ScrollView,
   Share,
   StyleSheet,
   Text,
@@ -17,10 +18,11 @@ import {
 } from 'react-native';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import WebView from 'react-native-webview';
 import type { AppStackParamList } from '@navigation/navigationRef';
 import { useAuth } from '@core/auth/useAuth';
 import { typeMap, statusMap } from '@core/types';
-import type { Comment } from '@core/types';
+import type { Attachment, Comment } from '@core/types';
 import { usePQRDetail } from '@features/pqr/hooks/usePQRDetail';
 import { useComments, useAddComment } from '@features/pqr/hooks/useComments';
 import {
@@ -37,6 +39,207 @@ function formatBytes(bytes: number) {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+function isImageAttachment(mimeType: string, name: string): boolean {
+  if (mimeType.startsWith('image/')) return true;
+  const ext = name.split('.').pop()?.toLowerCase() ?? '';
+  return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif'].includes(ext);
+}
+
+function AttachmentGalleryModal({
+  images,
+  initialIndex,
+  onClose,
+}: {
+  images: Attachment[];
+  initialIndex: number;
+  onClose: () => void;
+}) {
+  const [idx, setIdx] = useState(initialIndex);
+  const current = images[idx];
+  const insets = useSafeAreaInsets();
+
+  return (
+    <Modal
+      visible
+      animationType="fade"
+      transparent={false}
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <View style={[galleryStyles.container, { paddingTop: insets.top }]}>
+        <View style={galleryStyles.topBar}>
+          <Text style={galleryStyles.counter} numberOfLines={1}>
+            {idx + 1} / {images.length}
+          </Text>
+          <Text style={galleryStyles.imageName} numberOfLines={1}>
+            {current.name}
+          </Text>
+          <TouchableOpacity
+            style={galleryStyles.closeBtn}
+            onPress={onClose}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Text style={galleryStyles.closeBtnText}>✕</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Image
+          source={{ uri: current.url }}
+          style={galleryStyles.image}
+          resizeMode="contain"
+        />
+
+        {images.length > 1 && (
+          <View style={[galleryStyles.navRow, { paddingBottom: insets.bottom + 16 }]}>
+            <TouchableOpacity
+              style={[galleryStyles.navBtn, idx === 0 && galleryStyles.navBtnDisabled]}
+              onPress={() => setIdx((i) => Math.max(0, i - 1))}
+              disabled={idx === 0}
+            >
+              <Text style={galleryStyles.navBtnText}>‹</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[galleryStyles.navBtn, idx === images.length - 1 && galleryStyles.navBtnDisabled]}
+              onPress={() => setIdx((i) => Math.min(images.length - 1, i + 1))}
+              disabled={idx === images.length - 1}
+            >
+              <Text style={galleryStyles.navBtnText}>›</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    </Modal>
+  );
+}
+
+function DocumentViewerModal({
+  url,
+  name,
+  onClose,
+}: {
+  url: string;
+  name: string;
+  onClose: () => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const insets = useSafeAreaInsets();
+  const viewerUrl =
+    Platform.OS === 'android'
+      ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
+      : url;
+
+  return (
+    <Modal visible animationType="slide" transparent={false} onRequestClose={onClose}>
+      <View style={[docViewerStyles.container, { paddingTop: insets.top }]}>
+        <View style={docViewerStyles.header}>
+          <TouchableOpacity
+            onPress={onClose}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Text style={docViewerStyles.closeText}>✕</Text>
+          </TouchableOpacity>
+          <Text style={docViewerStyles.title} numberOfLines={1}>{name}</Text>
+          <View style={{ width: 32 }} />
+        </View>
+        <WebView
+          source={{ uri: viewerUrl }}
+          style={{ flex: 1 }}
+          onLoadStart={() => setLoading(true)}
+          onLoadEnd={() => setLoading(false)}
+        />
+        {loading && (
+          <ActivityIndicator
+            style={docViewerStyles.loadingOverlay}
+            color="#2563EB"
+            size="large"
+          />
+        )}
+      </View>
+    </Modal>
+  );
+}
+
+const docViewerStyles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#fff' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  closeText: { fontSize: 20, color: '#6B7280', minWidth: 32 },
+  title: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    textAlign: 'center',
+    marginHorizontal: 8,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: '50%',
+    alignSelf: 'center',
+  },
+});
+
+const galleryStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  counter: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
+    minWidth: 36,
+  },
+  imageName: {
+    flex: 1,
+    fontSize: 13,
+    color: '#fff',
+    textAlign: 'center',
+  },
+  closeBtn: {
+    minWidth: 36,
+    alignItems: 'flex-end',
+  },
+  closeBtnText: {
+    fontSize: 20,
+    color: '#fff',
+  },
+  image: {
+    flex: 1,
+    width: '100%',
+  },
+  navRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingTop: 16,
+  },
+  navBtn: {
+    paddingHorizontal: 32,
+    paddingVertical: 8,
+  },
+  navBtnDisabled: {
+    opacity: 0.25,
+  },
+  navBtnText: {
+    fontSize: 48,
+    color: '#fff',
+    lineHeight: 52,
+  },
+});
 
 const CommentItem = React.memo(function CommentItem({ comment }: { comment: Comment }) {
   return (
@@ -62,6 +265,8 @@ function DetailHeader({ pqrId, commentCount }: { pqrId: string; commentCount: nu
   const likeMutation = useLikePQR(pqrId);
   const statusMutation = useUpdateStatus(pqrId);
   const privacyMutation = useUpdatePrivacy(pqrId);
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
+  const [docViewer, setDocViewer] = useState<{ url: string; name: string } | null>(null);
 
   if (isLoading || !pqr) {
     return (
@@ -79,6 +284,7 @@ function DetailHeader({ pqrId, commentCount }: { pqrId: string; commentCount: nu
   const isExpiringSoon = daysLeft <= 3;
   const isLiked = pqr.likes.some((l) => l.userId === user?.id);
   const isOwner = !!user?.id && user.id === pqr.creator?.id;
+  const isEmployee = user?.role === 'EMPLOYEE' && user?.entityId === pqr.entityId;
 
   function handleLike() {
     if (!isAuthenticated || !user) return;
@@ -171,9 +377,9 @@ function DetailHeader({ pqrId, commentCount }: { pqrId: string; commentCount: nu
         )}
       </View>
 
-      {isOwner && (
+      {(isEmployee || isOwner) && (
         <View style={styles.ownerActions}>
-          {pqr.status !== 'RESOLVED' && (
+          {isEmployee && pqr.status !== 'RESOLVED' && (
             <TouchableOpacity
               style={styles.resolveButton}
               onPress={handleMarkResolved}
@@ -184,40 +390,84 @@ function DetailHeader({ pqrId, commentCount }: { pqrId: string; commentCount: nu
               </Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity
-            style={styles.privacyButton}
-            onPress={handleTogglePrivacy}
-            disabled={privacyMutation.isPending}
-          >
-            <Text style={styles.privacyButtonText}>
-              {privacyMutation.isPending
-                ? 'Actualizando…'
-                : pqr.private
-                ? 'Hacer pública'
-                : 'Hacer privada'}
-            </Text>
-          </TouchableOpacity>
+          {isOwner && (
+            <TouchableOpacity
+              style={styles.privacyButton}
+              onPress={handleTogglePrivacy}
+              disabled={privacyMutation.isPending}
+            >
+              <Text style={styles.privacyButtonText}>
+                {privacyMutation.isPending
+                  ? 'Actualizando…'
+                  : pqr.private
+                  ? 'Hacer pública'
+                  : 'Hacer privada'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
-      {pqr.attachments.length > 0 && (
-        <View style={styles.attachmentsSection}>
-          <Text style={styles.sectionTitle}>Adjuntos</Text>
-          {pqr.attachments.map((att) => (
-            <TouchableOpacity
-              key={att.id}
-              style={styles.attachmentRow}
-              onPress={() => Linking.openURL(att.url)}
-            >
-              <View style={styles.attachmentInfo}>
-                <Text style={styles.attachmentName} numberOfLines={1}>{att.name}</Text>
-                <Text style={styles.attachmentSize}>{formatBytes(att.size)}</Text>
-              </View>
-              <Text style={styles.attachmentOpen}>Abrir</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
+      {pqr.attachments.length > 0 && (() => {
+        const imageAttachments = pqr.attachments.filter((a) => isImageAttachment(a.type, a.name));
+        const fileAttachments = pqr.attachments.filter((a) => !isImageAttachment(a.type, a.name));
+        return (
+          <View style={styles.attachmentsSection}>
+            <Text style={styles.sectionTitle}>Adjuntos</Text>
+
+            {imageAttachments.length > 0 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.thumbnailRow}
+              >
+                {imageAttachments.map((att, i) => (
+                  <TouchableOpacity
+                    key={att.id}
+                    onPress={() => setGalleryIndex(i)}
+                    activeOpacity={0.85}
+                  >
+                    <Image
+                      source={{ uri: att.url }}
+                      style={styles.thumbnail}
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+
+            {fileAttachments.map((att) => (
+              <TouchableOpacity
+                key={att.id}
+                style={styles.attachmentRow}
+                onPress={() => setDocViewer({ url: att.url, name: att.name })}
+              >
+                <View style={styles.attachmentInfo}>
+                  <Text style={styles.attachmentName} numberOfLines={1}>{att.name}</Text>
+                  <Text style={styles.attachmentSize}>{formatBytes(att.size)}</Text>
+                </View>
+                <Text style={styles.attachmentOpen}>Abrir</Text>
+              </TouchableOpacity>
+            ))}
+
+            {galleryIndex !== null && (
+              <AttachmentGalleryModal
+                images={imageAttachments}
+                initialIndex={galleryIndex}
+                onClose={() => setGalleryIndex(null)}
+              />
+            )}
+            {docViewer !== null && (
+              <DocumentViewerModal
+                url={docViewer.url}
+                name={docViewer.name}
+                onClose={() => setDocViewer(null)}
+              />
+            )}
+          </View>
+        );
+      })()}
 
       <Text style={styles.sectionTitle}>
         Comentarios ({commentCount})
@@ -233,12 +483,27 @@ export default function PQRDetailScreen() {
   const insets = useSafeAreaInsets();
 
   const { data: comments, isLoading: loadingComments, refetch: refetchComments } = useComments(id);
-  const { isError: isDetailError, refetch: refetchDetail, isRefetching } = usePQRDetail(id);
+  const { isError: isDetailError, error: detailError, refetch: refetchDetail, isRefetching } = usePQRDetail(id);
   const addComment = useAddComment(id);
 
   const [commentText, setCommentText] = useState('');
 
   if (isDetailError) {
+    const status = (detailError as any)?.response?.status;
+    if (status === 403) {
+      return (
+        <ErrorState
+          message="Esta PQRSD es privada y no tienes permiso para verla."
+        />
+      );
+    }
+    if (status === 404) {
+      return (
+        <ErrorState
+          message="Esta PQRSD no existe o fue eliminada."
+        />
+      );
+    }
     return (
       <ErrorState
         message="No se pudo cargar la PQRSD. Verifica tu conexión."
@@ -482,6 +747,16 @@ const styles = StyleSheet.create({
   },
   attachmentsSection: {
     marginBottom: 8,
+  },
+  thumbnailRow: {
+    gap: 8,
+    paddingVertical: 4,
+  },
+  thumbnail: {
+    width: 90,
+    height: 90,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
   },
   sectionTitle: {
     fontSize: 15,

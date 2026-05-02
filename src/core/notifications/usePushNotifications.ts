@@ -8,7 +8,6 @@ import { ENDPOINTS } from '@core/api/endpoints';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
     shouldShowBanner: true,

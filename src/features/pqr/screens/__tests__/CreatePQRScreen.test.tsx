@@ -6,6 +6,15 @@ jest.mock('@core/api/client', () => ({
   apiClient: { get: jest.fn(), post: jest.fn() },
 }));
 
+jest.mock('react-native-recaptcha-that-works', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  const Recaptcha = React.forwardRef((_: any, __: any) =>
+    React.createElement(View, { testID: 'recaptcha' }),
+  );
+  return { __esModule: true, default: Recaptcha };
+});
+
 jest.mock('@core/auth/useAuth', () => ({
   useAuth: jest.fn(),
 }));
@@ -39,6 +48,26 @@ jest.mock('@features/pqr/hooks/usePQRConfig', () => ({
 jest.mock('@features/pqr/hooks/useCreatePQR', () => ({
   useCreatePQR: jest.fn(),
 }));
+
+jest.mock('@features/map/components/MiniMap', () => {
+  const React = require('react');
+  const { View, TouchableOpacity, Text } = require('react-native');
+  return {
+    MiniMap: ({ onLocationChange }: { onLocationChange: (lat: number | null, lng: number | null, addr: string | null) => void }) =>
+      React.createElement(
+        View,
+        { testID: 'mini-map' },
+        React.createElement(
+          TouchableOpacity,
+          {
+            testID: 'map-set-location',
+            onPress: () => onLocationChange(4.711, -74.0721, 'Bogotá, Colombia'),
+          },
+          React.createElement(Text, null, 'Fijar ubicación'),
+        ),
+      ),
+  };
+});
 
 import { useAuth } from '@core/auth/useAuth';
 import { useDepartments, useMunicipalities } from '@features/pqr/hooks/useLocations';
@@ -80,6 +109,7 @@ beforeEach(() => {
   });
   (usePQRConfig as jest.Mock).mockReturnValue({
     pqrConfig: basePqrConfig,
+    entityDepartments: [],
     isLoading: false,
   });
   (useCreatePQR as jest.Mock).mockReturnValue({
@@ -114,6 +144,18 @@ async function navigateToStep3(utils: RenderResult) {
   await waitFor(() => getByTestId('step3-content'));
 }
 
+async function navigateToStep4(utils: RenderResult) {
+  await navigateToStep3(utils);
+  fireEvent.press(utils.getByText('Siguiente'));
+  await waitFor(() => utils.getByTestId('step4-content'));
+}
+
+async function navigateToStep5(utils: RenderResult) {
+  await navigateToStep4(utils);
+  fireEvent.press(utils.getByText('Siguiente'));
+  await waitFor(() => utils.getByTestId('step5-content'));
+}
+
 describe('CreatePQRScreen — customFields visibilidad', () => {
   it('muestra campo isForAnonymous=true y oculta isForAnonymous=false cuando isAnonymous=true', async () => {
     (usePQRConfig as jest.Mock).mockReturnValue({
@@ -138,6 +180,7 @@ describe('CreatePQRScreen — customFields visibilidad', () => {
           },
         ],
       },
+      entityDepartments: [],
       isLoading: false,
     });
 
@@ -161,6 +204,7 @@ describe('CreatePQRScreen — allowAnonymous', () => {
   it('deshabilita el toggle anónimo cuando la entidad no permite envíos anónimos', async () => {
     (usePQRConfig as jest.Mock).mockReturnValue({
       pqrConfig: { ...basePqrConfig, allowAnonymous: false },
+      entityDepartments: [],
       isLoading: false,
     });
 
@@ -188,6 +232,7 @@ describe('CreatePQRScreen — requireEvidence', () => {
   it('bloquea el avance al step 4 y muestra error si requireEvidence=true sin adjuntos', async () => {
     (usePQRConfig as jest.Mock).mockReturnValue({
       pqrConfig: { ...basePqrConfig, requireEvidence: true },
+      entityDepartments: [],
       isLoading: false,
     });
 
@@ -217,5 +262,71 @@ describe('CreatePQRScreen — requireEvidence', () => {
     await waitFor(() => getByTestId('step4-content'));
 
     expect(getByTestId('step4-content')).toBeTruthy();
+  });
+});
+
+describe('CreatePQRScreen — paso 4 (mapa)', () => {
+  it('muestra el MiniMap en el paso 4', async () => {
+    const utils = render(<CreatePQRScreen />);
+    await navigateToStep4(utils);
+    expect(utils.getByTestId('mini-map')).toBeTruthy();
+  });
+
+  it('el paso 4 es opcional — se puede avanzar sin fijar ubicación', async () => {
+    const utils = render(<CreatePQRScreen />);
+    await navigateToStep4(utils);
+    fireEvent.press(utils.getByText('Siguiente'));
+    await waitFor(() => utils.getByTestId('step5-content'));
+    expect(utils.getByTestId('step5-content')).toBeTruthy();
+  });
+
+  it('mostrar dirección seleccionada debajo del mapa al fijar pin', async () => {
+    const utils = render(<CreatePQRScreen />);
+    await navigateToStep4(utils);
+
+    fireEvent.press(utils.getByTestId('map-set-location'));
+
+    await waitFor(() => {
+      expect(utils.getByText(/Bogotá, Colombia/)).toBeTruthy();
+    });
+  });
+});
+
+describe('CreatePQRScreen — paso 5 (confirmación)', () => {
+  it('muestra el resumen con los datos del formulario', async () => {
+    const utils = render(<CreatePQRScreen />);
+    await navigateToStep5(utils);
+
+    expect(utils.getByText('Paso 5 — Confirmación')).toBeTruthy();
+    expect(utils.getByText('Alcaldía de Bogotá')).toBeTruthy();
+  });
+
+  it('muestra la ubicación en el resumen cuando se fijó un pin', async () => {
+    const utils = render(<CreatePQRScreen />);
+    await navigateToStep4(utils);
+
+    fireEvent.press(utils.getByTestId('map-set-location'));
+    await waitFor(() => utils.getByText(/Bogotá, Colombia/));
+
+    fireEvent.press(utils.getByText('Siguiente'));
+    await waitFor(() => utils.getByTestId('step5-content'));
+
+    expect(utils.getByText('Ubicación')).toBeTruthy();
+    expect(utils.getAllByText(/Bogotá, Colombia/).length).toBeGreaterThan(0);
+  });
+
+  it('no muestra fila de ubicación en el resumen si no se fijó pin', async () => {
+    const utils = render(<CreatePQRScreen />);
+    await navigateToStep5(utils);
+
+    expect(utils.queryByText('Ubicación')).toBeNull();
+  });
+
+  it('el botón Enviar está deshabilitado sin reCAPTCHA', async () => {
+    const utils = render(<CreatePQRScreen />);
+    await navigateToStep5(utils);
+
+    const submitBtn = utils.getByTestId('submit-btn');
+    expect(submitBtn.props.accessibilityState?.disabled ?? submitBtn.props.disabled).toBeTruthy();
   });
 });

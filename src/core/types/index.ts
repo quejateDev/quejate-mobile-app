@@ -39,6 +39,7 @@ export interface SessionUser {
   image: string | null;
   role: UserRole;
   isOAuth: boolean;
+  entityId?: string | null;
 }
 
 // =============================================================================
@@ -225,6 +226,8 @@ export interface PQRS {
   guestName?: string;
   guestEmail?: string;
   guestPhone?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   createdAt: Date;
   updatedAt: Date;
   entity: { id: string; name: string; description?: string; email?: string; imageUrl?: string };

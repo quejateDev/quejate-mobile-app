@@ -36,3 +36,29 @@ export function useMarkNotificationRead() {
     },
   });
 }
+
+export function useMarkAllNotificationsRead() {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, unknown, void>({
+    mutationFn: () =>
+      apiClient.patch(ENDPOINTS.NOTIFICATIONS.MARK_READ, { markAll: true }, { skipAuth401: true }).then((r) => r.data),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['notifications'] });
+      const previous = queryClient.getQueryData<Notification[]>(['notifications']);
+      queryClient.setQueryData<Notification[]>(['notifications'], (prev) =>
+        prev?.map((n) => ({ ...n, read: true })) ?? [],
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      const ctx = context as { previous?: Notification[] } | undefined;
+      if (ctx?.previous) {
+        queryClient.setQueryData(['notifications'], ctx.previous);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+}
