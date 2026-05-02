@@ -11,13 +11,13 @@ import MyPQRsScreen from '@features/pqr/screens/MyPQRsScreen';
 import NotificationsScreen from '@features/notifications/screens/NotificationsScreen';
 import PublicProfileScreen from '@features/users/screens/PublicProfileScreen';
 import UserProfileScreen from '@features/users/screens/UserProfileScreen';
+import LawyerListScreen from '@features/lawyers/screens/LawyerListScreen';
+import LawyerDetailScreen from '@features/lawyers/screens/LawyerDetailScreen';
+import MyLawyerRequestsScreen from '@features/lawyers/screens/MyLawyerRequestsScreen';
+import RegisterAsLawyerScreen from '@features/lawyers/screens/RegisterAsLawyerScreen';
+import MapScreen from '@features/map/screens/MapScreen';
 import { useNotifications } from '@features/notifications/hooks/useNotifications';
 import { usePushNotifications } from '@core/notifications/usePushNotifications';
-
-// ---------------------------------------------------------------------------
-// Param lists
-// ---------------------------------------------------------------------------
-
 
 function PersonIcon({ color, size }: { color: string; size: number }) {
   return (
@@ -40,6 +40,72 @@ function PersonIcon({ color, size }: { color: string; size: number }) {
           backgroundColor: color,
         }}
       />
+    </View>
+  );
+}
+
+function MapPinIcon({ color, size }: { color: string; size: number }) {
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <View
+        style={{
+          width: size * 0.6,
+          height: size * 0.6,
+          borderRadius: size * 0.3,
+          borderWidth: size * 0.12,
+          borderColor: color,
+          backgroundColor: 'transparent',
+        }}
+      />
+      <View
+        style={{
+          width: size * 0.12,
+          height: size * 0.28,
+          backgroundColor: color,
+          marginTop: -size * 0.04,
+          borderBottomLeftRadius: size * 0.06,
+          borderBottomRightRadius: size * 0.06,
+        }}
+      />
+    </View>
+  );
+}
+
+function BriefcaseIcon({ color, size }: { color: string; size: number }) {
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      <View
+        style={{
+          width: size * 0.78,
+          height: size * 0.58,
+          borderRadius: size * 0.1,
+          borderWidth: size * 0.1,
+          borderColor: color,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <View
+          style={{
+            position: 'absolute',
+            top: -size * 0.22,
+            width: size * 0.4,
+            height: size * 0.18,
+            borderTopLeftRadius: size * 0.06,
+            borderTopRightRadius: size * 0.06,
+            borderWidth: size * 0.1,
+            borderColor: color,
+            borderBottomWidth: 0,
+          }}
+        />
+        <View
+          style={{
+            width: '100%',
+            height: size * 0.1,
+            backgroundColor: color,
+          }}
+        />
+      </View>
     </View>
   );
 }
@@ -84,6 +150,12 @@ function AppTabs() {
               />
             );
           }
+          if (route.name === 'Mapa') {
+            return <MapPinIcon color={color} size={size} />;
+          }
+          if (route.name === 'Abogados') {
+            return <BriefcaseIcon color={color} size={size} />;
+          }
           return <PersonIcon color={color} size={size} />;
         },
       })}
@@ -94,6 +166,8 @@ function AppTabs() {
         component={NotificationsScreen}
         options={{ tabBarBadge: unreadCount > 0 ? unreadCount : undefined }}
       />
+      <Tab.Screen name="Mapa" component={MapScreen} />
+      <Tab.Screen name="Abogados" component={LawyerListScreen} />
       <Tab.Screen name="Perfil" component={UserProfileScreen} />
     </Tab.Navigator>
   );
@@ -163,6 +237,42 @@ export default function AppNavigator() {
         options={{
           headerShown: true,
           headerTitle: 'Perfil',
+          headerBackTitle: 'Volver',
+          headerTintColor: '#2563EB',
+          headerShadowVisible: false,
+          headerStyle: { backgroundColor: '#fff' },
+        }}
+      />
+      <Stack.Screen
+        name="LawyerDetail"
+        component={LawyerDetailScreen}
+        options={{
+          headerShown: true,
+          headerTitle: 'Perfil de abogado',
+          headerBackTitle: 'Volver',
+          headerTintColor: '#2563EB',
+          headerShadowVisible: false,
+          headerStyle: { backgroundColor: '#fff' },
+        }}
+      />
+      <Stack.Screen
+        name="MyLawyerRequests"
+        component={MyLawyerRequestsScreen}
+        options={{
+          headerShown: true,
+          headerTitle: 'Mis solicitudes',
+          headerBackTitle: 'Volver',
+          headerTintColor: '#2563EB',
+          headerShadowVisible: false,
+          headerStyle: { backgroundColor: '#fff' },
+        }}
+      />
+      <Stack.Screen
+        name="RegisterAsLawyer"
+        component={RegisterAsLawyerScreen}
+        options={{
+          headerShown: true,
+          headerTitle: 'Registro como abogado',
           headerBackTitle: 'Volver',
           headerTintColor: '#2563EB',
           headerShadowVisible: false,
