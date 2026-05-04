@@ -15,6 +15,7 @@ import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead 
 import { ErrorState } from '@shared/components/ui/ErrorState';
 import type { Notification } from '@core/types';
 import type { AppStackParamList } from '@navigation/navigationRef';
+import { timeAgo } from '@shared/utils/dateUtils';
 
 const typeLabels: Record<string, string> = {
   follow: 'Nuevo seguidor',
@@ -25,14 +26,6 @@ const typeLabels: Record<string, string> = {
   new_lawyer_request: 'Nueva solicitud',
   pqrsd_time_expired: 'PQRSD vencida',
 };
-
-function timeAgo(date: Date): string {
-  const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-  if (diff < 60) return 'Hace un momento';
-  if (diff < 3600) return `Hace ${Math.floor(diff / 60)} min`;
-  if (diff < 86400) return `Hace ${Math.floor(diff / 3600)} h`;
-  return `Hace ${Math.floor(diff / 86400)} d`;
-}
 
 const NotificationItem = React.memo(function NotificationItem({
   item,

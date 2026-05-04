@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   StyleSheet,
@@ -21,21 +22,7 @@ import { useAuth } from '@core/auth/useAuth';
 import type { AppStackParamList } from '@navigation/navigationRef';
 import type { UserProfile, PQRS } from '@core/types';
 import PQRCard from '@features/pqr/components/PQRCard';
-
-const ROLE_LABEL: Record<string, string> = {
-  CLIENT: 'Ciudadano',
-  ADMIN: 'Administrador',
-  SUPER_ADMIN: 'Super Admin',
-  EMPLOYEE: 'Empleado',
-  LAWYER: 'Abogado',
-};
-
-function getInitials(name: string | null | undefined): string {
-  if (!name) return '?';
-  const parts = name.trim().split(' ');
-  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-}
+import { getInitials, ROLE_LABEL } from '@features/users/components/profile/userProfileUtils';
 
 export default function PublicProfileScreen() {
   const route = useRoute<RouteProp<AppStackParamList, 'PublicProfile'>>();
@@ -69,6 +56,9 @@ export default function PublicProfileScreen() {
     mutationFn: () => apiClient.post(ENDPOINTS.USERS.FOLLOW(userId)).then((r) => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user', userId] });
+    },
+    onError: () => {
+      Alert.alert('Error', 'No se pudo actualizar el seguimiento. Inténtalo de nuevo.');
     },
   });
 
