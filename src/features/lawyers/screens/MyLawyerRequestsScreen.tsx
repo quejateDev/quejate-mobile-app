@@ -16,6 +16,8 @@ import { useMyLawyerRequests } from '@features/lawyers/hooks/useLawyers';
 import type { LawyerRequestWithLawyer } from '@features/lawyers/hooks/useLawyers';
 import { ErrorState } from '@shared/components/ui/ErrorState';
 import type { AppStackParamList } from '@navigation/navigationRef';
+import { getInitials } from '@features/users/components/profile/userProfileUtils';
+import { timeAgo } from '@shared/utils/dateUtils';
 
 const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
   PENDING:   { label: 'Pendiente',  color: '#92400E', bg: '#FEF3C7' },
@@ -23,20 +25,6 @@ const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> =
   REJECTED:  { label: 'Rechazada',  color: '#991B1B', bg: '#FEE2E2' },
   COMPLETED: { label: 'Completada', color: '#1E40AF', bg: '#DBEAFE' },
 };
-
-function timeAgo(date: Date): string {
-  const diff = Math.floor((Date.now() - new Date(date).getTime()) / 86400000);
-  if (diff === 0) return 'Hoy';
-  if (diff === 1) return 'Ayer';
-  if (diff < 30) return `Hace ${diff} días`;
-  return `Hace ${Math.floor(diff / 30)} meses`;
-}
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(' ');
-  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-}
 
 function RequestItem({
   item,
