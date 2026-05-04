@@ -6,6 +6,16 @@ jest.mock('@core/api/client', () => ({
   apiClient: { get: jest.fn(), post: jest.fn() },
 }));
 
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+  SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+jest.mock('expo-location', () => ({
+  requestForegroundPermissionsAsync: jest.fn().mockResolvedValue({ status: 'denied' }),
+  getCurrentPositionAsync: jest.fn(),
+}));
+
 jest.mock('react-native-recaptcha-that-works', () => {
   const React = require('react');
   const { View } = require('react-native');
@@ -269,6 +279,8 @@ describe('CreatePQRScreen — paso 4 (mapa)', () => {
   it('muestra el MiniMap en el paso 4', async () => {
     const utils = render(<CreatePQRScreen />);
     await navigateToStep4(utils);
+    fireEvent.press(utils.getByText('Seleccionar en mapa'));
+    await waitFor(() => utils.getByTestId('mini-map'));
     expect(utils.getByTestId('mini-map')).toBeTruthy();
   });
 
@@ -284,6 +296,8 @@ describe('CreatePQRScreen — paso 4 (mapa)', () => {
     const utils = render(<CreatePQRScreen />);
     await navigateToStep4(utils);
 
+    fireEvent.press(utils.getByText('Seleccionar en mapa'));
+    await waitFor(() => utils.getByTestId('map-set-location'));
     fireEvent.press(utils.getByTestId('map-set-location'));
 
     await waitFor(() => {
@@ -305,6 +319,8 @@ describe('CreatePQRScreen — paso 5 (confirmación)', () => {
     const utils = render(<CreatePQRScreen />);
     await navigateToStep4(utils);
 
+    fireEvent.press(utils.getByText('Seleccionar en mapa'));
+    await waitFor(() => utils.getByTestId('map-set-location'));
     fireEvent.press(utils.getByTestId('map-set-location'));
     await waitFor(() => utils.getByText(/Bogotá, Colombia/));
 
