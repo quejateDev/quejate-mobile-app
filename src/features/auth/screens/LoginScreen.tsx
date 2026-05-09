@@ -12,15 +12,16 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import * as WebBrowser from 'expo-web-browser';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '@navigation/AuthNavigator';
 import { useAuth } from '@core/auth/useAuth';
 import { useGoogleAuth } from '@features/auth/hooks/useGoogleAuth';
+import { ForgotPasswordModal } from '@features/auth/components/ForgotPasswordModal';
 
 const schema = z.object({
   email: z.email('Email inválido'),
@@ -48,17 +49,20 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [resetVisible, setResetVisible] = useState(false);
   const { signInWithCredentials } = useAuth();
   const google = useGoogleAuth();
 
   const {
     control,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { email: '', password: '' },
   });
+  const watchedEmail = watch('email');
 
   const onSubmit = async (data: FormData) => {
     setServerError(null);
@@ -122,11 +126,11 @@ export default function LoginScreen() {
 
             <View style={styles.fieldContainer}>
               <Text style={styles.label}>Contraseña</Text>
-              <View style={styles.passwordRow}>
-                <Controller
-                  control={control}
-                  name="password"
-                  render={({ field: { onChange, onBlur, value } }) => (
+              <Controller
+                control={control}
+                name="password"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <View style={styles.passwordRow}>
                     <TextInput
                       style={[styles.input, styles.passwordInput, errors.password && styles.inputError]}
                       placeholder="••••••"
@@ -139,16 +143,22 @@ export default function LoginScreen() {
                       accessibilityLabel="Contraseña"
                       accessibilityHint="Ingresa tu contraseña, mínimo 6 caracteres"
                     />
-                  )}
-                />
-                <TouchableOpacity
-                  style={styles.eyeButton}
-                  onPress={() => setShowPassword((v) => !v)}
-                  accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                >
-                  <Text style={styles.eyeText}>{showPassword ? 'Ocultar' : 'Ver'}</Text>
-                </TouchableOpacity>
-              </View>
+                    {value.length > 0 && (
+                      <TouchableOpacity
+                        style={styles.eyeButton}
+                        onPress={() => setShowPassword((v) => !v)}
+                        accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                      >
+                        <Ionicons
+                          name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                          size={20}
+                          color="#6B7280"
+                        />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+              />
               {errors.password && <Text style={styles.fieldError}>{errors.password.message}</Text>}
             </View>
 
@@ -193,14 +203,14 @@ export default function LoginScreen() {
               {google.isLoading ? (
                 <ActivityIndicator color="#374151" />
               ) : (
-                <Text style={styles.googleButtonText}>Continuar con Google</Text>
+                <View style={styles.googleButtonContent}>
+                  <Ionicons name="logo-google" size={18} color="#DB4437" style={{ marginRight: 10 }} />
+                  <Text style={styles.googleButtonText}>Continuar con Google</Text>
+                </View>
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.link}
-              onPress={() => WebBrowser.openBrowserAsync('https://quejate.com.co/auth/reset')}
-            >
+            <TouchableOpacity style={styles.link} onPress={() => setResetVisible(true)}>
               <Text style={styles.linkText}>¿Olvidaste tu contraseña?</Text>
             </TouchableOpacity>
 
@@ -213,6 +223,11 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <ForgotPasswordModal
+        visible={resetVisible}
+        initialEmail={watchedEmail}
+        onClose={() => setResetVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -231,24 +246,26 @@ const styles = StyleSheet.create({
   brandSection: {
     backgroundColor: '#1E3A8A',
     alignItems: 'center',
-    paddingTop: 48,
-    paddingBottom: 40,
+    paddingTop: 56,
+    paddingBottom: 44,
   },
   brandLogo: {
-    width: 220,
-    height: 72,
-    marginBottom: 10,
+    width: 240,
+    height: 78,
+    marginBottom: 12,
+    tintColor: '#fff',
   },
   brandTagline: {
     fontSize: 14,
-    color: '#93C5FD',
-    marginTop: 4,
+    color: '#BFDBFE',
+    fontWeight: '500',
+    letterSpacing: 0.3,
   },
   formSection: {
     flex: 1,
     backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     padding: 24,
     paddingTop: 28,
   },
@@ -288,9 +305,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 4,
   },
-  eyeText: {
-    fontSize: 13,
-    color: '#6B7280',
+  googleButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   fieldError: {
     fontSize: 12,

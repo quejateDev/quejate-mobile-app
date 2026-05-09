@@ -26,6 +26,10 @@ jest.mock('expo-web-browser', () => ({
   maybeCompleteAuthSession: jest.fn(),
 }));
 
+jest.mock('@features/auth/components/ForgotPasswordModal', () => ({
+  ForgotPasswordModal: () => null,
+}));
+
 const mockSignIn = jest.fn();
 
 beforeEach(() => {
