@@ -5,7 +5,7 @@ import { navigationRef } from '@navigation/navigationRef';
 import type { AppStackParamList } from '@navigation/navigationRef';
 import CreatePQRScreen from '@features/pqr/screens/CreatePQRScreen';
 import PQRDetailScreen from '@features/pqr/screens/PQRDetailScreen';
-import MyPQRsScreen from '@features/pqr/screens/MyPQRsScreen';
+import NotificationsScreen from '@features/notifications/screens/NotificationsScreen';
 import PublicProfileScreen from '@features/users/screens/PublicProfileScreen';
 import LawyerDetailScreen from '@features/lawyers/screens/LawyerDetailScreen';
 import MyLawyerRequestsScreen from '@features/lawyers/screens/MyLawyerRequestsScreen';
@@ -42,7 +42,7 @@ export default function AppNavigator() {
       <Stack.Screen name="Tabs" component={AppTabNavigator} options={{ headerShown: false }} />
       <Stack.Screen name="CreatePQR" component={CreatePQRScreen} options={{ ...headerDefaults, headerTitle: 'Nueva PQRSD' }} />
       <Stack.Screen name="PQRDetail" component={PQRDetailScreen} options={{ ...headerDefaults, headerTitle: 'Detalle PQRSD' }} />
-      <Stack.Screen name="MyPQRs" component={MyPQRsScreen} options={{ ...headerDefaults, headerTitle: 'Mis PQRSDs' }} />
+      <Stack.Screen name="Notificaciones" component={NotificationsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="PublicProfile" component={PublicProfileScreen} options={{ ...headerDefaults, headerTitle: 'Perfil' }} />
       <Stack.Screen name="LawyerDetail" component={LawyerDetailScreen} options={{ ...headerDefaults, headerTitle: 'Perfil de abogado' }} />
       <Stack.Screen name="MyLawyerRequests" component={MyLawyerRequestsScreen} options={{ ...headerDefaults, headerTitle: 'Mis solicitudes' }} />

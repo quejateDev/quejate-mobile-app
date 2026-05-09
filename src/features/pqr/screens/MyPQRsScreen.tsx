@@ -9,8 +9,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { AppStackParamList } from '@navigation/navigationRef';
 import { useMyPQRs } from '@features/pqr/hooks/useMyPQRs';
 import { useAuth } from '@core/auth/useAuth';
@@ -29,6 +31,7 @@ const STATUS_FILTERS: Array<{ value: PQRSStatus | undefined; label: string; colo
 
 export default function MyPQRsScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const { isAuthenticated } = useAuth();
   const [activeStatus, setActiveStatus] = useState<PQRSStatus | undefined>(undefined);
 
@@ -42,14 +45,31 @@ export default function MyPQRsScreen() {
     isRefetching,
   } = useMyPQRs();
 
-  const allPqrs: PQRS[] = data?.pages.flatMap((p) => p.pqrs) ?? [];
+  const allPqrs: PQRS[] = Array.from(
+    new Map(
+      (data?.pages.flatMap((p) => p?.pqrs ?? []) ?? [])
+        .filter((p): p is PQRS => !!p?.id)
+        .map((p) => [p.id, p]),
+    ).values(),
+  );
   const pqrs = activeStatus ? allPqrs.filter((p) => p.status === activeStatus) : allPqrs;
+
+  if (!isAuthenticated) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.unauthContainer}>
+          <Ionicons name="lock-closed-outline" size={52} color="#D1D5DB" style={{ marginBottom: 16 }} />
+          <Text style={styles.unauthTitle}>Inicia sesión</Text>
+          <Text style={styles.unauthText}>Para ver tus PQRSDs debes iniciar sesión</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const filterBar = (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      style={styles.filterScroll}
       contentContainerStyle={styles.filterContent}
     >
       {STATUS_FILTERS.map((f) => {
@@ -72,16 +92,9 @@ export default function MyPQRsScreen() {
     </ScrollView>
   );
 
-  if (!isAuthenticated) {
-    return (
-      <View style={styles.unauthContainer}>
-        <Text style={styles.unauthText}>Inicia sesión para ver tus PQRSDs</Text>
-      </View>
-    );
-  }
-
   return (
-    <View style={styles.container}>
+    <View style={styles.outerContainer}>
+      <SafeAreaView style={styles.safeAreaTop} edges={['top']} />
       <FlatList
         data={pqrs}
         keyExtractor={(item) => item.id}
@@ -93,17 +106,23 @@ export default function MyPQRsScreen() {
         )}
         ListHeaderComponent={
           <View>
-            <View style={styles.headerRow}>
+            <View style={styles.blueHeader}>
               <Text style={styles.title}>Mis PQRSDs</Text>
-              <Text style={styles.subtitle}>Todas tus solicitudes en un lugar</Text>
+              <Text style={styles.subtitle}>
+                {allPqrs.length > 0 ? `${allPqrs.length} radicado${allPqrs.length !== 1 ? 's' : ''}` : 'Sin radicados aún'}
+              </Text>
             </View>
-            {filterBar}
+            <View style={styles.filterScroll}>{filterBar}</View>
           </View>
         }
         ListEmptyComponent={
           !isLoading ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>Aún no tienes PQRSDs</Text>
+              <Ionicons name="document-text-outline" size={52} color="#D1D5DB" style={{ marginBottom: 12 }} />
+              <Text style={styles.emptyTitle}>Sin PQRSDs</Text>
+              <Text style={styles.emptyText}>
+                {activeStatus ? 'No tienes PQRSDs con este estado' : 'Aún no has radicado ninguna PQRSD'}
+              </Text>
             </View>
           ) : (
             <ActivityIndicator style={{ margin: 32 }} color="#2563EB" />
@@ -125,56 +144,26 @@ export default function MyPQRsScreen() {
             tintColor="#2563EB"
           />
         }
-        contentContainerStyle={{ paddingBottom: 16 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 76 }}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  headerRow: {
+  outerContainer: { flex: 1, backgroundColor: '#F9FAFB' },
+  safeAreaTop: { backgroundColor: '#1E3A8A' },
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  blueHeader: {
+    backgroundColor: '#1E3A8A',
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 8,
+    paddingBottom: 16,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#9CA3AF',
-    marginTop: 2,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: 48,
-  },
-  emptyText: {
-    fontSize: 15,
-    color: '#9CA3AF',
-  },
-  unauthContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  unauthText: {
-    fontSize: 15,
-    color: '#9CA3AF',
-  },
-  filterScroll: {
-    marginBottom: 8,
-  },
-  filterContent: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
+  title: { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
+  subtitle: { fontSize: 13, color: '#BFDBFE', marginTop: 2 },
+  filterScroll: { marginBottom: 4, marginTop: 8 },
+  filterContent: { paddingHorizontal: 16, gap: 8, paddingBottom: 8 },
   filterChip: {
     borderWidth: 1.5,
     borderColor: '#D1D5DB',
@@ -183,12 +172,12 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     backgroundColor: '#F9FAFB',
   },
-  filterChipText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#374151',
-  },
-  filterChipTextActive: {
-    color: '#fff',
-  },
+  filterChipText: { fontSize: 13, fontWeight: '500', color: '#374151' },
+  filterChipTextActive: { color: '#fff' },
+  emptyContainer: { alignItems: 'center', paddingVertical: 60 },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: '#374151', marginBottom: 4 },
+  emptyText: { fontSize: 14, color: '#9CA3AF', textAlign: 'center', paddingHorizontal: 32 },
+  unauthContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+  unauthTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 8 },
+  unauthText: { fontSize: 14, color: '#9CA3AF', textAlign: 'center' },
 });

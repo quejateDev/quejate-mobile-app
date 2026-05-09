@@ -93,8 +93,8 @@ export const editStyles = StyleSheet.create({
   avatarFallbackText: { fontSize: 28, fontWeight: '700', color: '#fff' },
   avatarOverlay: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: 'rgba(0,0,0,0.45)', borderBottomLeftRadius: 40, borderBottomRightRadius: 40,
-    paddingVertical: 4, alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)', borderBottomLeftRadius: 40, borderBottomRightRadius: 40,
+    paddingVertical: 5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
   },
   avatarOverlayText: { fontSize: 11, color: '#fff', fontWeight: '600' },
   label: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 6 },

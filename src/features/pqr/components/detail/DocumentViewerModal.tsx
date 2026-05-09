@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import WebView from 'react-native-webview';
 
 interface Props {
@@ -33,7 +34,7 @@ export function DocumentViewerModal({ url, name, onClose }: Props) {
             onPress={onClose}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Text style={docViewerStyles.closeText}>✕</Text>
+            <Ionicons name="close" size={22} color="#6B7280" />
           </TouchableOpacity>
           <Text style={docViewerStyles.title} numberOfLines={1}>{name}</Text>
           <View style={{ width: 32 }} />

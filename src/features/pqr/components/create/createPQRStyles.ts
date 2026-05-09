@@ -81,6 +81,9 @@ export const styles = StyleSheet.create({
     minHeight: 100,
     paddingTop: 12,
   },
+  inputError: {
+    borderColor: '#DC2626',
+  },
 
   selector: {
     borderWidth: 1,

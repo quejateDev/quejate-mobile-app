@@ -1,5 +1,6 @@
-import React from 'react';
-import { FlatList, Modal, Pressable, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, Dimensions, FlatList, Modal, Pressable, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { modalStyles } from './userProfileStyles';
 
 interface Person {
@@ -14,15 +15,32 @@ interface Props {
   onClose: () => void;
 }
 
+const SCREEN_HEIGHT = Dimensions.get('screen').height;
+
 export function PeopleModal({ visible, title, people, onClose }: Props) {
+  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+
+  useEffect(() => {
+    if (visible) {
+      slideAnim.setValue(SCREEN_HEIGHT);
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        damping: 20,
+        stiffness: 220,
+      }).start();
+    }
+  }, [visible, slideAnim]);
+
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={modalStyles.overlay} onPress={onClose}>
-        <Pressable style={modalStyles.sheet} onPress={() => {}}>
+    <Modal visible={visible} animationType="none" transparent onRequestClose={onClose}>
+      <View style={modalStyles.overlay}>
+        <Pressable style={{ flex: 1 }} onPress={onClose} />
+        <Animated.View style={[modalStyles.sheet, { transform: [{ translateY: slideAnim }] }]}>
           <View style={modalStyles.header}>
             <Text style={modalStyles.title}>{title}</Text>
             <TouchableOpacity onPress={onClose}>
-              <Text style={modalStyles.close}>✕</Text>
+              <Ionicons name="close" size={22} color="#6B7280" />
             </TouchableOpacity>
           </View>
           {people.length === 0 ? (
@@ -43,8 +61,8 @@ export function PeopleModal({ visible, title, people, onClose }: Props) {
               )}
             />
           )}
-        </Pressable>
-      </Pressable>
+        </Animated.View>
+      </View>
     </Modal>
   );
 }

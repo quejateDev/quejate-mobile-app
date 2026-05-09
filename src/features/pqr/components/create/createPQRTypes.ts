@@ -8,8 +8,8 @@ export const schema = z.object({
     ['PETITION', 'COMPLAINT', 'CLAIM', 'SUGGESTION', 'REPORT'],
     { error: 'Selecciona un tipo de PQRSD' },
   ),
-  subject: z.string().optional(),
-  description: z.string().optional(),
+  subject: z.string().min(3, 'El asunto debe tener al menos 3 caracteres'),
+  description: z.string().min(10, 'La descripción debe tener al menos 10 caracteres'),
   isAnonymous: z.boolean(),
   isPrivate: z.boolean(),
 });

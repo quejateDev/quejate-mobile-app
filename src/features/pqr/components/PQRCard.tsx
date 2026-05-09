@@ -1,7 +1,15 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import type { PQRS } from '@core/types';
+import { Ionicons } from '@expo/vector-icons';
+import type { PQRS, PQRSStatus } from '@core/types';
 import { typeMap, statusMap } from '@core/types';
+
+const STATUS_COLORS: Record<PQRSStatus, { bg: string; text: string }> = {
+  PENDING:     { bg: '#FEF3C7', text: '#D97706' },
+  IN_PROGRESS: { bg: '#DBEAFE', text: '#2563EB' },
+  RESOLVED:    { bg: '#DCFCE7', text: '#16A34A' },
+  CLOSED:      { bg: '#F3F4F6', text: '#6B7280' },
+};
 
 interface Props {
   pqr: PQRS;
@@ -9,14 +17,17 @@ interface Props {
 }
 
 function PQRCardBase({ pqr, onPress }: Props) {
-  const type = typeMap[pqr.type];
-  const status = statusMap[pqr.status];
+  const type = typeMap[pqr.type] ?? { label: pqr.type ?? '—', color: '#6B7280' };
+  const status = statusMap[pqr.status] ?? { label: pqr.status ?? '—' };
+  const statusColors = STATUS_COLORS[pqr.status] ?? { bg: '#F3F4F6', text: '#6B7280' };
   const authorName = pqr.anonymous ? 'Anónimo' : (pqr.creator?.name ?? 'Desconocido');
-  const daysLeft = Math.ceil((new Date(pqr.dueDate).getTime() - Date.now()) / 86400000);
-  const isExpired = daysLeft < 0;
-  const isExpiringSoon = daysLeft <= 3;
+  const dueTime = pqr.dueDate ? new Date(pqr.dueDate).getTime() : NaN;
+  const daysLeft = Number.isFinite(dueTime) ? Math.ceil((dueTime - Date.now()) / 86400000) : NaN;
+  const isExpired = Number.isFinite(daysLeft) && daysLeft < 0;
+  const isExpiringSoon = Number.isFinite(daysLeft) && daysLeft <= 3;
   const likes = pqr._count?.likes ?? 0;
   const comments = pqr._count?.comments ?? 0;
+  const entityName = pqr.entity?.name ?? '';
 
   return (
     <TouchableOpacity
@@ -30,8 +41,8 @@ function PQRCardBase({ pqr, onPress }: Props) {
         <View style={[styles.typeBadge, { backgroundColor: type.color + '18' }]}>
           <Text style={[styles.typeBadgeText, { color: type.color }]}>{type.label}</Text>
         </View>
-        <View style={styles.statusBadge}>
-          <Text style={styles.statusBadgeText}>{status.label}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: statusColors.bg }]}>
+          <Text style={[styles.statusBadgeText, { color: statusColors.text }]}>{status.label}</Text>
         </View>
         {isExpiringSoon && (
           <View style={styles.dueBadge}>
@@ -50,19 +61,18 @@ function PQRCardBase({ pqr, onPress }: Props) {
       <View style={styles.meta}>
         <Text style={styles.metaText} numberOfLines={1}>
           {authorName}
-          {'  ·  '}
-          {pqr.entity.name}
-          {pqr.department ? `  ·  ${pqr.department.name}` : ''}
+          {entityName ? `  ·  ${entityName}` : ''}
+          {pqr.department?.name ? `  ·  ${pqr.department.name}` : ''}
         </Text>
       </View>
 
       <View style={styles.footer}>
         <View style={styles.counter}>
-          <Text style={styles.counterIcon}>♡</Text>
+          <Ionicons name="heart-outline" size={14} color="#9CA3AF" />
           <Text style={styles.counterText}>{likes}</Text>
         </View>
         <View style={styles.counter}>
-          <Text style={styles.counterIcon}>○</Text>
+          <Ionicons name="chatbubble-outline" size={13} color="#9CA3AF" />
           <Text style={styles.counterText}>{comments}</Text>
         </View>
       </View>
@@ -155,10 +165,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-  },
-  counterIcon: {
-    fontSize: 14,
-    color: '#9CA3AF',
   },
   counterText: {
     fontSize: 13,

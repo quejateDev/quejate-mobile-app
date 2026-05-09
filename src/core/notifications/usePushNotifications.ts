@@ -52,7 +52,7 @@ export function usePushNotifications(): void {
 
     responseSub.current = Notifications.addNotificationResponseReceivedListener(() => {
       if (!navigationRef.isReady()) return;
-      navigationRef.navigate('Tabs', { screen: 'Notificaciones' });
+      navigationRef.navigate('Notificaciones');
     });
 
     return () => {

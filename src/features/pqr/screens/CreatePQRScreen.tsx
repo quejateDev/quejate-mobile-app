@@ -6,14 +6,15 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Recaptcha, { RecaptchaRef } from 'react-native-recaptcha-that-works';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Location from 'expo-location';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuth } from '@core/auth/useAuth';
 import { useDepartments, useMunicipalities } from '@features/pqr/hooks/useLocations';
 import { useEntities } from '@features/pqr/hooks/useEntities';
@@ -32,9 +33,11 @@ import { LocationPicker } from '@features/pqr/components/create/LocationPicker';
 import { Confirmation } from '@features/pqr/components/create/Confirmation';
 
 type Nav = NativeStackNavigationProp<AppStackParamList, 'CreatePQR'>;
+type RouteProps = NativeStackScreenProps<AppStackParamList, 'CreatePQR'>['route'];
 
 export default function CreatePQRScreen() {
   const navigation = useNavigation<Nav>();
+  const route = useRoute<RouteProps>();
   const { user } = useAuth();
 
   const recaptchaRef = useRef<RecaptchaRef>(null);
@@ -56,16 +59,17 @@ export default function CreatePQRScreen() {
   const [geoDepId, setGeoDepId] = useState('');
   const [geoMunId, setGeoMunId] = useState('');
 
+  const [hintApplied, setHintApplied] = useState(false);
+
   useEffect(() => {
-    if (currentStep !== 4 || pinLatitude != null) return;
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
-      const loc = await Location.getCurrentPositionAsync({});
-      setPinLatitude(loc.coords.latitude);
-      setPinLongitude(loc.coords.longitude);
-    })();
-  }, [currentStep, pinLatitude]);
+    const preselectedEntityId = route.params?.entityId;
+    if (preselectedEntityId) {
+      setValue('entityId', preselectedEntityId);
+      setCurrentStep(2);
+    }
+  // Only run on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const { createPQR, isPending } = useCreatePQR(user?.id);
 
@@ -103,6 +107,21 @@ export default function CreatePQRScreen() {
     watchedEntityId || undefined,
   );
 
+  useEffect(() => {
+    if (hintApplied) return;
+    const hint = route.params?.entityNameHint?.trim().toLowerCase();
+    const categoryHint = route.params?.categoryHint;
+    if (!hint || loadingEntities || entities.length === 0) return;
+
+    const match = entities.find((e) => e.name.toLowerCase().includes(hint));
+    if (match) {
+      setValue('entityId', match.id);
+      if (categoryHint) setValue('subject', categoryHint);
+      setCurrentStep(2);
+    }
+    setHintApplied(true);
+  }, [hintApplied, route.params, entities, loadingEntities, setValue]);
+
   function getVisibleCustomFields(): CustomField[] {
     if (!pqrConfig) return [];
     return pqrConfig.customFields.filter(
@@ -117,7 +136,7 @@ export default function CreatePQRScreen() {
       if (!valid) return;
       setCurrentStep(2);
     } else if (currentStep === 2) {
-      const valid = await trigger(['type']);
+      const valid = await trigger(['type', 'subject', 'description']);
       if (!valid) return;
       if (pqrConfig && !pqrConfig.allowAnonymous) setValue('isAnonymous', false);
       setCurrentStep(3);
@@ -143,6 +162,35 @@ export default function CreatePQRScreen() {
     setStepError(null);
     if (currentStep > 1) setCurrentStep((s) => s - 1);
   }
+
+  function handleExitForm() {
+    Alert.alert(
+      'Salir del formulario',
+      '¿Estás seguro? Perderás todo el progreso de tu PQRSD.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Salir', style: 'destructive', onPress: () => navigation.goBack() },
+      ],
+    );
+  }
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerTitleAlign: 'center',
+      headerBackVisible: false,
+      headerLeft: () => null,
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={handleExitForm}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Ionicons name="close" size={26} color="#6B7280" />
+        </TouchableOpacity>
+      ),
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handlePickImage() {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -333,17 +381,17 @@ export default function CreatePQRScreen() {
         </View>
       )}
 
-      {currentStep < 5 && (
-        <View style={styles.navRow}>
-          {currentStep > 1 && (
-            <TouchableOpacity
-              testID="step-back"
-              style={styles.backButton}
-              onPress={handlePrevStep}
-            >
-              <Text style={styles.backButtonText}>Atrás</Text>
-            </TouchableOpacity>
-          )}
+      <View style={styles.navRow}>
+        {currentStep > 1 && (
+          <TouchableOpacity
+            testID="step-back"
+            style={styles.backButton}
+            onPress={handlePrevStep}
+          >
+            <Text style={styles.backButtonText}>Atrás</Text>
+          </TouchableOpacity>
+        )}
+        {currentStep < 5 && (
           <TouchableOpacity
             testID="step-next"
             style={styles.button}
@@ -351,8 +399,8 @@ export default function CreatePQRScreen() {
           >
             <Text style={styles.buttonText}>Siguiente</Text>
           </TouchableOpacity>
-        </View>
-      )}
+        )}
+      </View>
 
       <Recaptcha
         ref={recaptchaRef}

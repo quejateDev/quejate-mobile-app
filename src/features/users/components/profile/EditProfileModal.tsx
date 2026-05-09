@@ -1,16 +1,19 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Dimensions,
   Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Pressable,
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { getInitials } from './userProfileUtils';
 import { editStyles } from './userProfileStyles';
 
@@ -28,6 +31,8 @@ interface Props {
   onCancel: () => void;
 }
 
+const SCREEN_HEIGHT = Dimensions.get('screen').height;
+
 export function EditProfileModal({
   visible,
   name,
@@ -43,16 +48,30 @@ export function EditProfileModal({
 }: Props) {
   const avatarUri = imageUri ?? currentImage ?? null;
   const initials = getInitials(name);
+  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+
+  useEffect(() => {
+    if (visible) {
+      slideAnim.setValue(SCREEN_HEIGHT);
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        damping: 20,
+        stiffness: 220,
+      }).start();
+    }
+  }, [visible, slideAnim]);
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onCancel}>
-      <TouchableWithoutFeedback onPress={onCancel}>
-        <KeyboardAvoidingView
-          style={editStyles.overlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          <View style={editStyles.sheet} onStartShouldSetResponder={() => true}>
+    <Modal visible={visible} animationType="none" transparent onRequestClose={onCancel}>
+      <View style={editStyles.overlay}>
+        <Pressable style={{ flex: 1 }} onPress={onCancel} />
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <Animated.View style={[editStyles.sheet, { transform: [{ translateY: slideAnim }] }]}>
             <View style={editStyles.handle} />
+            <Text style={[editStyles.label, { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 16 }]}>
+              Editar perfil
+            </Text>
 
             <TouchableOpacity
               style={editStyles.avatarContainer}
@@ -68,6 +87,7 @@ export function EditProfileModal({
                 </View>
               )}
               <View style={editStyles.avatarOverlay}>
+                <Ionicons name="camera" size={14} color="#fff" style={{ marginRight: 4 }} />
                 <Text style={editStyles.avatarOverlayText}>Cambiar</Text>
               </View>
             </TouchableOpacity>
@@ -106,7 +126,7 @@ export function EditProfileModal({
               {isPending ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={editStyles.saveBtnText}>Guardar</Text>
+                <Text style={editStyles.saveBtnText}>Guardar cambios</Text>
               )}
             </TouchableOpacity>
 
@@ -118,9 +138,9 @@ export function EditProfileModal({
             >
               <Text style={editStyles.cancelBtnText}>Cancelar</Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+      </View>
     </Modal>
   );
 }

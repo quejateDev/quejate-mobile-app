@@ -17,11 +17,11 @@ interface MiniMapProps {
   mapHeight?: number;
 }
 
-const COLOMBIA_REGION: Region = {
-  latitude: 4.711,
-  longitude: -74.0721,
-  latitudeDelta: 8,
-  longitudeDelta: 8,
+const SANTA_MARTA_REGION: Region = {
+  latitude: 11.2408,
+  longitude: -74.199,
+  latitudeDelta: 0.18,
+  longitudeDelta: 0.18,
 };
 
 export function MiniMap({ latitude, longitude, onLocationChange, mapHeight = 250 }: MiniMapProps) {
@@ -82,7 +82,7 @@ export function MiniMap({ latitude, longitude, onLocationChange, mapHeight = 250
         initialRegion={
           latitude != null && longitude != null
             ? { latitude, longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 }
-            : COLOMBIA_REGION
+            : SANTA_MARTA_REGION
         }
         onPress={handleMapPress}
       >

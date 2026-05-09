@@ -1,4 +1,5 @@
 import React, { Dispatch, SetStateAction } from 'react';
+import { StepHeader } from './StepHeader';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import type { CustomField } from '@core/types';
 import type { LocalAttachment } from '@features/pqr/hooks/useCreatePQR';
@@ -27,7 +28,7 @@ export function Attachments({
 }: Props) {
   return (
     <View testID="step3-content">
-      <Text style={styles.stepTitle}>Paso 3 — Información adicional</Text>
+      <StepHeader step={3} title="Información adicional" />
 
       {/* Campos personalizados */}
       {visibleFields.length > 0 && (

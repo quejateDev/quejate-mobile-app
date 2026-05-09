@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Dimensions,
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Pressable,
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { editStyles, deleteStyles } from './userProfileStyles';
@@ -20,8 +22,23 @@ interface Props {
   onCancel: () => void;
 }
 
+const SCREEN_HEIGHT = Dimensions.get('screen').height;
+
 export function DeleteAccountModal({ visible, userEmail, isPending, onConfirm, onCancel }: Props) {
   const [confirmText, setConfirmText] = useState('');
+  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+
+  useEffect(() => {
+    if (visible) {
+      slideAnim.setValue(SCREEN_HEIGHT);
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        damping: 20,
+        stiffness: 220,
+      }).start();
+    }
+  }, [visible, slideAnim]);
 
   function handleCancel() {
     setConfirmText('');
@@ -29,13 +46,11 @@ export function DeleteAccountModal({ visible, userEmail, isPending, onConfirm, o
   }
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleCancel}>
-      <TouchableWithoutFeedback onPress={handleCancel}>
-        <KeyboardAvoidingView
-          style={editStyles.overlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          <View style={deleteStyles.sheet} onStartShouldSetResponder={() => true}>
+    <Modal visible={visible} animationType="none" transparent onRequestClose={handleCancel}>
+      <View style={editStyles.overlay}>
+        <Pressable style={{ flex: 1 }} onPress={handleCancel} />
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <Animated.View style={[deleteStyles.sheet, { transform: [{ translateY: slideAnim }] }]}>
             <View style={editStyles.handle} />
             <Text style={deleteStyles.title}>Eliminar cuenta</Text>
             <Text style={deleteStyles.subtitle}>
@@ -79,9 +94,9 @@ export function DeleteAccountModal({ visible, userEmail, isPending, onConfirm, o
             >
               <Text style={editStyles.cancelBtnText}>Cancelar</Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+      </View>
     </Modal>
   );
 }
