@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import type { Attachment } from '@core/types';
 
 interface Props {
@@ -42,7 +43,7 @@ export function AttachmentGalleryModal({ images, initialIndex, onClose }: Props)
             onPress={onClose}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Text style={galleryStyles.closeBtnText}>✕</Text>
+            <Ionicons name="close" size={26} color="#fff" />
           </TouchableOpacity>
         </View>
 
@@ -59,14 +60,14 @@ export function AttachmentGalleryModal({ images, initialIndex, onClose }: Props)
               onPress={() => setIdx((i) => Math.max(0, i - 1))}
               disabled={idx === 0}
             >
-              <Text style={galleryStyles.navBtnText}>‹</Text>
+              <Ionicons name="chevron-back" size={42} color="#fff" />
             </TouchableOpacity>
             <TouchableOpacity
               style={[galleryStyles.navBtn, idx === images.length - 1 && galleryStyles.navBtnDisabled]}
               onPress={() => setIdx((i) => Math.min(images.length - 1, i + 1))}
               disabled={idx === images.length - 1}
             >
-              <Text style={galleryStyles.navBtnText}>›</Text>
+              <Ionicons name="chevron-forward" size={42} color="#fff" />
             </TouchableOpacity>
           </View>
         )}

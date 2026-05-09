@@ -209,6 +209,14 @@ export interface Like {
 // PQRS
 // =============================================================================
 
+export interface PQRStatusHistoryEntry {
+  id: string;
+  status: PQRSStatus;
+  comment?: string;
+  createdAt: Date;
+  user?: { name: string };
+}
+
 export interface PQRS {
   id: string;
   type: PQRSType;
@@ -237,6 +245,7 @@ export interface PQRS {
   comments: Comment[];
   likes: Like[];
   customFieldValues: CustomFieldValue[];
+  statusHistory?: PQRStatusHistoryEntry[];
   _count?: { likes: number; comments: number };
 }
 
