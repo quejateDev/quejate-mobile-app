@@ -2,18 +2,17 @@ import { createNavigationContainerRef } from '@react-navigation/native';
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
 export type AppTabParamList = {
-  PQRSDs: undefined;
-  Notificaciones: undefined;
-  Mapa: undefined;
-  Abogados: undefined;
+  Inicio: undefined;
+  MisPQRSDs: undefined;
+  Entidades: undefined;
   Perfil: undefined;
 };
 
 export type AppStackParamList = {
   Tabs: NavigatorScreenParams<AppTabParamList> | undefined;
-  CreatePQR: undefined;
+  CreatePQR: { entityId?: string; entityNameHint?: string; categoryHint?: string } | undefined;
   PQRDetail: { id: string };
-  MyPQRs: undefined;
+  Notificaciones: undefined;
   PublicProfile: { userId: string };
   LawyerDetail: { lawyerId: string };
   MyLawyerRequests: undefined;

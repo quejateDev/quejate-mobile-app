@@ -8,5 +8,7 @@ module.exports = {
     '^@features/(.*)$': '<rootDir>/src/features/$1',
     '^@shared/(.*)$': '<rootDir>/src/shared/$1',
     '^@navigation/(.*)$': '<rootDir>/src/navigation/$1',
+    '^@expo/vector-icons$': '<rootDir>/__mocks__/expoVectorIcons.js',
+    '^@expo/vector-icons/(.*)$': '<rootDir>/__mocks__/expoVectorIcons.js',
   },
 };
