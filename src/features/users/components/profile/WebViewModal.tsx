@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import WebView from 'react-native-webview';
 import { webViewStyles } from './userProfileStyles';
 
@@ -18,7 +19,7 @@ export function WebViewModal({ visible, title, url, onClose }: Props) {
       <View style={[webViewStyles.container, { paddingTop: insets.top }]}>
         <View style={webViewStyles.header}>
           <TouchableOpacity onPress={onClose} style={webViewStyles.closeBtn} activeOpacity={0.7}>
-            <Text style={webViewStyles.closeText}>✕</Text>
+            <Ionicons name="close" size={22} color="#6B7280" />
           </TouchableOpacity>
           <Text style={webViewStyles.title} numberOfLines={1}>{title}</Text>
           <View style={webViewStyles.closePlaceholder} />

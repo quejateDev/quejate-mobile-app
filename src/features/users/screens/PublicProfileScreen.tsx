@@ -50,7 +50,8 @@ export default function PublicProfileScreen() {
     enabled: !!userId,
   });
 
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user: sessionUser } = useAuth();
+  const isOwnProfile = sessionUser?.id === userId;
 
   const followMutation = useMutation({
     mutationFn: () => apiClient.post(ENDPOINTS.USERS.FOLLOW(userId)).then((r) => r.data),
@@ -143,20 +144,22 @@ export default function PublicProfileScreen() {
             </View>
           </View>
 
-          <TouchableOpacity
-            style={[styles.followBtn, user.isFollowing && styles.followBtnActive]}
-            onPress={() => followMutation.mutate()}
-            disabled={followMutation.isPending || !isAuthenticated}
-            activeOpacity={0.8}
-          >
-            {followMutation.isPending ? (
-              <ActivityIndicator color={user.isFollowing ? '#2563EB' : '#fff'} />
-            ) : (
-              <Text style={[styles.followBtnText, user.isFollowing && styles.followBtnTextActive]}>
-                {user.isFollowing ? 'Dejar de seguir' : 'Seguir'}
-              </Text>
-            )}
-          </TouchableOpacity>
+          {!isOwnProfile && (
+            <TouchableOpacity
+              style={[styles.followBtn, user.isFollowing && styles.followBtnActive]}
+              onPress={() => followMutation.mutate()}
+              disabled={followMutation.isPending || !isAuthenticated}
+              activeOpacity={0.8}
+            >
+              {followMutation.isPending ? (
+                <ActivityIndicator color={user.isFollowing ? '#2563EB' : '#fff'} />
+              ) : (
+                <Text style={[styles.followBtnText, user.isFollowing && styles.followBtnTextActive]}>
+                  {user.isFollowing ? 'Dejar de seguir' : 'Seguir'}
+                </Text>
+              )}
+            </TouchableOpacity>
+          )}
 
           <Text style={styles.sectionTitle}>PQRSDs publicadas</Text>
         </View>

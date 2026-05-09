@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  Dimensions,
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Pressable,
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { editStyles } from './userProfileStyles';
@@ -20,10 +22,25 @@ interface Props {
   onCancel: () => void;
 }
 
+const SCREEN_HEIGHT = Dimensions.get('screen').height;
+
 export function ChangePasswordModal({ visible, isPending, onSubmit, onCancel }: Props) {
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
+  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+
+  useEffect(() => {
+    if (visible) {
+      slideAnim.setValue(SCREEN_HEIGHT);
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        damping: 20,
+        stiffness: 220,
+      }).start();
+    }
+  }, [visible, slideAnim]);
 
   function handleSubmit() {
     if (!current.trim()) return Alert.alert('Error', 'Ingresa tu contraseña actual.');
@@ -40,13 +57,11 @@ export function ChangePasswordModal({ visible, isPending, onSubmit, onCancel }: 
   }
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleCancel}>
-      <TouchableWithoutFeedback onPress={handleCancel}>
-        <KeyboardAvoidingView
-          style={editStyles.overlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          <View style={editStyles.sheet} onStartShouldSetResponder={() => true}>
+    <Modal visible={visible} animationType="none" transparent onRequestClose={handleCancel}>
+      <View style={editStyles.overlay}>
+        <Pressable style={{ flex: 1 }} onPress={handleCancel} />
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <Animated.View style={[editStyles.sheet, { transform: [{ translateY: slideAnim }] }]}>
             <View style={editStyles.handle} />
             <Text style={[editStyles.label, { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 16 }]}>
               Cambiar contraseña
@@ -110,9 +125,9 @@ export function ChangePasswordModal({ visible, isPending, onSubmit, onCancel }: 
             >
               <Text style={editStyles.cancelBtnText}>Cancelar</Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+      </View>
     </Modal>
   );
 }

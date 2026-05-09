@@ -1,27 +1,26 @@
 import React, { useCallback, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
-  FlatList,
   Image,
+  Linking,
+  ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '@core/auth/useAuth';
-import { useMyPQRs } from '@features/pqr/hooks/useMyPQRs';
 import { apiClient } from '@core/api/client';
 import { ENDPOINTS } from '@core/api/endpoints';
 import { uploadToS3 } from '@shared/utils/s3Upload';
 import { ErrorState } from '@shared/components/ui/ErrorState';
 import type { AppStackParamList } from '@navigation/navigationRef';
 import type { UserProfile } from '@core/types';
-import PQRCard from '@features/pqr/components/PQRCard';
 import { getInitials, ROLE_LABEL } from '@features/users/components/profile/userProfileUtils';
 import { styles } from '@features/users/components/profile/userProfileStyles';
 import { PeopleModal } from '@features/users/components/profile/PeopleModal';
@@ -29,11 +28,38 @@ import { EditProfileModal } from '@features/users/components/profile/EditProfile
 import { ChangePasswordModal } from '@features/users/components/profile/ChangePasswordModal';
 import { DeleteAccountModal } from '@features/users/components/profile/DeleteAccountModal';
 import { WebViewModal } from '@features/users/components/profile/WebViewModal';
+import { SupportModal } from '@features/users/components/profile/SupportModal';
+import { StyleSheet } from 'react-native';
 
-const PRIVACY_URL = 'https://www.quejate.com.co/policy';
-const TERMS_URL = 'https://www.quejate.com.co/terms';
+const PRIVACY_URL = 'https://quejate.com.co/policy';
+const TERMS_URL = 'https://quejate.com.co/terms';
+const FACEBOOK_URL = 'https://www.facebook.com/profile.php?id=61581217178815';
+const INSTAGRAM_URL = 'https://www.instagram.com/quejate.com.co';
+const APP_VERSION = '1.0.0';
 
 type Nav = NativeStackNavigationProp<AppStackParamList>;
+
+function SettingsRow({
+  icon,
+  label,
+  onPress,
+  danger,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <TouchableOpacity style={profileStyles.settingsRow} onPress={onPress} activeOpacity={0.7}>
+      <View style={[profileStyles.settingsIcon, danger && profileStyles.settingsIconDanger]}>
+        <Ionicons name={icon} size={18} color={danger ? '#DC2626' : '#4B5563'} />
+      </View>
+      <Text style={[profileStyles.settingsLabel, danger && profileStyles.settingsDanger]}>{label}</Text>
+      <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
+    </TouchableOpacity>
+  );
+}
 
 export default function UserProfileScreen() {
   const { user: sessionUser, signOut, isLoading: authLoading, setUser } = useAuth();
@@ -45,6 +71,7 @@ export default function UserProfileScreen() {
   const [changePasswordVisible, setChangePasswordVisible] = useState(false);
   const [deleteAccountVisible, setDeleteAccountVisible] = useState(false);
   const [webView, setWebView] = useState<{ url: string; title: string } | null>(null);
+  const [supportModalVisible, setSupportModalVisible] = useState(false);
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editImageUri, setEditImageUri] = useState<string | null>(null);
@@ -63,9 +90,6 @@ export default function UserProfileScreen() {
       refetchProfile();
     }, [refetchProfile]),
   );
-
-  const pqrsQuery = useMyPQRs();
-  const allPqrs = pqrsQuery.data?.pages.flatMap((p) => p.pqrs) ?? [];
 
   const updateMutation = useMutation({
     mutationFn: async ({ name, phone, imageUri }: { name: string; phone: string; imageUri: string | null }) => {
@@ -176,131 +200,140 @@ export default function UserProfileScreen() {
   const following = profile?.following ?? [];
 
   return (
-    <>
-      <FlatList
-        style={styles.container}
-        data={allPqrs}
-        keyExtractor={(item) => item.id}
-        removeClippedSubviews={true}
-        maxToRenderPerBatch={10}
-        windowSize={5}
-        onEndReached={() => {
-          if (pqrsQuery.hasNextPage && !pqrsQuery.isFetchingNextPage) {
-            pqrsQuery.fetchNextPage();
-          }
-        }}
-        onEndReachedThreshold={0.4}
-        renderItem={({ item }) => (
-          <PQRCard
-            pqr={item}
-            onPress={() => navigation.navigate('PQRDetail', { id: item.id })}
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+        <View style={styles.headerRow}>
+          <Text style={styles.title}>Perfil</Text>
+          <TouchableOpacity onPress={handleOpenEdit} style={styles.editButton}>
+            <Text style={styles.editButtonText}>Editar</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.avatarSection}>
+          <TouchableOpacity onPress={handleOpenEdit} activeOpacity={0.8}>
+            {sessionUser?.image ? (
+              <Image source={{ uri: sessionUser.image }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{initials}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <Text style={styles.name}>{sessionUser?.name ?? 'Usuario'}</Text>
+          <Text style={styles.email}>{sessionUser?.email ?? ''}</Text>
+          {roleLabel ? (
+            <View style={styles.roleBadge}>
+              <Text style={styles.roleBadgeText}>{roleLabel}</Text>
+            </View>
+          ) : null}
+        </View>
+
+        <View style={styles.statsRow}>
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>{profile?._count?.PQRS ?? 0}</Text>
+            <Text style={styles.statLabel}>PQRSDs</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <TouchableOpacity style={styles.stat} onPress={() => setModal('followers')}>
+            <Text style={styles.statValue}>{profile?._count?.followers ?? 0}</Text>
+            <Text style={[styles.statLabel, styles.statLabelTap]}>Seguidores</Text>
+          </TouchableOpacity>
+          <View style={styles.statDivider} />
+          <TouchableOpacity style={styles.stat} onPress={() => setModal('following')}>
+            <Text style={styles.statValue}>{profile?._count?.following ?? 0}</Text>
+            <Text style={[styles.statLabel, styles.statLabelTap]}>Siguiendo</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Contact info */}
+        <Text style={profileStyles.sectionHeader}>Datos de contacto</Text>
+        <View style={profileStyles.infoCard}>
+          <View style={profileStyles.infoRow}>
+            <View style={profileStyles.infoIconCircle}>
+              <Ionicons name="mail-outline" size={16} color="#2563EB" />
+            </View>
+            <View style={profileStyles.infoContent}>
+              <Text style={profileStyles.infoLabel}>Correo electrónico</Text>
+              <Text style={profileStyles.infoValue}>{sessionUser?.email ?? '—'}</Text>
+            </View>
+          </View>
+          {profile?.phone ? (
+            <>
+              <View style={profileStyles.divider} />
+              <View style={profileStyles.infoRow}>
+                <View style={profileStyles.infoIconCircle}>
+                  <Ionicons name="call-outline" size={16} color="#2563EB" />
+                </View>
+                <View style={profileStyles.infoContent}>
+                  <Text style={profileStyles.infoLabel}>Teléfono</Text>
+                  <Text style={profileStyles.infoValue}>{profile.phone}</Text>
+                </View>
+              </View>
+            </>
+          ) : null}
+        </View>
+
+        {/* Settings */}
+        <Text style={profileStyles.sectionHeader}>Configuración</Text>
+        <View style={profileStyles.settingsCard}>
+          <SettingsRow
+            icon="lock-closed-outline"
+            label="Cambiar contraseña"
+            onPress={() => setChangePasswordVisible(true)}
           />
-        )}
-        ListEmptyComponent={
-          pqrsQuery.isLoading ? (
-            <ActivityIndicator color="#2563EB" style={{ marginTop: 16 }} />
-          ) : (
-            <View style={styles.emptySection}>
-              <Text style={styles.emptyText}>No has publicado PQRSDs</Text>
-            </View>
-          )
-        }
-        ListFooterComponent={
-          pqrsQuery.isFetchingNextPage ? (
-            <ActivityIndicator color="#2563EB" style={{ marginVertical: 12 }} />
-          ) : null
-        }
-        ListHeaderComponent={
-          <SafeAreaView edges={['top']}>
-            <View style={styles.headerRow}>
-              <Text style={styles.title}>Perfil</Text>
-              <View style={styles.headerActions}>
-                <TouchableOpacity onPress={handleOpenEdit} style={styles.editButton}>
-                  <Text style={styles.editButtonText}>Editar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleSignOut} disabled={authLoading}>
-                  <Text style={styles.signOutText}>Cerrar sesión</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+          <View style={profileStyles.divider} />
+          <SettingsRow
+            icon="document-text-outline"
+            label="Política de privacidad"
+            onPress={() => setWebView({ url: PRIVACY_URL, title: 'Política de privacidad' })}
+          />
+          <View style={profileStyles.divider} />
+          <SettingsRow
+            icon="clipboard-outline"
+            label="Términos y condiciones"
+            onPress={() => setWebView({ url: TERMS_URL, title: 'Términos y condiciones' })}
+          />
+          <View style={profileStyles.divider} />
+          <SettingsRow
+            icon="log-out-outline"
+            label="Cerrar sesión"
+            onPress={handleSignOut}
+          />
+          <View style={profileStyles.divider} />
+          <SettingsRow
+            icon="trash-outline"
+            label="Eliminar cuenta"
+            onPress={() => setDeleteAccountVisible(true)}
+            danger
+          />
+        </View>
 
-            <View style={styles.avatarSection}>
-              {sessionUser?.image ? (
-                <Image source={{ uri: sessionUser.image }} style={styles.avatarImage} />
-              ) : (
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{initials}</Text>
-                </View>
-              )}
-              <Text style={styles.name}>{sessionUser?.name ?? 'Usuario'}</Text>
-              <Text style={styles.email}>{sessionUser?.email ?? ''}</Text>
-              {roleLabel ? (
-                <View style={styles.roleBadge}>
-                  <Text style={styles.roleBadgeText}>{roleLabel}</Text>
-                </View>
-              ) : null}
-            </View>
+        {/* Support */}
+        <Text style={profileStyles.sectionHeader}>Soporte</Text>
+        <View style={profileStyles.settingsCard}>
+          <SettingsRow
+            icon="chatbubble-ellipses-outline"
+            label="Contactar soporte"
+            onPress={() => setSupportModalVisible(true)}
+          />
+          <View style={profileStyles.divider} />
+          <SettingsRow
+            icon="logo-facebook"
+            label="Facebook"
+            onPress={() => Linking.openURL(FACEBOOK_URL)}
+          />
+          <View style={profileStyles.divider} />
+          <SettingsRow
+            icon="logo-instagram"
+            label="Instagram"
+            onPress={() => Linking.openURL(INSTAGRAM_URL)}
+          />
+        </View>
 
-            <View style={styles.statsRow}>
-              <View style={styles.stat}>
-                <Text style={styles.statValue}>{profile?._count?.PQRS ?? allPqrs.length}</Text>
-                <Text style={styles.statLabel}>PQRSDs</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <TouchableOpacity style={styles.stat} onPress={() => setModal('followers')}>
-                <Text style={styles.statValue}>{profile?._count?.followers ?? 0}</Text>
-                <Text style={[styles.statLabel, styles.statLabelTap]}>Seguidores</Text>
-              </TouchableOpacity>
-              <View style={styles.statDivider} />
-              <TouchableOpacity style={styles.stat} onPress={() => setModal('following')}>
-                <Text style={styles.statValue}>{profile?._count?.following ?? 0}</Text>
-                <Text style={[styles.statLabel, styles.statLabelTap]}>Siguiendo</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.infoSection}>
-              <TouchableOpacity
-                style={styles.infoRow}
-                onPress={() => setChangePasswordVisible(true)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.infoRowText}>Cambiar contraseña</Text>
-                <Text style={styles.infoRowArrow}>›</Text>
-              </TouchableOpacity>
-              <View style={styles.infoRowDivider} />
-              <TouchableOpacity
-                style={styles.infoRow}
-                onPress={() => setWebView({ url: PRIVACY_URL, title: 'Política de privacidad' })}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.infoRowText}>Política de privacidad</Text>
-                <Text style={styles.infoRowArrow}>›</Text>
-              </TouchableOpacity>
-              <View style={styles.infoRowDivider} />
-              <TouchableOpacity
-                style={styles.infoRow}
-                onPress={() => setWebView({ url: TERMS_URL, title: 'Términos y condiciones' })}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.infoRowText}>Términos y condiciones</Text>
-                <Text style={styles.infoRowArrow}>›</Text>
-              </TouchableOpacity>
-              <View style={styles.infoRowDivider} />
-              <TouchableOpacity
-                style={styles.infoRow}
-                onPress={() => setDeleteAccountVisible(true)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.infoRowText, { color: '#DC2626' }]}>Eliminar cuenta</Text>
-                <Text style={[styles.infoRowArrow, { color: '#DC2626' }]}>›</Text>
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.sectionTitle}>Mis PQRSDs</Text>
-          </SafeAreaView>
-        }
-        contentContainerStyle={{ paddingBottom: 32 }}
-      />
+        <View style={profileStyles.versionRow}>
+          <Text style={profileStyles.versionText}>Quéjate v{APP_VERSION}</Text>
+        </View>
+      </ScrollView>
 
       <PeopleModal
         visible={modal === 'followers'}
@@ -348,6 +381,89 @@ export default function UserProfileScreen() {
         url={webView?.url ?? ''}
         onClose={() => setWebView(null)}
       />
-    </>
+      <SupportModal
+        visible={supportModalVisible}
+        userEmail={sessionUser?.email}
+        userName={sessionUser?.name}
+        onClose={() => setSupportModalVisible(false)}
+      />
+    </SafeAreaView>
   );
 }
+
+const profileStyles = StyleSheet.create({
+  sectionHeader: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    paddingHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  infoCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginBottom: 4,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  infoIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  infoContent: { flex: 1 },
+  infoLabel: { fontSize: 11, color: '#9CA3AF', fontWeight: '600', textTransform: 'uppercase', marginBottom: 2 },
+  infoValue: { fontSize: 14, color: '#111827', fontWeight: '500' },
+  settingsCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginBottom: 4,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  settingsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  settingsIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  settingsIconDanger: { backgroundColor: '#FEF2F2' },
+  settingsLabel: { flex: 1, fontSize: 14, color: '#374151', fontWeight: '500' },
+  settingsDanger: { color: '#DC2626' },
+  divider: { height: 1, backgroundColor: '#F3F4F6', marginHorizontal: 16 },
+  versionRow: {
+    alignItems: 'center',
+    paddingVertical: 24,
+  },
+  versionText: { fontSize: 13, color: '#9CA3AF', fontWeight: '600' },
+});
