@@ -1,4 +1,5 @@
 import React, { RefObject } from 'react';
+import { StepHeader } from './StepHeader';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import type { RecaptchaRef } from 'react-native-recaptcha-that-works';
 import type { UseFormGetValues } from 'react-hook-form';
@@ -50,7 +51,7 @@ export function Confirmation({
 
   return (
     <View testID="step5-content">
-      <Text style={styles.stepTitle}>Paso 5 — Confirmación</Text>
+      <StepHeader step={5} title="Confirmación" />
       <Text style={styles.confirmNote}>
         Revisa los datos antes de enviar tu PQRSD.
       </Text>

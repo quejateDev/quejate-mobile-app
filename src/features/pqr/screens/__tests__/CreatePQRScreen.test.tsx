@@ -30,7 +30,8 @@ jest.mock('@core/auth/useAuth', () => ({
 }));
 
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ goBack: jest.fn() }),
+  useNavigation: () => ({ goBack: jest.fn(), setOptions: jest.fn() }),
+  useRoute: () => ({ params: undefined }),
 }));
 
 jest.mock('expo-image-picker', () => ({
@@ -150,6 +151,8 @@ async function navigateToStep3(utils: RenderResult) {
   await navigateToStep2(utils);
   const { getByTestId, getByText } = utils;
   fireEvent.press(getByTestId('type-option-PETITION'));
+  fireEvent.changeText(getByTestId('subject-input'), 'Asunto de prueba');
+  fireEvent.changeText(getByTestId('description-input'), 'Descripción de prueba con suficiente longitud.');
   fireEvent.press(getByText('Siguiente'));
   await waitFor(() => getByTestId('step3-content'));
 }
@@ -202,6 +205,8 @@ describe('CreatePQRScreen — customFields visibilidad', () => {
     fireEvent(getByTestId('anonymous-toggle'), 'valueChange', true);
 
     fireEvent.press(getByTestId('type-option-PETITION'));
+    fireEvent.changeText(getByTestId('subject-input'), 'Asunto de prueba');
+    fireEvent.changeText(getByTestId('description-input'), 'Descripción de prueba con suficiente longitud.');
     fireEvent.press(getByText('Siguiente'));
     await waitFor(() => getByTestId('step3-content'));
 
@@ -279,7 +284,7 @@ describe('CreatePQRScreen — paso 4 (mapa)', () => {
   it('muestra el MiniMap en el paso 4', async () => {
     const utils = render(<CreatePQRScreen />);
     await navigateToStep4(utils);
-    fireEvent.press(utils.getByText('Seleccionar en mapa'));
+    fireEvent.press(utils.getByTestId('open-map-modal'));
     await waitFor(() => utils.getByTestId('mini-map'));
     expect(utils.getByTestId('mini-map')).toBeTruthy();
   });
@@ -296,7 +301,7 @@ describe('CreatePQRScreen — paso 4 (mapa)', () => {
     const utils = render(<CreatePQRScreen />);
     await navigateToStep4(utils);
 
-    fireEvent.press(utils.getByText('Seleccionar en mapa'));
+    fireEvent.press(utils.getByTestId('open-map-modal'));
     await waitFor(() => utils.getByTestId('map-set-location'));
     fireEvent.press(utils.getByTestId('map-set-location'));
 
@@ -311,7 +316,7 @@ describe('CreatePQRScreen — paso 5 (confirmación)', () => {
     const utils = render(<CreatePQRScreen />);
     await navigateToStep5(utils);
 
-    expect(utils.getByText('Paso 5 — Confirmación')).toBeTruthy();
+    expect(utils.getByText('Confirmación')).toBeTruthy();
     expect(utils.getByText('Alcaldía de Bogotá')).toBeTruthy();
   });
 
@@ -319,7 +324,7 @@ describe('CreatePQRScreen — paso 5 (confirmación)', () => {
     const utils = render(<CreatePQRScreen />);
     await navigateToStep4(utils);
 
-    fireEvent.press(utils.getByText('Seleccionar en mapa'));
+    fireEvent.press(utils.getByTestId('open-map-modal'));
     await waitFor(() => utils.getByTestId('map-set-location'));
     fireEvent.press(utils.getByTestId('map-set-location'));
     await waitFor(() => utils.getByText(/Bogotá, Colombia/));
