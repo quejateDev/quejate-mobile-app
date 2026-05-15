@@ -21,21 +21,13 @@ async function registerForPushNotifications(): Promise<void> {
 
   const projectId = (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)
     ?.eas?.projectId;
-  if (!projectId) {
-    console.warn('[PushNotifications] projectId no encontrado en app.json extra.eas.projectId');
-    return;
-  }
+  if (!projectId) return;
 
-  const tokenResult = await Notifications.getExpoPushTokenAsync({ projectId }).catch((err) => {
-    console.warn('[PushNotifications] Error obteniendo token:', err);
-    return null;
-  });
+  const tokenResult = await Notifications.getExpoPushTokenAsync({ projectId }).catch(() => null);
   if (!tokenResult) return;
 
   const token = tokenResult.data;
-  await apiClient.post(ENDPOINTS.PUSH_TOKEN, { token }).catch((err) => {
-    console.warn('[PushNotifications] Error guardando token:', err);
-  });
+  await apiClient.post(ENDPOINTS.PUSH_TOKEN, { token }).catch(() => {});
 }
 
 export function usePushNotifications(): void {

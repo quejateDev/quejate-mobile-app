@@ -383,8 +383,8 @@ export default function UserProfileScreen() {
       />
       <SupportModal
         visible={supportModalVisible}
-        userEmail={sessionUser?.email}
-        userName={sessionUser?.name}
+        userEmail={sessionUser?.email ?? undefined}
+        userName={sessionUser?.name ?? undefined}
         onClose={() => setSupportModalVisible(false)}
       />
     </SafeAreaView>

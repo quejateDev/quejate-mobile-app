@@ -272,14 +272,7 @@ export default function CreatePQRScreen() {
         [{ text: 'Aceptar', onPress: () => navigation.goBack() }],
       );
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { status?: number; data?: { error?: string; details?: string } } };
-      const status = axiosErr?.response?.status;
-      const detail = axiosErr?.response?.data?.details ?? axiosErr?.response?.data?.error;
-      setStepError(
-        detail
-          ? `Error ${status ?? ''}: ${detail}`
-          : 'Error al enviar la PQRSD. Intenta de nuevo.',
-      );
+      setStepError('Error al enviar la PQRSD. Intenta de nuevo.');
     }
   }
 

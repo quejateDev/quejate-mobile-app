@@ -38,9 +38,6 @@ function mapSignInError(error: unknown): string {
     if (error.message === 'INVALID_CREDENTIALS') return 'Email o contraseña incorrectos';
     if (error.message === 'SESSION_INVALID') return 'Sesión inválida. Intenta de nuevo.';
   }
-  const axiosErr = error as { response?: { status?: number; data?: { error?: string; message?: string } } };
-  const backendMsg = axiosErr?.response?.data?.error ?? axiosErr?.response?.data?.message;
-  if (backendMsg) return `Error ${axiosErr?.response?.status ?? ''}: ${backendMsg}`;
   return 'Email o contraseña incorrectos';
 }
 

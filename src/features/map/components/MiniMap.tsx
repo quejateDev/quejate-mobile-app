@@ -26,15 +26,19 @@ const SANTA_MARTA_REGION: Region = {
 
 export function MiniMap({ latitude, longitude, onLocationChange, mapHeight = 250 }: MiniMapProps) {
   const mapRef = useRef<MapView>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const [address, setAddress] = useState<string | null>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
 
   async function reverseGeocode(lat: number, lng: number) {
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
     setIsGeocoding(true);
     try {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
         {
+          signal: abortRef.current.signal,
           headers: {
             'Accept-Language': 'es',
             'User-Agent': 'QuejateApp/1.0',
@@ -45,8 +49,10 @@ export function MiniMap({ latitude, longitude, onLocationChange, mapHeight = 250
       const addr = json.display_name ?? null;
       setAddress(addr);
       onLocationChange(lat, lng, addr);
-    } catch {
-      onLocationChange(lat, lng, null);
+    } catch (e) {
+      if (e instanceof Error && e.name !== 'AbortError') {
+        onLocationChange(lat, lng, null);
+      }
     } finally {
       setIsGeocoding(false);
     }
