@@ -28,7 +28,6 @@ apiClient.interceptors.request.use(async (config) => {
   const token = await SecureStorage.getSessionToken();
   if (token) {
     config.headers['Cookie'] = `${SESSION_TOKEN_KEY}=${token}`;
-    config.headers['Authorization'] = `Bearer ${token}`;
   }
   return config;
 });

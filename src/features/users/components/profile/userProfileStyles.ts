@@ -141,4 +141,6 @@ export const webViewStyles = StyleSheet.create({
   closeText: { fontSize: 18, color: '#6B7280' },
   title: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '600', color: '#111827' },
   closePlaceholder: { width: 26 },
+  errorContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  errorText: { fontSize: 14, color: '#6B7280' },
 });

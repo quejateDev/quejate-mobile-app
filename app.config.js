@@ -23,7 +23,7 @@ module.exports = {
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
-      usesCleartextTraffic: true,
+      usesCleartextTraffic: false,
       package: 'com.anonymous.quejateapp',
       config: {
         googleMaps: {
