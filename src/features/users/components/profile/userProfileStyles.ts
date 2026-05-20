@@ -53,7 +53,7 @@ export const styles = StyleSheet.create({
 });
 
 export const modalStyles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  overlay: { flex: 1, backgroundColor: 'rgba(17,24,39,0.7)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
     paddingHorizontal: 16, paddingBottom: 32, maxHeight: '60%',
@@ -69,17 +69,22 @@ export const modalStyles = StyleSheet.create({
   personAvatar: {
     width: 36, height: 36, borderRadius: 18, backgroundColor: '#EFF6FF',
     alignItems: 'center', justifyContent: 'center', marginRight: 12,
+    overflow: 'hidden',
   },
   personInitial: { fontSize: 15, fontWeight: '700', color: '#2563EB' },
   personName: { fontSize: 15, color: '#111827' },
 });
 
 export const editStyles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  overlay: { flex: 1, backgroundColor: 'rgba(17,24,39,0.7)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
     paddingHorizontal: 20, paddingBottom: 32,
   },
+  // Caps the sheet so a tall form never grows under the keyboard; the inner
+  // ScrollView then makes every field reachable while typing.
+  sheetCapped: { maxHeight: '88%' },
+  sheetScrollContent: { paddingBottom: 8 },
   handle: {
     width: 40, height: 4, borderRadius: 2, backgroundColor: '#E5E7EB',
     alignSelf: 'center', marginTop: 12, marginBottom: 20,

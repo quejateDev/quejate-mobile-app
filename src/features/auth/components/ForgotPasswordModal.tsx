@@ -5,14 +5,15 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { apiClient } from '@core/api/client';
 import { ENDPOINTS } from '@core/api/endpoints';
@@ -49,6 +50,7 @@ export function ForgotPasswordModal({ visible, initialEmail, onClose }: Props) {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (visible) {
@@ -123,11 +125,21 @@ export function ForgotPasswordModal({ visible, initialEmail, onClose }: Props) {
 
   return (
     <Modal visible={visible} animationType="none" transparent onRequestClose={handleClose}>
-      <View style={s.overlay}>
+      <KeyboardAvoidingView style={s.overlay} behavior="padding">
         <Pressable style={{ flex: 1 }} onPress={handleClose} />
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <Animated.View style={[s.sheet, { transform: [{ translateY: slideAnim }] }]}>
-            <View style={s.handle} />
+        <Animated.View
+          style={[
+            s.sheet,
+            s.sheetCapped,
+            { transform: [{ translateY: slideAnim }], paddingBottom: 32 + insets.bottom },
+          ]}
+        >
+          <View style={s.handle} />
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+          >
 
             {step === 'email' && (
               <>
@@ -297,15 +309,15 @@ export function ForgotPasswordModal({ visible, initialEmail, onClose }: Props) {
                 </TouchableOpacity>
               </>
             )}
-          </Animated.View>
-        </KeyboardAvoidingView>
-      </View>
+          </ScrollView>
+        </Animated.View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const s = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  overlay: { flex: 1, backgroundColor: 'rgba(17,24,39,0.7)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: '#fff',
     borderTopLeftRadius: 22,
@@ -313,6 +325,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 22,
     paddingBottom: 32,
   },
+  sheetCapped: { maxHeight: '90%' },
   handle: {
     width: 42,
     height: 4,

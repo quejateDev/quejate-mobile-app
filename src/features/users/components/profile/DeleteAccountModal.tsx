@@ -5,13 +5,14 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { editStyles, deleteStyles } from './userProfileStyles';
 
 interface Props {
@@ -27,6 +28,7 @@ const SCREEN_HEIGHT = Dimensions.get('screen').height;
 export function DeleteAccountModal({ visible, userEmail, isPending, onConfirm, onCancel }: Props) {
   const [confirmText, setConfirmText] = useState('');
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (visible) {
@@ -47,11 +49,22 @@ export function DeleteAccountModal({ visible, userEmail, isPending, onConfirm, o
 
   return (
     <Modal visible={visible} animationType="none" transparent onRequestClose={handleCancel}>
-      <View style={editStyles.overlay}>
+      <KeyboardAvoidingView style={editStyles.overlay} behavior="padding">
         <Pressable style={{ flex: 1 }} onPress={handleCancel} />
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <Animated.View style={[deleteStyles.sheet, { transform: [{ translateY: slideAnim }] }]}>
-            <View style={editStyles.handle} />
+        <Animated.View
+          style={[
+            deleteStyles.sheet,
+            editStyles.sheetCapped,
+            { transform: [{ translateY: slideAnim }], paddingBottom: 32 + insets.bottom },
+          ]}
+        >
+          <View style={editStyles.handle} />
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+            contentContainerStyle={editStyles.sheetScrollContent}
+          >
             <Text style={deleteStyles.title}>Eliminar cuenta</Text>
             <Text style={deleteStyles.subtitle}>
               Esta acción no se puede deshacer. Se eliminará permanentemente la cuenta{' '}
@@ -94,9 +107,9 @@ export function DeleteAccountModal({ visible, userEmail, isPending, onConfirm, o
             >
               <Text style={editStyles.cancelBtnText}>Cancelar</Text>
             </TouchableOpacity>
-          </Animated.View>
-        </KeyboardAvoidingView>
-      </View>
+          </ScrollView>
+        </Animated.View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
