@@ -1,30 +1,35 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Callout, Marker, Region } from 'react-native-maps';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import MapView, { Marker, Region } from 'react-native-maps';
 import { useQuery } from '@tanstack/react-query';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { apiClient } from '@core/api/client';
 import { ENDPOINTS } from '@core/api/endpoints';
 import { typeMap, statusMap } from '@core/types';
 import type { PQRS, PQRSType, PQRSStatus } from '@core/types';
+import type { AppStackParamList } from '@navigation/navigationRef';
 
-const COLOMBIA_REGION: Region = {
-  latitude: 4.711,
-  longitude: -74.0721,
-  latitudeDelta: 12,
-  longitudeDelta: 12,
+// Match the create-PQR MiniMap: centre on Santa Marta and its surroundings.
+const SANTA_MARTA_REGION: Region = {
+  latitude: 11.2408,
+  longitude: -74.199,
+  latitudeDelta: 0.18,
+  longitudeDelta: 0.18,
 };
 
 const TYPE_OPTIONS: PQRSType[] = ['PETITION', 'COMPLAINT', 'CLAIM', 'SUGGESTION', 'REPORT'];
-const STATUS_OPTIONS: PQRSStatus[] = ['PENDING', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
+const STATUS_OPTIONS: PQRSStatus[] = ['PENDING', 'IN_PROGRESS', 'RESOLVED', 'REJECTED'];
 
 interface PQRListResponse {
   pqrs: PQRS[];
@@ -50,9 +55,12 @@ function formatDate(date: Date): string {
 }
 
 export default function MapScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
+  const insets = useSafeAreaInsets();
   const { data: pqrs, isLoading, isError, error, refetch, isRefetching } = useMapPQRs();
   const [selectedType, setSelectedType] = useState<PQRSType | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<PQRSStatus | null>(null);
+  const [selected, setSelected] = useState<PQRS | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -76,7 +84,16 @@ export default function MapScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>Mapa de PQRSDs</Text>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel="Volver"
+          style={{ marginRight: 10 }}
+        >
+          <Ionicons name="chevron-back" size={24} color="#2563EB" />
+        </TouchableOpacity>
+        <Text style={[styles.title, { flex: 1 }]}>Mapa ciudadano</Text>
         <View style={styles.headerRight}>
           {markers.length > 0 && (
             <Text style={styles.counter}>{markers.length} ubicación{markers.length !== 1 ? 'es' : ''}</Text>
@@ -154,28 +171,90 @@ export default function MapScreen() {
             </TouchableOpacity>
           </View>
         )}
-        <MapView style={styles.map} initialRegion={COLOMBIA_REGION}>
-          {markers.map((p) => (
-            <Marker
-              key={p.id}
-              coordinate={{ latitude: p.latitude!, longitude: p.longitude! }}
-              pinColor={typeMap[p.type].color}
-            >
-              <Callout style={styles.callout}>
-                <Text style={styles.calloutSubject} numberOfLines={2}>
-                  {p.subject ?? typeMap[p.type].label}
-                </Text>
-                <Text style={styles.calloutMeta}>
-                  {typeMap[p.type].label} · {statusMap[p.status].label}
-                </Text>
-                <Text style={styles.calloutEntity} numberOfLines={1}>
-                  {p.entity.name}
-                </Text>
-                <Text style={styles.calloutDate}>{formatDate(p.createdAt)}</Text>
-              </Callout>
-            </Marker>
-          ))}
+        <MapView
+          style={styles.map}
+          initialRegion={SANTA_MARTA_REGION}
+          mapPadding={{ top: 0, left: 0, right: 0, bottom: insets.bottom }}
+          onPress={() => setSelected(null)}
+        >
+          {markers.map((p) => {
+            const pType = typeMap[p.type] ?? { label: p.type ?? '—', color: '#6B7280' };
+            return (
+              <Marker
+                key={p.id}
+                coordinate={{ latitude: p.latitude!, longitude: p.longitude! }}
+                pinColor={pType.color}
+                onPress={() => setSelected(p)}
+              />
+            );
+          })}
         </MapView>
+
+        {selected && (() => {
+          const sType = typeMap[selected.type] ?? { label: selected.type ?? '—', color: '#6B7280' };
+          const sStatus = statusMap[selected.status] ?? { label: selected.status ?? '—' };
+          const author = selected.anonymous ? 'Anónimo' : selected.creator?.name ?? null;
+          return (
+            <View style={[styles.previewCard, { bottom: insets.bottom + 14 }]}>
+              <TouchableOpacity
+                style={styles.previewClose}
+                onPress={() => setSelected(null)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Cerrar vista previa"
+              >
+                <Ionicons name="close" size={18} color="#6B7280" />
+              </TouchableOpacity>
+
+              <Text style={styles.previewSubject} numberOfLines={2}>
+                {selected.subject ?? sType.label}
+              </Text>
+
+              <View style={styles.previewBadges}>
+                <View style={[styles.previewBadge, { backgroundColor: sType.color + '22' }]}>
+                  <Text style={[styles.previewBadgeText, { color: sType.color }]}>{sType.label}</Text>
+                </View>
+                <View style={styles.previewStatusBadge}>
+                  <Text style={styles.previewStatusText}>{sStatus.label}</Text>
+                </View>
+              </View>
+
+              {author ? (
+                <View style={styles.previewRow}>
+                  {selected.creator?.image ? (
+                    <Image source={{ uri: selected.creator.image }} style={styles.previewAvatar} />
+                  ) : (
+                    <View style={styles.previewAvatarFallback}>
+                      <Text style={styles.previewAvatarInitial}>{author.charAt(0).toUpperCase()}</Text>
+                    </View>
+                  )}
+                  <Text style={styles.previewAuthor} numberOfLines={1}>{author}</Text>
+                </View>
+              ) : null}
+
+              {selected.entity?.name ? (
+                <View style={styles.previewRow}>
+                  <Ionicons name="business-outline" size={14} color="#6B7280" />
+                  <Text style={styles.previewMeta} numberOfLines={1}>{selected.entity.name}</Text>
+                </View>
+              ) : null}
+
+              <View style={styles.previewRow}>
+                <Ionicons name="calendar-outline" size={14} color="#9CA3AF" />
+                <Text style={styles.previewDate}>{formatDate(selected.createdAt)}</Text>
+              </View>
+
+              <TouchableOpacity
+                style={styles.previewBtn}
+                onPress={() => navigation.navigate('PQRDetail', { id: selected.id })}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.previewBtnText}>Ver PQRSD</Text>
+                <Ionicons name="arrow-forward" size={16} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          );
+        })()}
       </View>
     </SafeAreaView>
   );
@@ -252,9 +331,50 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   retryBtnText: { fontSize: 13, fontWeight: '600', color: '#fff' },
-  callout: { width: 200, padding: 4 },
-  calloutSubject: { fontSize: 13, fontWeight: '700', color: '#111827', marginBottom: 4 },
-  calloutMeta: { fontSize: 11, color: '#6B7280', marginBottom: 2 },
-  calloutEntity: { fontSize: 11, color: '#2563EB', fontWeight: '600', marginBottom: 2 },
-  calloutDate: { fontSize: 11, color: '#9CA3AF' },
+  previewCard: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 8,
+    zIndex: 20,
+  },
+  previewClose: { position: 'absolute', top: 10, right: 10, padding: 4, zIndex: 1 },
+  previewSubject: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 8, paddingRight: 28 },
+  previewBadges: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 6 },
+  previewBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+  previewBadgeText: { fontSize: 12, fontWeight: '700' },
+  previewStatusBadge: { backgroundColor: '#F3F4F6', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+  previewStatusText: { fontSize: 12, color: '#6B7280', fontWeight: '600' },
+  previewRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 6 },
+  previewAvatar: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#E5E7EB' },
+  previewAvatarFallback: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#DBEAFE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewAvatarInitial: { fontSize: 12, fontWeight: '700', color: '#2563EB' },
+  previewAuthor: { fontSize: 13, color: '#374151', fontWeight: '600', flex: 1 },
+  previewMeta: { fontSize: 13, color: '#374151', flex: 1 },
+  previewDate: { fontSize: 13, color: '#9CA3AF' },
+  previewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#2563EB',
+    borderRadius: 10,
+    paddingVertical: 11,
+    marginTop: 14,
+  },
+  previewBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 });

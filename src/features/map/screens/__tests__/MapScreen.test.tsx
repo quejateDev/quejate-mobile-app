@@ -7,6 +7,7 @@ import type { PQRS } from '@core/types';
 
 jest.mock('@react-navigation/native', () => ({
   useFocusEffect: jest.fn((cb: () => void) => cb()),
+  useNavigation: () => ({ goBack: jest.fn(), navigate: jest.fn() }),
 }));
 
 jest.mock('@core/api/client', () => ({
@@ -20,8 +21,8 @@ jest.mock('react-native-maps', () => {
   const MapView = React.forwardRef(({ children }: any, _ref: any) =>
     React.createElement(View, { testID: 'map-view' }, children),
   );
-  const Marker = ({ children }: any) =>
-    React.createElement(View, { testID: 'map-marker' }, children);
+  const Marker = ({ children, onPress }: any) =>
+    React.createElement(View, { testID: 'map-marker', onPress }, children);
   const Callout = ({ children }: any) =>
     React.createElement(View, null, children);
 
@@ -30,6 +31,7 @@ jest.mock('react-native-maps', () => {
 
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }: any) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
 const basePQR: PQRS = {
@@ -84,9 +86,9 @@ beforeEach(() => {
 });
 
 describe('MapScreen', () => {
-  it('muestra el título "Mapa de PQRSDs"', async () => {
+  it('muestra el título "Mapa ciudadano"', async () => {
     const { getByText } = renderWithQuery(<MapScreen />);
-    expect(getByText('Mapa de PQRSDs')).toBeTruthy();
+    expect(getByText('Mapa ciudadano')).toBeTruthy();
   });
 
   it('renderiza el mapa', async () => {
@@ -130,11 +132,12 @@ describe('MapScreen', () => {
       },
     });
 
-    const { getByText, getAllByTestId } = renderWithQuery(<MapScreen />);
+    const { getAllByText, getAllByTestId } = renderWithQuery(<MapScreen />);
 
     await waitFor(() => expect(getAllByTestId('map-marker')).toHaveLength(2));
 
-    fireEvent.press(getByText('Petición'));
+    // The first "Petición" is the filter chip (rendered before the callouts).
+    fireEvent.press(getAllByText('Petición')[0]);
 
     await waitFor(() => expect(getAllByTestId('map-marker')).toHaveLength(1));
   });
@@ -149,14 +152,14 @@ describe('MapScreen', () => {
       },
     });
 
-    const { getByText, getAllByTestId } = renderWithQuery(<MapScreen />);
+    const { getAllByText, getAllByTestId } = renderWithQuery(<MapScreen />);
 
     await waitFor(() => expect(getAllByTestId('map-marker')).toHaveLength(2));
 
-    fireEvent.press(getByText('Petición'));
+    fireEvent.press(getAllByText('Petición')[0]);
     await waitFor(() => expect(getAllByTestId('map-marker')).toHaveLength(1));
 
-    fireEvent.press(getByText('Petición'));
+    fireEvent.press(getAllByText('Petición')[0]);
     await waitFor(() => expect(getAllByTestId('map-marker')).toHaveLength(2));
   });
 
@@ -180,11 +183,11 @@ describe('MapScreen', () => {
       },
     });
 
-    const { getByText, getAllByTestId, queryByText } = renderWithQuery(<MapScreen />);
+    const { getByText, getAllByText, getAllByTestId, queryByText } = renderWithQuery(<MapScreen />);
 
     await waitFor(() => expect(getAllByTestId('map-marker')).toHaveLength(2));
 
-    fireEvent.press(getByText('Petición'));
+    fireEvent.press(getAllByText('Petición')[0]);
     await waitFor(() => expect(getAllByTestId('map-marker')).toHaveLength(1));
 
     fireEvent.press(getByText('Limpiar'));
@@ -199,8 +202,12 @@ describe('MapScreen', () => {
     expect(config?.params?.limit).toBe(50);
   });
 
-  it('muestra los datos en el callout del marcador', async () => {
-    const { getByText } = renderWithQuery(<MapScreen />);
+  it('muestra los datos de la PQRSD al tocar el marcador', async () => {
+    const { getByText, getByTestId } = renderWithQuery(<MapScreen />);
+    await waitFor(() => expect(getByTestId('map-marker')).toBeTruthy());
+
+    fireEvent.press(getByTestId('map-marker'));
+
     await waitFor(() => {
       expect(getByText('Problema de agua')).toBeTruthy();
       expect(getByText('Alcaldía de Bogotá')).toBeTruthy();
