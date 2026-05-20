@@ -5,7 +5,6 @@ import {
   Image,
   ScrollView,
   Share,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -16,101 +15,19 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AppStackParamList } from '@navigation/navigationRef';
 import { useAuth } from '@core/auth/useAuth';
 import { typeMap, statusMap } from '@core/types';
-import type { Attachment, PQRStatusHistoryEntry, PQRSStatus } from '@core/types';
+import type { Attachment } from '@core/types';
 import { usePQRDetail } from '@features/pqr/hooks/usePQRDetail';
 import {
   useLikePQR,
   useUpdateStatus,
   useUpdatePrivacy,
 } from '@features/pqr/hooks/usePQRActions';
+import { isUnauthorized } from '@shared/utils/httpError';
 import { AttachmentGalleryModal } from './AttachmentGalleryModal';
 import { DocumentViewerModal } from './DocumentViewerModal';
+import { StatusTimeline } from './StatusTimeline';
+import { formatBytes, isImageAttachment } from './detailUtils';
 import { styles } from './pqrDetailStyles';
-
-const STATUS_ICON: Record<PQRSStatus, keyof typeof Ionicons.glyphMap> = {
-  PENDING:     'document-outline',
-  IN_PROGRESS: 'refresh-outline',
-  RESOLVED:    'checkmark-circle-outline',
-  CLOSED:      'lock-closed-outline',
-};
-
-function StatusTimeline({ history }: { history: PQRStatusHistoryEntry[] }) {
-  if (history.length === 0) return null;
-  return (
-    <View style={timelineStyles.container}>
-      <Text style={styles.sectionTitle}>Seguimiento</Text>
-      {history.map((entry, idx) => {
-        const isLast = idx === history.length - 1;
-        const statusInfo = statusMap[entry.status];
-        return (
-          <View key={entry.id} style={timelineStyles.row}>
-            <View style={timelineStyles.lineCol}>
-              <View style={[timelineStyles.dot, isLast && timelineStyles.dotActive]} />
-              {!isLast && <View style={timelineStyles.line} />}
-            </View>
-            <View style={timelineStyles.content}>
-              <View style={timelineStyles.labelRow}>
-                <Ionicons name={STATUS_ICON[entry.status]} size={14} color={isLast ? '#2563EB' : '#9CA3AF'} style={{ marginRight: 4 }} />
-                <Text style={[timelineStyles.statusLabel, isLast && timelineStyles.statusLabelActive]}>
-                  {statusInfo.label}
-                </Text>
-                {entry.user?.name ? (
-                  <Text style={timelineStyles.actor}> · {entry.user.name}</Text>
-                ) : null}
-              </View>
-              {entry.comment ? (
-                <Text style={timelineStyles.comment}>{entry.comment}</Text>
-              ) : null}
-              <Text style={timelineStyles.date}>
-                {new Date(entry.createdAt).toLocaleDateString('es-CO', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric',
-                })}
-              </Text>
-            </View>
-          </View>
-        );
-      })}
-    </View>
-  );
-}
-
-const timelineStyles = StyleSheet.create({
-  container: { marginBottom: 8 },
-  row: { flexDirection: 'row', marginBottom: 0 },
-  lineCol: { width: 28, alignItems: 'center' },
-  dot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#D1D5DB',
-    borderWidth: 2,
-    borderColor: '#D1D5DB',
-    marginTop: 2,
-  },
-  dotActive: { backgroundColor: '#2563EB', borderColor: '#2563EB' },
-  line: { width: 2, flex: 1, backgroundColor: '#E5E7EB', marginTop: 2, marginBottom: 0, minHeight: 20 },
-  content: { flex: 1, paddingBottom: 16, paddingLeft: 8 },
-  labelRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 2 },
-  statusLabel: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
-  statusLabelActive: { color: '#2563EB' },
-  actor: { fontSize: 12, color: '#9CA3AF' },
-  comment: { fontSize: 13, color: '#374151', lineHeight: 18, marginBottom: 3 },
-  date: { fontSize: 11, color: '#9CA3AF' },
-});
-
-function formatBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function isImageAttachment(mimeType: string, name: string): boolean {
-  if (mimeType.startsWith('image/')) return true;
-  const ext = name.split('.').pop()?.toLowerCase() ?? '';
-  return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif'].includes(ext);
-}
 
 interface Props {
   pqrId: string;
@@ -162,7 +79,15 @@ export function DetailHeader({ pqrId, commentCount }: Props) {
   }
 
   function handleTogglePrivacy() {
-    privacyMutation.mutate({ private: !pqr!.private });
+    privacyMutation.mutate(
+      { private: !pqr!.private },
+      {
+        onError: (error) => {
+          if (isUnauthorized(error)) return;
+          Alert.alert('Error', 'No se pudo cambiar la privacidad. Inténtalo de nuevo.');
+        },
+      },
+    );
   }
 
   function handleShare() {

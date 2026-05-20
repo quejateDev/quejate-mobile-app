@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -18,6 +19,8 @@ import type { Comment } from '@core/types';
 import { usePQRDetail } from '@features/pqr/hooks/usePQRDetail';
 import { useComments, useAddComment } from '@features/pqr/hooks/useComments';
 import { ErrorState } from '@shared/components/ui/ErrorState';
+import { ErrorBoundary } from '@shared/components/ui/ErrorBoundary';
+import { getErrorStatus } from '@shared/utils/httpError';
 import { DetailHeader } from '@features/pqr/components/detail/DetailHeader';
 import { CommentItem } from '@features/pqr/components/detail/CommentItem';
 import { styles } from '@features/pqr/components/detail/pqrDetailStyles';
@@ -37,7 +40,7 @@ export default function PQRDetailScreen() {
   const [commentText, setCommentText] = useState('');
 
   if (isDetailError) {
-    const status = (detailError as { response?: { status?: number } })?.response?.status;
+    const status = getErrorStatus(detailError);
     if (status === 403) {
       return <ErrorState message="Esta PQRSD es privada y no tienes permiso para verla." />;
     }
@@ -56,7 +59,13 @@ export default function PQRDetailScreen() {
     if (!commentText.trim() || !user) return;
     addComment.mutate(
       { text: commentText.trim(), userId: user.id },
-      { onSuccess: () => setCommentText('') },
+      {
+        onSuccess: () => setCommentText(''),
+        onError: (error) => {
+          if (getErrorStatus(error) === 401) return;
+          Alert.alert('Error', 'No se pudo enviar el comentario. Inténtalo de nuevo.');
+        },
+      },
     );
   }
 
@@ -69,8 +78,12 @@ export default function PQRDetailScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <ErrorBoundary
+        message="No se pudo mostrar esta PQRSD. Inténtalo de nuevo."
+        onReset={handleRefresh}
+      >
       <FlatList<Comment>
         data={commentList}
         keyExtractor={(item) => item.id}
@@ -120,6 +133,7 @@ export default function PQRDetailScreen() {
           </TouchableOpacity>
         </View>
       )}
+      </ErrorBoundary>
     </KeyboardAvoidingView>
   );
 }
