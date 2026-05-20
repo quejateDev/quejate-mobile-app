@@ -10,5 +10,6 @@ module.exports = {
     '^@navigation/(.*)$': '<rootDir>/src/navigation/$1',
     '^@expo/vector-icons$': '<rootDir>/__mocks__/expoVectorIcons.js',
     '^@expo/vector-icons/(.*)$': '<rootDir>/__mocks__/expoVectorIcons.js',
+    '^react-native-maps$': '<rootDir>/__mocks__/reactNativeMaps.js',
   },
 };
