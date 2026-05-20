@@ -20,4 +20,7 @@ android/
 
 ai/
 
+# Internal diagnostics screen — kept locally for testing, not shipped
+src/features/debug/
+
 .DS_Store
