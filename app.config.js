@@ -1,11 +1,13 @@
 const fs = require('fs');
 
-// Push notifications on Android require Firebase Cloud Messaging. Drop the
-// google-services.json (from the Firebase console) at the project root and it
-// is picked up automatically — without it the build still succeeds.
-const googleServicesFile = fs.existsSync('./google-services.json')
-  ? './google-services.json'
-  : undefined;
+// google-services.json is NOT committed (it contains an API key flagged by
+// GitHub Secret Scanning). For local dev keep ./google-services.json at the
+// repo root; for EAS builds, register it as a file env var:
+//   eas env:create --type file --name GOOGLE_SERVICES_JSON --value ./google-services.json
+// EAS materialises it at $GOOGLE_SERVICES_JSON and we point Gradle there.
+const googleServicesFile =
+  process.env.GOOGLE_SERVICES_JSON ??
+  (fs.existsSync('./google-services.json') ? './google-services.json' : undefined);
 
 module.exports = {
   expo: {
