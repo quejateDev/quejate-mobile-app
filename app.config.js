@@ -1,3 +1,12 @@
+const fs = require('fs');
+
+// Push notifications on Android require Firebase Cloud Messaging. Drop the
+// google-services.json (from the Firebase console) at the project root and it
+// is picked up automatically — without it the build still succeeds.
+const googleServicesFile = fs.existsSync('./google-services.json')
+  ? './google-services.json'
+  : undefined;
+
 module.exports = {
   expo: {
     name: 'Quéjate',
@@ -23,8 +32,21 @@ module.exports = {
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
+      softwareKeyboardLayoutMode: 'pan',
       usesCleartextTraffic: false,
-      package: 'com.anonymous.quejateapp',
+      ...(googleServicesFile ? { googleServicesFile } : {}),
+      package: 'co.quejate.app',
+      versionCode: 1,
+      permissions: [
+        'android.permission.INTERNET',
+        'android.permission.ACCESS_FINE_LOCATION',
+        'android.permission.ACCESS_COARSE_LOCATION',
+        'android.permission.CAMERA',
+        'android.permission.READ_EXTERNAL_STORAGE',
+        'android.permission.READ_MEDIA_IMAGES',
+        'android.permission.RECEIVE_BOOT_COMPLETED',
+        'android.permission.VIBRATE',
+      ],
       config: {
         googleMaps: {
           apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
@@ -51,6 +73,20 @@ module.exports = {
           icon: './assets/notification-icon.png',
           color: '#2563EB',
           sounds: [],
+        },
+      ],
+      [
+        'expo-image-picker',
+        {
+          photosPermission: 'La app necesita acceso a tus fotos para adjuntar imágenes a tu queja.',
+          cameraPermission: 'La app necesita acceso a la cámara para tomar fotos.',
+        },
+      ],
+      [
+        'expo-location',
+        {
+          locationAlwaysAndWhenInUsePermission: 'La app necesita tu ubicación para registrar el lugar del problema.',
+          locationWhenInUsePermission: 'La app necesita tu ubicación para registrar el lugar del problema.',
         },
       ],
     ],

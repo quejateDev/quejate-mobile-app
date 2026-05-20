@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "115182915815",
+    "project_id": "quejateapp-b480a",
+    "storage_bucket": "quejateapp-b480a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:115182915815:android:d2e5958bbf732c85b91242",
+        "android_client_info": {
+          "package_name": "co.quejate.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBLLqODVX5jnvQp7ap8mNy-87nZGHjFBVU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:115182915815:android:1eaaad7601ff6583b91242",
+        "android_client_info": {
+          "package_name": "com.anonymous.quejateapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBLLqODVX5jnvQp7ap8mNy-87nZGHjFBVU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
