@@ -10,7 +10,9 @@ import PublicProfileScreen from '@features/users/screens/PublicProfileScreen';
 import LawyerDetailScreen from '@features/lawyers/screens/LawyerDetailScreen';
 import MyLawyerRequestsScreen from '@features/lawyers/screens/MyLawyerRequestsScreen';
 import RegisterAsLawyerScreen from '@features/lawyers/screens/RegisterAsLawyerScreen';
+import MapScreen from '@features/map/screens/MapScreen';
 import { AppTabNavigator } from '@navigation/AppTabNavigator';
+import { withErrorBoundary } from '@shared/components/ui/withErrorBoundary';
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
@@ -40,13 +42,14 @@ export default function AppNavigator() {
   return (
     <Stack.Navigator>
       <Stack.Screen name="Tabs" component={AppTabNavigator} options={{ headerShown: false }} />
-      <Stack.Screen name="CreatePQR" component={CreatePQRScreen} options={{ ...headerDefaults, headerTitle: 'Nueva PQRSD' }} />
-      <Stack.Screen name="PQRDetail" component={PQRDetailScreen} options={{ ...headerDefaults, headerTitle: 'Detalle PQRSD' }} />
-      <Stack.Screen name="Notificaciones" component={NotificationsScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="PublicProfile" component={PublicProfileScreen} options={{ ...headerDefaults, headerTitle: 'Perfil' }} />
-      <Stack.Screen name="LawyerDetail" component={LawyerDetailScreen} options={{ ...headerDefaults, headerTitle: 'Perfil de abogado' }} />
-      <Stack.Screen name="MyLawyerRequests" component={MyLawyerRequestsScreen} options={{ ...headerDefaults, headerTitle: 'Mis solicitudes' }} />
-      <Stack.Screen name="RegisterAsLawyer" component={RegisterAsLawyerScreen} options={{ ...headerDefaults, headerTitle: 'Registro como abogado' }} />
+      <Stack.Screen name="CreatePQR" component={withErrorBoundary(CreatePQRScreen)} options={{ ...headerDefaults, headerTitle: 'Nueva PQRSD' }} />
+      <Stack.Screen name="PQRDetail" component={withErrorBoundary(PQRDetailScreen)} options={{ ...headerDefaults, headerTitle: 'Detalle PQRSD' }} />
+      <Stack.Screen name="Notificaciones" component={withErrorBoundary(NotificationsScreen)} options={{ headerShown: false }} />
+      <Stack.Screen name="PublicProfile" component={withErrorBoundary(PublicProfileScreen)} options={{ ...headerDefaults, headerTitle: 'Perfil' }} />
+      <Stack.Screen name="LawyerDetail" component={withErrorBoundary(LawyerDetailScreen)} options={{ ...headerDefaults, headerTitle: 'Perfil de abogado' }} />
+      <Stack.Screen name="MyLawyerRequests" component={withErrorBoundary(MyLawyerRequestsScreen)} options={{ ...headerDefaults, headerTitle: 'Mis solicitudes' }} />
+      <Stack.Screen name="RegisterAsLawyer" component={withErrorBoundary(RegisterAsLawyerScreen)} options={{ ...headerDefaults, headerTitle: 'Registro como abogado' }} />
+      <Stack.Screen name="MapaCiudadano" component={withErrorBoundary(MapScreen)} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

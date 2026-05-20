@@ -1,17 +1,25 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AppTabParamList } from '@navigation/navigationRef';
 import PQRListScreen from '@features/pqr/screens/PQRListScreen';
 import MyPQRsScreen from '@features/pqr/screens/MyPQRsScreen';
 import EntityListScreen from '@features/entities/screens/EntityListScreen';
 import UserProfileScreen from '@features/users/screens/UserProfileScreen';
 import { usePushNotifications } from '@core/notifications/usePushNotifications';
+import { withErrorBoundary } from '@shared/components/ui/withErrorBoundary';
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
 
+const InicioScreen = withErrorBoundary(PQRListScreen);
+const MisPQRSDsScreen = withErrorBoundary(MyPQRsScreen);
+const EntidadesScreen = withErrorBoundary(EntityListScreen);
+const PerfilScreen = withErrorBoundary(UserProfileScreen);
+
 export function AppTabNavigator() {
   usePushNotifications();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tab.Navigator
@@ -24,7 +32,8 @@ export function AppTabNavigator() {
           borderTopColor: '#E5E7EB',
           borderTopWidth: 1,
           paddingTop: 8,
-          paddingBottom: 12,
+          paddingBottom: Math.max(insets.bottom, 12),
+          height: 60 + Math.max(insets.bottom, 12),
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
         tabBarIcon: ({ color, size, focused }) => {
@@ -40,10 +49,10 @@ export function AppTabNavigator() {
         },
       })}
     >
-      <Tab.Screen name="Inicio" component={PQRListScreen} options={{ tabBarLabel: 'Inicio' }} />
-      <Tab.Screen name="MisPQRSDs" component={MyPQRsScreen} options={{ tabBarLabel: 'Mis PQRSD' }} />
-      <Tab.Screen name="Entidades" component={EntityListScreen} options={{ tabBarLabel: 'Entidades' }} />
-      <Tab.Screen name="Perfil" component={UserProfileScreen} options={{ tabBarLabel: 'Perfil' }} />
+      <Tab.Screen name="Inicio" component={InicioScreen} options={{ tabBarLabel: 'Inicio' }} />
+      <Tab.Screen name="MisPQRSDs" component={MisPQRSDsScreen} options={{ tabBarLabel: 'Mis PQRSD' }} />
+      <Tab.Screen name="Entidades" component={EntidadesScreen} options={{ tabBarLabel: 'Entidades' }} />
+      <Tab.Screen name="Perfil" component={PerfilScreen} options={{ tabBarLabel: 'Perfil' }} />
     </Tab.Navigator>
   );
 }

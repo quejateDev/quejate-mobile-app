@@ -17,6 +17,7 @@ export type AppStackParamList = {
   LawyerDetail: { lawyerId: string };
   MyLawyerRequests: undefined;
   RegisterAsLawyer: undefined;
+  MapaCiudadano: undefined;
 };
 
 export const navigationRef = createNavigationContainerRef<AppStackParamList>();
