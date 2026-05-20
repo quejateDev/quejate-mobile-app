@@ -12,15 +12,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '@core/auth/useAuth';
-import { apiClient } from '@core/api/client';
-import { ENDPOINTS } from '@core/api/endpoints';
-import { uploadToS3 } from '@shared/utils/s3Upload';
 import { ErrorState } from '@shared/components/ui/ErrorState';
 import type { AppStackParamList } from '@navigation/navigationRef';
-import type { UserProfile } from '@core/types';
+import { useProfileActions } from '@features/users/hooks/useProfileActions';
 import { getInitials, ROLE_LABEL } from '@features/users/components/profile/userProfileUtils';
 import { styles } from '@features/users/components/profile/userProfileStyles';
 import { PeopleModal } from '@features/users/components/profile/PeopleModal';
@@ -62,9 +58,8 @@ function SettingsRow({
 }
 
 export default function UserProfileScreen() {
-  const { user: sessionUser, signOut, isLoading: authLoading, setUser } = useAuth();
+  const { user: sessionUser, signOut } = useAuth();
   const navigation = useNavigation<Nav>();
-  const queryClient = useQueryClient();
 
   const [modal, setModal] = useState<'followers' | 'following' | null>(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -76,13 +71,17 @@ export default function UserProfileScreen() {
   const [editPhone, setEditPhone] = useState('');
   const [editImageUri, setEditImageUri] = useState<string | null>(null);
 
-  const { data: profile, isError: isProfileError, refetch: refetchProfile } = useQuery<UserProfile>({
-    queryKey: ['user', sessionUser?.id],
-    queryFn: async () => {
-      const res = await apiClient.get(ENDPOINTS.USERS.DETAIL(sessionUser!.id));
-      return res.data;
-    },
-    enabled: !!sessionUser?.id,
+  const {
+    profile,
+    isProfileError,
+    refetchProfile,
+    updateMutation,
+    changePasswordMutation,
+    deleteAccountMutation,
+  } = useProfileActions({
+    onUpdated: () => setEditModalVisible(false),
+    onPasswordChanged: () => setChangePasswordVisible(false),
+    onDeleted: () => setDeleteAccountVisible(false),
   });
 
   useFocusEffect(
@@ -91,70 +90,8 @@ export default function UserProfileScreen() {
     }, [refetchProfile]),
   );
 
-  const updateMutation = useMutation({
-    mutationFn: async ({ name, phone, imageUri }: { name: string; phone: string; imageUri: string | null }) => {
-      let imageUrl: string | undefined;
-      if (imageUri) {
-        imageUrl = await uploadToS3(imageUri, 'image/jpeg', 'avatars');
-      }
-      const res = await apiClient.patch<{ id: string; name: string; email: string; phone?: string; image?: string }>(
-        ENDPOINTS.USERS.UPDATE(sessionUser!.id),
-        {
-          name: name.trim(),
-          ...(phone.trim() ? { phone: phone.trim() } : {}),
-          ...(imageUrl ? { image: imageUrl } : {}),
-        },
-      );
-      return res.data;
-    },
-    onSuccess: (updated) => {
-      setUser({ ...sessionUser!, name: updated.name, image: updated.image ?? sessionUser!.image });
-      queryClient.invalidateQueries({ queryKey: ['user', sessionUser?.id] });
-      setEditModalVisible(false);
-    },
-    onError: () => {
-      Alert.alert('Error', 'No se pudo actualizar el perfil. Inténtalo de nuevo.');
-    },
-  });
-
-  const changePasswordMutation = useMutation({
-    mutationFn: async ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) => {
-      await apiClient.patch(ENDPOINTS.USERS.UPDATE(sessionUser!.id), {
-        name: sessionUser!.name ?? '',
-        currentPassword,
-        newPassword,
-      });
-    },
-    onSuccess: () => {
-      setChangePasswordVisible(false);
-      Alert.alert('Contraseña actualizada', 'Tu contraseña fue cambiada exitosamente.');
-    },
-    onError: (error: { response?: { status?: number; data?: { message?: string } } }) => {
-      const status = error?.response?.status;
-      const msg: string = error?.response?.data?.message ?? '';
-      if (status === 401 || msg.toLowerCase().includes('contraseña') || msg.toLowerCase().includes('credencial')) {
-        Alert.alert('Error', 'La contraseña actual es incorrecta.');
-      } else {
-        Alert.alert('Error', 'No se pudo cambiar la contraseña. Inténtalo de nuevo.');
-      }
-    },
-  });
-
-  const deleteAccountMutation = useMutation({
-    mutationFn: async () => {
-      await apiClient.delete(ENDPOINTS.USERS.DELETE(sessionUser!.id));
-    },
-    onSuccess: () => {
-      setDeleteAccountVisible(false);
-      signOut();
-    },
-    onError: () => {
-      Alert.alert('Error', 'No se pudo eliminar la cuenta. Inténtalo de nuevo.');
-    },
-  });
-
   function handleOpenEdit() {
-    setEditName(sessionUser?.name ?? '');
+    setEditName(profile?.name ?? sessionUser?.name ?? '');
     setEditPhone(profile?.phone ?? '');
     setEditImageUri(null);
     setEditModalVisible(true);
@@ -165,7 +102,7 @@ export default function UserProfileScreen() {
       mediaTypes: 'images',
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.7,
+      quality: 0.8,
     });
     if (!result.canceled && result.assets[0]) {
       setEditImageUri(result.assets[0].uri);
@@ -194,7 +131,10 @@ export default function UserProfileScreen() {
     );
   }
 
-  const initials = getInitials(sessionUser?.name);
+  const displayName = profile?.name ?? sessionUser?.name;
+  const displayImage = profile?.image ?? sessionUser?.image;
+  const displayEmail = profile?.email ?? sessionUser?.email;
+  const initials = getInitials(displayName);
   const roleLabel = ROLE_LABEL[sessionUser?.role ?? ''] ?? sessionUser?.role ?? '';
   const followers = profile?.followers ?? [];
   const following = profile?.following ?? [];
@@ -211,16 +151,16 @@ export default function UserProfileScreen() {
 
         <View style={styles.avatarSection}>
           <TouchableOpacity onPress={handleOpenEdit} activeOpacity={0.8}>
-            {sessionUser?.image ? (
-              <Image source={{ uri: sessionUser.image }} style={styles.avatarImage} />
+            {displayImage ? (
+              <Image source={{ uri: displayImage }} style={styles.avatarImage} />
             ) : (
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>{initials}</Text>
               </View>
             )}
           </TouchableOpacity>
-          <Text style={styles.name}>{sessionUser?.name ?? 'Usuario'}</Text>
-          <Text style={styles.email}>{sessionUser?.email ?? ''}</Text>
+          <Text style={styles.name}>{displayName ?? 'Usuario'}</Text>
+          <Text style={styles.email}>{displayEmail ?? ''}</Text>
           {roleLabel ? (
             <View style={styles.roleBadge}>
               <Text style={styles.roleBadgeText}>{roleLabel}</Text>
@@ -254,7 +194,7 @@ export default function UserProfileScreen() {
             </View>
             <View style={profileStyles.infoContent}>
               <Text style={profileStyles.infoLabel}>Correo electrónico</Text>
-              <Text style={profileStyles.infoValue}>{sessionUser?.email ?? '—'}</Text>
+              <Text style={profileStyles.infoValue}>{displayEmail ?? '—'}</Text>
             </View>
           </View>
           {profile?.phone ? (
@@ -340,12 +280,20 @@ export default function UserProfileScreen() {
         title="Seguidores"
         people={followers}
         onClose={() => setModal(null)}
+        onPressPerson={(userId) => {
+          setModal(null);
+          navigation.navigate('PublicProfile', { userId });
+        }}
       />
       <PeopleModal
         visible={modal === 'following'}
         title="Siguiendo"
         people={following}
         onClose={() => setModal(null)}
+        onPressPerson={(userId) => {
+          setModal(null);
+          navigation.navigate('PublicProfile', { userId });
+        }}
       />
       <EditProfileModal
         visible={editModalVisible}
