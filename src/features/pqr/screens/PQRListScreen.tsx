@@ -188,18 +188,26 @@ export default function PQRListScreen() {
             <Isotype size={30} color="rgba(255,255,255,0.9)" />
             <Text style={styles.headerTitle}>Quéjate</Text>
           </View>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Notificaciones')}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            style={{ position: 'relative' }}
-          >
-            <Ionicons name="notifications-outline" size={24} color="#fff" />
-            {unreadCount > 0 && (
-              <View style={styles.bellBadge}>
-                <Text style={styles.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('MapaCiudadano')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel="Mapa ciudadano"
+            >
+              <Ionicons name="map-outline" size={23} color="#fff" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Notificaciones')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={{ position: 'relative' }}
+              accessibilityRole="button"
+              accessibilityLabel="Notificaciones"
+            >
+              <Ionicons name="notifications-outline" size={24} color="#fff" />
+              {unreadCount > 0 && <View style={styles.bellDot} />}
+            </TouchableOpacity>
+          </View>
         </View>
         <View style={styles.searchBar}>
           <Ionicons name="search-outline" size={15} color="#9CA3AF" style={{ marginRight: 8 }} />
@@ -211,6 +219,8 @@ export default function PQRListScreen() {
             onChangeText={setSearch}
             returnKeyType="search"
             clearButtonMode="while-editing"
+            maxFontSizeMultiplier={1.3}
+            numberOfLines={1}
           />
         </View>
         </View>
@@ -281,29 +291,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
-  bellBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: '#fff',
-    borderRadius: 99,
-    minWidth: 16,
-    height: 16,
+  headerActions: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
+    gap: 18,
   },
-  bellBadgeText: { fontSize: 9, fontWeight: '800', color: '#1E3A8A' },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
+  bellDot: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 11,
+    height: 11,
+    borderRadius: 6,
+    backgroundColor: '#F87171',
+    borderWidth: 2,
+    borderColor: '#1E3A8A',
+  },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 10,
     paddingHorizontal: 12,
-    height: 40,
+    minHeight: 40,
+    paddingVertical: 4,
   },
-  searchInput: { flex: 1, fontSize: 14, color: '#111827' },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#111827',
+    paddingVertical: 6,
+    textAlignVertical: 'center',
+  },
   heroCard: {
     backgroundColor: '#1D4ED8',
     borderRadius: 16,
