@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { SecureStorage, SESSION_TOKEN_KEY } from '@core/auth/SecureStorage';
+import { debugLog, maskToken } from '@core/debug/debugStore';
 
 declare module 'axios' {
   interface InternalAxiosRequestConfig {
@@ -10,13 +11,20 @@ declare module 'axios' {
   }
 }
 
+const RESOLVED_API_URL = process.env.EXPO_PUBLIC_API_URL;
+
 export const apiClient = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_API_URL,
+  baseURL: RESOLVED_API_URL,
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+debugLog(
+  'info',
+  `env: API_URL=${RESOLVED_API_URL ?? '<UNDEFINED>'} cookieKey=${SESSION_TOKEN_KEY}`,
+);
 
 let sessionExpiredHandler: (() => void) | null = null;
 
@@ -27,15 +35,44 @@ export function setSessionExpiredHandler(handler: (() => void) | null): void {
 apiClient.interceptors.request.use(async (config) => {
   const token = await SecureStorage.getSessionToken();
   if (token) {
-    config.headers['Cookie'] = `${SESSION_TOKEN_KEY}=${token}`;
+    // Backend mobile contract: currentUser() reads `Authorization: Bearer <jwe>`
+    // via decode(). Do NOT replicate the __Secure- session cookie — its prefix
+    // rules can't be satisfied from a manually-set header and auth() rejects it.
+    config.headers['Authorization'] = `Bearer ${token}`;
   }
+  const method = (config.method ?? 'get').toUpperCase();
+  const url = `${config.baseURL ?? ''}${config.url ?? ''}`;
+  debugLog(
+    'req',
+    `${method} ${url} auth=${token ? 'Bearer' : 'NONE'} tok=${maskToken(token)}`,
+  );
   return config;
 });
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const method = (response.config.method ?? 'get').toUpperCase();
+    debugLog('res', `${response.status} ${method} ${response.config.url ?? ''}`);
+    return response;
+  },
   async (error) => {
-    if (error.response?.status === 401 && !error.config?.skipAuth401) {
+    const status = error.response?.status;
+    const method = (error.config?.method ?? 'get').toUpperCase();
+    const url = error.config?.url ?? '';
+    let bodyPreview = '';
+    try {
+      const data = error.response?.data;
+      bodyPreview =
+        typeof data === 'string' ? data : JSON.stringify(data ?? {});
+    } catch {
+      bodyPreview = '<unserializable body>';
+    }
+    debugLog(
+      'err',
+      `${status ?? 'NETWORK'} ${method} ${url} skipAuth401=${!!error.config
+        ?.skipAuth401} :: ${bodyPreview.slice(0, 240)} :: ${error.message ?? ''}`,
+    );
+    if (status === 401 && !error.config?.skipAuth401) {
       await SecureStorage.removeSessionToken();
       sessionExpiredHandler?.();
     }
