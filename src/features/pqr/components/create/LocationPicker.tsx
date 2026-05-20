@@ -1,7 +1,7 @@
 import React, { Dispatch, SetStateAction } from 'react';
 import { StepHeader } from './StepHeader';
-import { View, Text, TouchableOpacity, Modal, Dimensions, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { MiniMap } from '@features/map/components/MiniMap';
@@ -31,7 +31,6 @@ export function LocationPicker({
   setMapModalVisible,
   onLocationChange,
 }: Props) {
-  const insets = useSafeAreaInsets();
   const hasPin = pinLatitude != null && pinLongitude != null;
 
   const region = hasPin
@@ -123,7 +122,7 @@ export function LocationPicker({
         transparent={false}
         onRequestClose={() => setMapModalVisible(false)}
       >
-        <View style={[styles.mapModalContainer, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <SafeAreaView style={[styles.mapModalContainer, { flex: 1 }]} edges={['top', 'bottom']}>
           <View style={styles.mapModalHeader}>
             <TouchableOpacity
               onPress={() => setMapModalVisible(false)}
@@ -143,11 +142,10 @@ export function LocationPicker({
             <MiniMap
               latitude={pinLatitude}
               longitude={pinLongitude}
-              mapHeight={Dimensions.get('window').height - insets.top - insets.bottom - 140}
               onLocationChange={onLocationChange}
             />
           </View>
-        </View>
+        </SafeAreaView>
       </Modal>
     </View>
   );
