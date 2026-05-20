@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { useRegisterAsLawyer } from './useLawyers';
 import type { DocumentType } from '@core/types';
+import { isUnauthorized } from '@shared/utils/httpError';
 
 export function useRegisterLawyerForm() {
   const navigation = useNavigation();
@@ -70,7 +71,8 @@ export function useRegisterLawyerForm() {
             [{ text: 'Aceptar', onPress: () => navigation.goBack() }],
           );
         },
-        onError: () => {
+        onError: (error: unknown) => {
+          if (isUnauthorized(error)) return;
           Alert.alert('Error', 'No se pudo completar el registro. Intenta de nuevo.');
         },
       },
