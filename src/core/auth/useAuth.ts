@@ -3,6 +3,7 @@ import { SessionUser } from '@core/types';
 import { SecureStorage, SESSION_TOKEN_KEY } from '@core/auth/SecureStorage';
 import { apiClient, extractCsrfCookie } from '@core/api/client';
 import { ENDPOINTS } from '@core/api/endpoints';
+import { debugLog, maskToken } from '@core/debug/debugStore';
 
 interface SessionResponse {
   user: SessionUser | null;
@@ -42,15 +43,24 @@ export const useAuth = create<AuthState>((set, get) => ({
       { email, password },
     );
     const { sessionToken, user } = res.data;
+    debugLog(
+      'info',
+      `credentials login OK userInBody=${!!user} sessionToken=${maskToken(sessionToken)} key=${SESSION_TOKEN_KEY}`,
+    );
 
     await SecureStorage.setSessionToken(sessionToken);
+    const readBack = await SecureStorage.getSessionToken();
+    debugLog(
+      'info',
+      `token persisted readBackMatches=${readBack === sessionToken} readBack=${maskToken(readBack)}`,
+    );
 
     if (user) {
       setUser(user);
       return;
     }
 
-    const sessionRes = await apiClient.get<SessionResponse>(ENDPOINTS.AUTH.SESSION);
+    const sessionRes = await apiClient.get<SessionResponse>(ENDPOINTS.AUTH.MOBILE_SESSION);
     if (!sessionRes.data?.user) throw new Error('SESSION_INVALID');
     setUser(sessionRes.data.user);
   },
@@ -63,14 +73,23 @@ export const useAuth = create<AuthState>((set, get) => ({
       { idToken },
     );
     const { sessionToken, user } = res.data;
+    debugLog(
+      'info',
+      `google login OK userInBody=${!!user} sessionToken=${maskToken(sessionToken)} key=${SESSION_TOKEN_KEY}`,
+    );
     await SecureStorage.setSessionToken(sessionToken);
+    const readBack = await SecureStorage.getSessionToken();
+    debugLog(
+      'info',
+      `token persisted readBackMatches=${readBack === sessionToken} readBack=${maskToken(readBack)}`,
+    );
 
     if (user) {
       setUser(user);
       return;
     }
 
-    const sessionRes = await apiClient.get<SessionResponse>(ENDPOINTS.AUTH.SESSION);
+    const sessionRes = await apiClient.get<SessionResponse>(ENDPOINTS.AUTH.MOBILE_SESSION);
     if (!sessionRes.data?.user) throw new Error('SESSION_INVALID');
     setUser(sessionRes.data.user);
   },
