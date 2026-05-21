@@ -18,6 +18,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@core/api/client';
 import { ENDPOINTS } from '@core/api/endpoints';
 import { ErrorState } from '@shared/components/ui/ErrorState';
+import { isUnauthorized } from '@shared/utils/httpError';
 import { useAuth } from '@core/auth/useAuth';
 import type { AppStackParamList } from '@navigation/navigationRef';
 import type { UserProfile, PQRS } from '@core/types';
@@ -58,7 +59,8 @@ export default function PublicProfileScreen() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user', userId] });
     },
-    onError: () => {
+    onError: (error) => {
+      if (isUnauthorized(error)) return;
       Alert.alert('Error', 'No se pudo actualizar el seguimiento. Inténtalo de nuevo.');
     },
   });

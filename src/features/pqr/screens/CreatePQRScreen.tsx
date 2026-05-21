@@ -5,14 +5,15 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Recaptcha, { RecaptchaRef } from 'react-native-recaptcha-that-works';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as ImagePicker from 'expo-image-picker';
-import * as DocumentPicker from 'expo-document-picker';
-import * as Location from 'expo-location';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuth } from '@core/auth/useAuth';
@@ -20,7 +21,7 @@ import { useDepartments, useMunicipalities } from '@features/pqr/hooks/useLocati
 import { useEntities } from '@features/pqr/hooks/useEntities';
 import { usePQRConfig } from '@features/pqr/hooks/usePQRConfig';
 import { useCreatePQR } from '@features/pqr/hooks/useCreatePQR';
-import type { LocalAttachment } from '@features/pqr/hooks/useCreatePQR';
+import { useAttachments } from '@features/pqr/hooks/useAttachments';
 import type { CustomField } from '@core/types';
 import type { AppStackParamList } from '@navigation/navigationRef';
 import { schema, type FormData } from '@features/pqr/components/create/createPQRTypes';
@@ -31,6 +32,8 @@ import { TypeAndContent } from '@features/pqr/components/create/TypeAndContent';
 import { Attachments } from '@features/pqr/components/create/Attachments';
 import { LocationPicker } from '@features/pqr/components/create/LocationPicker';
 import { Confirmation } from '@features/pqr/components/create/Confirmation';
+import { ConfirmDialog } from '@shared/components/ui/ConfirmDialog';
+import { getErrorStatus } from '@shared/utils/httpError';
 
 type Nav = NativeStackNavigationProp<AppStackParamList, 'CreatePQR'>;
 type RouteProps = NativeStackScreenProps<AppStackParamList, 'CreatePQR'>['route'];
@@ -38,6 +41,7 @@ type RouteProps = NativeStackScreenProps<AppStackParamList, 'CreatePQR'>['route'
 export default function CreatePQRScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<RouteProps>();
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
 
   const recaptchaRef = useRef<RecaptchaRef>(null);
@@ -45,12 +49,13 @@ export default function CreatePQRScreen() {
   const [currentStep, setCurrentStep] = useState(1);
   const [stepError, setStepError] = useState<string | null>(null);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
-  const [attachments, setAttachments] = useState<LocalAttachment[]>([]);
+  const { attachments, pickImage, pickDocument, removeAttachment } = useAttachments();
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const [pinLatitude, setPinLatitude] = useState<number | null>(null);
   const [pinLongitude, setPinLongitude] = useState<number | null>(null);
   const [pinAddress, setPinAddress] = useState<string | null>(null);
   const [mapModalVisible, setMapModalVisible] = useState(false);
+  const [exitConfirmVisible, setExitConfirmVisible] = useState(false);
 
   const [isDeptOpen, setIsDeptOpen] = useState(false);
   const [isMunOpen, setIsMunOpen] = useState(false);
@@ -67,8 +72,6 @@ export default function CreatePQRScreen() {
       setValue('entityId', preselectedEntityId);
       setCurrentStep(2);
     }
-  // Only run on mount
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const { createPQR, isPending } = useCreatePQR(user?.id);
@@ -130,6 +133,7 @@ export default function CreatePQRScreen() {
   }
 
   async function handleNextStep() {
+    Keyboard.dismiss();
     setStepError(null);
     if (currentStep === 1) {
       const valid = await trigger(['entityId']);
@@ -159,19 +163,17 @@ export default function CreatePQRScreen() {
   }
 
   function handlePrevStep() {
+    Keyboard.dismiss();
     setStepError(null);
     if (currentStep > 1) setCurrentStep((s) => s - 1);
   }
 
   function handleExitForm() {
-    Alert.alert(
-      'Salir del formulario',
-      '¿Estás seguro? Perderás todo el progreso de tu PQRSD.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Salir', style: 'destructive', onPress: () => navigation.goBack() },
-      ],
-    );
+    if (currentStep < 2) {
+      navigation.goBack();
+      return;
+    }
+    setExitConfirmVisible(true);
   }
 
   useEffect(() => {
@@ -189,49 +191,8 @@ export default function CreatePQRScreen() {
         </TouchableOpacity>
       ),
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function handlePickImage() {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images', 'videos'],
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets.length > 0) {
-      const asset = result.assets[0];
-      setAttachments((prev) => [
-        ...prev,
-        {
-          uri: asset.uri,
-          name: asset.fileName ?? `imagen_${Date.now()}.jpg`,
-          type: asset.mimeType ?? 'image/jpeg',
-          size: asset.fileSize ?? 0,
-        },
-      ]);
-    }
-  }
-
-  async function handlePickDocument() {
-    const result = await DocumentPicker.getDocumentAsync({
-      type: ['application/pdf', 'image/*', 'video/*'],
-    });
-    if (!result.canceled && result.assets.length > 0) {
-      const asset = result.assets[0];
-      setAttachments((prev) => [
-        ...prev,
-        {
-          uri: asset.uri,
-          name: asset.name,
-          type: asset.mimeType ?? 'application/octet-stream',
-          size: asset.size ?? 0,
-        },
-      ]);
-    }
-  }
-
-  function handleRemoveAttachment(index: number) {
-    setAttachments((prev) => prev.filter((_, i) => i !== index));
-  }
 
   async function handleSubmit() {
     if (!recaptchaToken) {
@@ -272,15 +233,22 @@ export default function CreatePQRScreen() {
         [{ text: 'Aceptar', onPress: () => navigation.goBack() }],
       );
     } catch (err: unknown) {
+      const status = getErrorStatus(err);
+      if (status === 401) return;
       setStepError('Error al enviar la PQRSD. Intenta de nuevo.');
     }
   }
 
   return (
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
     <ScrollView
       style={styles.flex}
-      contentContainerStyle={styles.container}
+      contentContainerStyle={[styles.container, { paddingBottom: 40 + insets.bottom }]}
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="interactive"
     >
       <StepIndicator currentStep={currentStep} totalSteps={5} />
 
@@ -328,9 +296,9 @@ export default function CreatePQRScreen() {
           customFieldValues={customFieldValues}
           setCustomFieldValues={setCustomFieldValues}
           attachments={attachments}
-          onPickImage={handlePickImage}
-          onPickDocument={handlePickDocument}
-          onRemoveAttachment={handleRemoveAttachment}
+          onPickImage={pickImage}
+          onPickDocument={pickDocument}
+          onRemoveAttachment={removeAttachment}
         />
       )}
 
@@ -404,6 +372,21 @@ export default function CreatePQRScreen() {
         onError={() => setStepError('Error en el captcha. Intenta de nuevo.')}
         size="normal"
       />
+
+      <ConfirmDialog
+        visible={exitConfirmVisible}
+        title="Salir del formulario"
+        message="¿Estás seguro? Perderás todo el progreso de tu PQRSD."
+        confirmLabel="Salir"
+        cancelLabel="Cancelar"
+        destructive
+        onConfirm={() => {
+          setExitConfirmVisible(false);
+          navigation.goBack();
+        }}
+        onCancel={() => setExitConfirmVisible(false)}
+      />
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

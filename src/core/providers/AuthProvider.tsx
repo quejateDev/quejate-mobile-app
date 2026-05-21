@@ -44,7 +44,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           clearUser();
           return;
         }
-        const response = await apiClient.get<SessionResponse>(ENDPOINTS.AUTH.SESSION);
+        // Bearer-aware mobile session endpoint (currentUser()). The built-in
+        // Auth.js /auth/session reads only the cookie and would always return
+        // empty under the Bearer scheme, forcing re-login on every cold start.
+        const response = await apiClient.get<SessionResponse>(ENDPOINTS.AUTH.MOBILE_SESSION);
         const session = response.data;
         if (session?.user) {
           setUser(session.user);

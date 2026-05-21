@@ -6,7 +6,7 @@ export type UserRole = 'ADMIN' | 'SUPER_ADMIN' | 'CLIENT' | 'EMPLOYEE' | 'LAWYER
 
 export type PQRSType = 'PETITION' | 'COMPLAINT' | 'CLAIM' | 'SUGGESTION' | 'REPORT';
 
-export type PQRSStatus = 'PENDING' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+export type PQRSStatus = 'PENDING' | 'IN_PROGRESS' | 'RESOLVED' | 'REJECTED';
 
 export type DocumentType = 'CC' | 'CE' | 'PPT' | 'NIT' | 'PASSPORT' | 'LICENSE';
 
@@ -265,7 +265,7 @@ export interface Notification {
   id: string;
   userId: string;
   type: NotificationType;
-  message: string;
+  message?: string;
   read: boolean;
   createdAt: Date;
   data?: NotificationData;
@@ -380,10 +380,10 @@ export const typeMap: Record<PQRSType, { label: string; color: string }> = {
 };
 
 export const statusMap: Record<PQRSStatus, { label: string }> = {
-  PENDING:     { label: 'Pendiente'  },
-  IN_PROGRESS: { label: 'En Proceso' },
-  RESOLVED:    { label: 'Resuelto'   },
-  CLOSED:      { label: 'Cerrado'    },
+  PENDING:     { label: 'Pendiente'   },
+  IN_PROGRESS: { label: 'En progreso' },
+  RESOLVED:    { label: 'Resuelto'    },
+  REJECTED:    { label: 'Rechazado'   },
 };
 
 export const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];

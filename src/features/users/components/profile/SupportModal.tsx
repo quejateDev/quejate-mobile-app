@@ -6,14 +6,15 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as MailComposer from 'expo-mail-composer';
 import { editStyles } from './userProfileStyles';
@@ -33,6 +34,7 @@ export function SupportModal({ visible, userEmail, userName, onClose }: Props) {
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (visible) {
@@ -96,12 +98,22 @@ export function SupportModal({ visible, userEmail, userName, onClose }: Props) {
 
   return (
     <Modal visible={visible} animationType="none" transparent onRequestClose={handleClose}>
-      <View style={editStyles.overlay}>
+      <KeyboardAvoidingView style={editStyles.overlay} behavior="padding">
         <Pressable style={{ flex: 1 }} onPress={handleClose} />
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <Animated.View style={[editStyles.sheet, { transform: [{ translateY: slideAnim }] }]}>
-            <View style={editStyles.handle} />
-
+        <Animated.View
+          style={[
+            editStyles.sheet,
+            editStyles.sheetCapped,
+            { transform: [{ translateY: slideAnim }], paddingBottom: 32 + insets.bottom },
+          ]}
+        >
+          <View style={editStyles.handle} />
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+            contentContainerStyle={editStyles.sheetScrollContent}
+          >
             <View style={s.headerCenter}>
               <View style={s.iconCircle}>
                 <Ionicons name="chatbubble-ellipses-outline" size={24} color="#2563EB" />
@@ -166,9 +178,9 @@ export function SupportModal({ visible, userEmail, userName, onClose }: Props) {
             >
               <Text style={editStyles.cancelBtnText}>Cancelar</Text>
             </TouchableOpacity>
-          </Animated.View>
-        </KeyboardAvoidingView>
-      </View>
+          </ScrollView>
+        </Animated.View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

@@ -26,7 +26,7 @@ const STATUS_FILTERS: Array<{ value: PQRSStatus | undefined; label: string; colo
   { value: 'PENDING',     label: 'Pendiente',  color: '#D97706' },
   { value: 'IN_PROGRESS', label: 'En Proceso', color: '#2563EB' },
   { value: 'RESOLVED',    label: 'Resuelto',   color: '#16A34A' },
-  { value: 'CLOSED',      label: 'Cerrado',    color: '#6B7280' },
+  { value: 'REJECTED',    label: 'Rechazado',  color: '#991B1B' },
 ];
 
 export default function MyPQRsScreen() {
@@ -43,6 +43,7 @@ export default function MyPQRsScreen() {
     isLoading,
     refetch,
     isRefetching,
+    isError,
   } = useMyPQRs();
 
   const allPqrs: PQRS[] = Array.from(
@@ -116,7 +117,18 @@ export default function MyPQRsScreen() {
           </View>
         }
         ListEmptyComponent={
-          !isLoading ? (
+          isLoading ? (
+            <ActivityIndicator style={{ margin: 32 }} color="#2563EB" />
+          ) : isError ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="cloud-offline-outline" size={52} color="#D1D5DB" style={{ marginBottom: 12 }} />
+              <Text style={styles.emptyTitle}>Error al cargar</Text>
+              <Text style={styles.emptyText}>No se pudieron cargar tus PQRSDs. Verifica tu conexión.</Text>
+              <TouchableOpacity onPress={() => refetch()} style={{ marginTop: 16, paddingHorizontal: 24, paddingVertical: 10, backgroundColor: '#2563EB', borderRadius: 8 }}>
+                <Text style={{ color: '#fff', fontWeight: '600', fontSize: 14 }}>Reintentar</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
             <View style={styles.emptyContainer}>
               <Ionicons name="document-text-outline" size={52} color="#D1D5DB" style={{ marginBottom: 12 }} />
               <Text style={styles.emptyTitle}>Sin PQRSDs</Text>
@@ -124,8 +136,6 @@ export default function MyPQRsScreen() {
                 {activeStatus ? 'No tienes PQRSDs con este estado' : 'Aún no has radicado ninguna PQRSD'}
               </Text>
             </View>
-          ) : (
-            <ActivityIndicator style={{ margin: 32 }} color="#2563EB" />
           )
         }
         ListFooterComponent={

@@ -8,7 +8,7 @@ const STATUS_COLORS: Record<PQRSStatus, { bg: string; text: string }> = {
   PENDING:     { bg: '#FEF3C7', text: '#D97706' },
   IN_PROGRESS: { bg: '#DBEAFE', text: '#2563EB' },
   RESOLVED:    { bg: '#DCFCE7', text: '#16A34A' },
-  CLOSED:      { bg: '#F3F4F6', text: '#6B7280' },
+  REJECTED:    { bg: '#FEE2E2', text: '#991B1B' },
 };
 
 interface Props {

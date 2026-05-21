@@ -76,10 +76,15 @@ export function EntitySelector({
   preselectedEntityName,
 }: Props) {
   const [entitySearch, setEntitySearch] = useState('');
+  const [deptSearch, setDeptSearch] = useState('');
 
   const filteredEntities = entitySearch.trim()
     ? entities.filter((e) => e.name.toLowerCase().includes(entitySearch.toLowerCase()))
     : entities;
+
+  const filteredDepartments = deptSearch.trim()
+    ? departments.filter((d) => d.name.toLowerCase().includes(deptSearch.toLowerCase()))
+    : departments;
 
   function closeAll() {
     setIsDeptOpen(false);
@@ -126,26 +131,48 @@ export function EntitySelector({
         </View>
         {isDeptOpen && (
           <View style={styles.optionList}>
+            <View style={selectorStyles.searchContainer}>
+              <Ionicons name="search-outline" size={14} color="#9CA3AF" style={{ marginRight: 6 }} />
+              <TextInput
+                style={selectorStyles.searchInput}
+                placeholder="Buscar departamento..."
+                placeholderTextColor="#9CA3AF"
+                value={deptSearch}
+                onChangeText={setDeptSearch}
+                autoFocus
+                maxFontSizeMultiplier={1.2}
+              />
+              {deptSearch ? (
+                <TouchableOpacity onPress={() => setDeptSearch('')}>
+                  <Ionicons name="close-circle" size={16} color="#9CA3AF" />
+                </TouchableOpacity>
+              ) : null}
+            </View>
             {loadingDepts ? (
               <ActivityIndicator style={styles.optionLoader} />
             ) : (
-              <ScrollView style={styles.optionScroll} nestedScrollEnabled>
-                {departments.map((dept) => (
-                  <TouchableOpacity
-                    key={dept.id}
-                    testID={`dept-option-${dept.id}`}
-                    style={styles.optionItem}
-                    onPress={() => {
-                      setGeoDepId(dept.id);
-                      setGeoMunId('');
-                      setValue('entityId', '');
-                      setValue('entityDepartmentId', '');
-                      setIsDeptOpen(false);
-                    }}
-                  >
-                    <Text style={styles.optionText}>{dept.name}</Text>
-                  </TouchableOpacity>
-                ))}
+              <ScrollView style={styles.optionScroll} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                {filteredDepartments.length === 0 ? (
+                  <Text style={selectorStyles.noResults}>Sin resultados</Text>
+                ) : (
+                  filteredDepartments.map((dept) => (
+                    <TouchableOpacity
+                      key={dept.id}
+                      testID={`dept-option-${dept.id}`}
+                      style={styles.optionItem}
+                      onPress={() => {
+                        setGeoDepId(dept.id);
+                        setGeoMunId('');
+                        setValue('entityId', '');
+                        setValue('entityDepartmentId', '');
+                        setDeptSearch('');
+                        setIsDeptOpen(false);
+                      }}
+                    >
+                      <Text style={styles.optionText}>{dept.name}</Text>
+                    </TouchableOpacity>
+                  ))
+                )}
               </ScrollView>
             )}
           </View>
@@ -249,6 +276,7 @@ export function EntitySelector({
                 value={entitySearch}
                 onChangeText={setEntitySearch}
                 autoFocus
+                maxFontSizeMultiplier={1.2}
               />
               {entitySearch ? (
                 <TouchableOpacity onPress={() => setEntitySearch('')}>
@@ -259,7 +287,7 @@ export function EntitySelector({
             {loadingEntities ? (
               <ActivityIndicator style={styles.optionLoader} />
             ) : (
-              <ScrollView style={styles.optionScroll} nestedScrollEnabled>
+              <ScrollView style={styles.optionScroll} nestedScrollEnabled keyboardShouldPersistTaps="handled">
                 {filteredEntities.length === 0 ? (
                   <Text style={selectorStyles.noResults}>Sin resultados</Text>
                 ) : (

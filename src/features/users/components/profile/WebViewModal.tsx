@@ -6,6 +6,7 @@ import WebView from 'react-native-webview';
 import { webViewStyles } from './userProfileStyles';
 
 const ALLOWED_DOMAINS = ['quejate.com.co', 'www.quejate.com.co'];
+const ALLOWED_ORIGINS = ['https://quejate.com.co', 'https://www.quejate.com.co'];
 
 function isSafeUrl(raw: string): boolean {
   try {
@@ -15,6 +16,28 @@ function isSafeUrl(raw: string): boolean {
     return false;
   }
 }
+
+const FIT_TO_SCREEN = `
+(function() {
+  function apply() {
+    var head = document.head || document.getElementsByTagName('head')[0];
+    if (!head) return;
+    var vp = document.querySelector('meta[name="viewport"]');
+    if (!vp) { vp = document.createElement('meta'); vp.setAttribute('name', 'viewport'); head.appendChild(vp); }
+    vp.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover');
+    if (!document.getElementById('rn-fit-style')) {
+      var st = document.createElement('style');
+      st.id = 'rn-fit-style';
+      st.innerHTML = 'html,body{margin:0!important;padding:0!important;overflow-x:hidden!important;width:100%!important;}*{max-width:100%!important;box-sizing:border-box!important;overflow-wrap:break-word!important;word-break:break-word!important;}';
+      head.appendChild(st);
+    }
+  }
+  apply();
+  document.addEventListener('DOMContentLoaded', apply);
+  true;
+})();
+true;
+`;
 
 interface Props {
   visible: boolean;
@@ -39,7 +62,13 @@ export function WebViewModal({ visible, title, url, onClose }: Props) {
           <WebView
             source={{ uri: url }}
             style={{ flex: 1 }}
-            javaScriptEnabled={false}
+            originWhitelist={ALLOWED_ORIGINS}
+            javaScriptEnabled
+            scalesPageToFit
+            injectedJavaScriptBeforeContentLoaded={FIT_TO_SCREEN}
+            injectedJavaScript={FIT_TO_SCREEN}
+            onMessage={() => {}}
+            setBuiltInZoomControls={false}
           />
         ) : (
           <View style={webViewStyles.errorContainer}>

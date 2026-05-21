@@ -22,6 +22,7 @@ import {
 } from '@features/lawyers/hooks/useLawyers';
 import { RatingStars } from '@features/lawyers/components/RatingStars';
 import { ErrorState } from '@shared/components/ui/ErrorState';
+import { isUnauthorized } from '@shared/utils/httpError';
 import type { AppStackParamList } from '@navigation/navigationRef';
 import type { Rating } from '@core/types';
 import { styles } from '@features/lawyers/components/detail/lawyerDetailStyles';
@@ -100,7 +101,10 @@ export default function LawyerDetailScreen() {
           setRequestModalVisible(false);
           Alert.alert('Solicitud enviada', 'El abogado recibirá tu solicitud.');
         },
-        onError: () => Alert.alert('Error', 'No se pudo enviar la solicitud. Inténtalo de nuevo.'),
+        onError: (error) => {
+          if (isUnauthorized(error)) return;
+          Alert.alert('Error', 'No se pudo enviar la solicitud. Inténtalo de nuevo.');
+        },
       },
     );
   }
@@ -118,7 +122,10 @@ export default function LawyerDetailScreen() {
         { ratingId: myRating.id, lawyerId, lawyerUserId: lawyer!.userId, score: selectedScore, comment: ratingComment.trim() || undefined },
         {
           onSuccess: () => setRatingModalVisible(false),
-          onError: () => Alert.alert('Error', 'No se pudo actualizar la calificación.'),
+          onError: (error) => {
+            if (isUnauthorized(error)) return;
+            Alert.alert('Error', 'No se pudo actualizar la calificación.');
+          },
         },
       );
     } else {
@@ -126,7 +133,10 @@ export default function LawyerDetailScreen() {
         { lawyerId, lawyerUserId: lawyer!.userId, score: selectedScore, comment: ratingComment.trim() || undefined },
         {
           onSuccess: () => setRatingModalVisible(false),
-          onError: () => Alert.alert('Error', 'No se pudo enviar la calificación.'),
+          onError: (error) => {
+            if (isUnauthorized(error)) return;
+            Alert.alert('Error', 'No se pudo enviar la calificación.');
+          },
         },
       );
     }

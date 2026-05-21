@@ -24,7 +24,7 @@ const SANTA_MARTA_REGION: Region = {
   longitudeDelta: 0.18,
 };
 
-export function MiniMap({ latitude, longitude, onLocationChange, mapHeight = 250 }: MiniMapProps) {
+export function MiniMap({ latitude, longitude, onLocationChange, mapHeight }: MiniMapProps) {
   const mapRef = useRef<MapView>(null);
   const abortRef = useRef<AbortController | null>(null);
   const [address, setAddress] = useState<string | null>(null);
@@ -81,10 +81,10 @@ export function MiniMap({ latitude, longitude, onLocationChange, mapHeight = 250
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, !mapHeight && styles.containerFlex]}>
       <MapView
         ref={mapRef}
-        style={[styles.map, { height: mapHeight }]}
+        style={mapHeight ? [styles.map, { height: mapHeight }] : styles.mapFlex}
         initialRegion={
           latitude != null && longitude != null
             ? { latitude, longitude, latitudeDelta: 0.01, longitudeDelta: 0.01 }
@@ -127,7 +127,9 @@ export function MiniMap({ latitude, longitude, onLocationChange, mapHeight = 250
 
 const styles = StyleSheet.create({
   container: { borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: '#E5E7EB' },
+  containerFlex: { flex: 1 },
   map: { height: 250, width: '100%' },
+  mapFlex: { flex: 1, width: '100%' },
   controls: {
     flexDirection: 'row',
     gap: 8,

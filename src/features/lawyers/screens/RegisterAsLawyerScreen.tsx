@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRegisterLawyerForm } from '@features/lawyers/hooks/useRegisterLawyerForm';
 import type { DocumentType } from '@core/types';
 
@@ -69,6 +70,7 @@ export default function RegisterAsLawyerScreen() {
   } = useRegisterLawyerForm();
 
   const selectedDocLabel = DOCUMENT_TYPES.find((d) => d.value === documentType)?.label ?? documentType;
+  const insets = useSafeAreaInsets();
 
   return (
     <KeyboardAvoidingView
@@ -76,7 +78,7 @@ export default function RegisterAsLawyerScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >

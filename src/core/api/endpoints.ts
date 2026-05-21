@@ -7,6 +7,7 @@ export const ENDPOINTS = {
     REGISTER:      '/register',
     MOBILE_GOOGLE: '/auth/mobile/google',
     MOBILE_CREDENTIALS: '/auth/mobile/credentials',
+    MOBILE_SESSION: '/auth/mobile/session',
     FORGOT_PASSWORD: '/auth/forgot-password',
     RESET_PASSWORD:  '/auth/reset-password',
   },
@@ -39,8 +40,10 @@ export const ENDPOINTS = {
     PRESIGNED: '/upload/presigned',
   },
   NOTIFICATIONS: {
-    LIST:      '/notifications',
-    MARK_READ: '/notifications',
+    LIST:       '/notifications',
+    MARK_READ:  '/notifications',
+    DELETE:     (id: string) => `/notifications/${id}`,
+    DELETE_ALL: '/notifications',
   },
   PUSH_TOKEN: '/push-token',
   USERS: {

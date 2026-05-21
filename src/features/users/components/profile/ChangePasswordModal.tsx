@@ -6,13 +6,14 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { editStyles } from './userProfileStyles';
 
 interface Props {
@@ -29,6 +30,7 @@ export function ChangePasswordModal({ visible, isPending, onSubmit, onCancel }: 
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (visible) {
@@ -58,11 +60,22 @@ export function ChangePasswordModal({ visible, isPending, onSubmit, onCancel }: 
 
   return (
     <Modal visible={visible} animationType="none" transparent onRequestClose={handleCancel}>
-      <View style={editStyles.overlay}>
+      <KeyboardAvoidingView style={editStyles.overlay} behavior="padding">
         <Pressable style={{ flex: 1 }} onPress={handleCancel} />
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <Animated.View style={[editStyles.sheet, { transform: [{ translateY: slideAnim }] }]}>
-            <View style={editStyles.handle} />
+        <Animated.View
+          style={[
+            editStyles.sheet,
+            editStyles.sheetCapped,
+            { transform: [{ translateY: slideAnim }], paddingBottom: 32 + insets.bottom },
+          ]}
+        >
+          <View style={editStyles.handle} />
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+            contentContainerStyle={editStyles.sheetScrollContent}
+          >
             <Text style={[editStyles.label, { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 16 }]}>
               Cambiar contraseña
             </Text>
@@ -125,9 +138,9 @@ export function ChangePasswordModal({ visible, isPending, onSubmit, onCancel }: 
             >
               <Text style={editStyles.cancelBtnText}>Cancelar</Text>
             </TouchableOpacity>
-          </Animated.View>
-        </KeyboardAvoidingView>
-      </View>
+          </ScrollView>
+        </Animated.View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

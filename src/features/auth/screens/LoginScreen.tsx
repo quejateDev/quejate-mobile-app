@@ -33,8 +33,16 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 function mapSignInError(error: unknown): string {
   if (error instanceof TypeError) return 'Sin conexión. Verifica tu internet';
+  if (error && typeof error === 'object' && 'response' in error) {
+    const axiosErr = error as { response?: { status?: number; data?: { error?: string; message?: string; code?: string } } };
+    const body = axiosErr.response?.data;
+    const errCode = ((body?.error ?? body?.code ?? body?.message) ?? '').toString().toUpperCase();
+    if (errCode.includes('NOT_VERIFIED') || errCode.includes('EMAIL_VERIF') || errCode.includes('VERIFY')) {
+      return 'Debes verificar tu correo antes de iniciar sesión. Revisa tu bandeja de entrada.';
+    }
+  }
   if (error instanceof Error) {
-    if (error.message === 'EMAIL_NOT_VERIFIED') return 'Verifica tu correo antes de iniciar sesión';
+    if (error.message === 'EMAIL_NOT_VERIFIED') return 'Debes verificar tu correo antes de iniciar sesión. Revisa tu bandeja de entrada.';
     if (error.message === 'INVALID_CREDENTIALS') return 'Email o contraseña incorrectos';
     if (error.message === 'SESSION_INVALID') return 'Sesión inválida. Intenta de nuevo.';
   }
@@ -76,10 +84,10 @@ export default function LoginScreen() {
   const isLoading = isSubmitting || google.isLoading;
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
           contentContainerStyle={styles.container}

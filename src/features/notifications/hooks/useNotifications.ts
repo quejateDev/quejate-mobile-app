@@ -15,7 +15,7 @@ export function useNotifications() {
         .then((r) => r.data as Notification[]),
     enabled: !!user,
     staleTime: 0,
-    retry: false,
+    retry: 2,
   });
 }
 
@@ -24,7 +24,9 @@ export function useMarkNotificationRead() {
 
   return useMutation<void, unknown, { notificationId: string }>({
     mutationFn: (body) =>
-      apiClient.patch(ENDPOINTS.NOTIFICATIONS.MARK_READ, body, { skipAuth401: true }).then((r) => r.data),
+      apiClient
+        .patch(ENDPOINTS.NOTIFICATIONS.MARK_READ, body, { skipAuth401: true })
+        .then((r) => r.data),
     onMutate: async ({ notificationId }) => {
       await queryClient.cancelQueries({ queryKey: ['notifications'] });
       queryClient.setQueryData<Notification[]>(['notifications'], (prev) =>
@@ -37,12 +39,66 @@ export function useMarkNotificationRead() {
   });
 }
 
+export function useDeleteNotification() {
+  const queryClient = useQueryClient();
+
+  return useMutation<{ success: boolean }, unknown, { notificationId: string }, { previous?: Notification[] }>({
+    mutationFn: ({ notificationId }) =>
+      apiClient
+        .delete(ENDPOINTS.NOTIFICATIONS.DELETE(notificationId), { skipAuth401: true })
+        .then((r) => r.data),
+    onMutate: async ({ notificationId }) => {
+      await queryClient.cancelQueries({ queryKey: ['notifications'] });
+      const previous = queryClient.getQueryData<Notification[]>(['notifications']);
+      queryClient.setQueryData<Notification[]>(['notifications'], (prev) =>
+        prev?.filter((n) => n.id !== notificationId) ?? [],
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['notifications'], context.previous);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+}
+
+export function useDeleteAllNotifications() {
+  const queryClient = useQueryClient();
+
+  return useMutation<{ success: boolean; deleted: number }, unknown, void, { previous?: Notification[] }>({
+    mutationFn: () =>
+      apiClient
+        .delete(ENDPOINTS.NOTIFICATIONS.DELETE_ALL, { skipAuth401: true })
+        .then((r) => r.data),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['notifications'] });
+      const previous = queryClient.getQueryData<Notification[]>(['notifications']);
+      queryClient.setQueryData<Notification[]>(['notifications'], []);
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['notifications'], context.previous);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+}
+
 export function useMarkAllNotificationsRead() {
   const queryClient = useQueryClient();
 
   return useMutation<void, unknown, void>({
     mutationFn: () =>
-      apiClient.patch(ENDPOINTS.NOTIFICATIONS.MARK_READ, { markAll: true }, { skipAuth401: true }).then((r) => r.data),
+      apiClient
+        .patch(ENDPOINTS.NOTIFICATIONS.MARK_READ, { markAll: true }, { skipAuth401: true })
+        .then((r) => r.data),
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ['notifications'] });
       const previous = queryClient.getQueryData<Notification[]>(['notifications']);

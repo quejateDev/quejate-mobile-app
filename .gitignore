@@ -20,4 +20,11 @@ android/
 
 ai/
 
+# Internal diagnostics screen — kept locally for testing, not shipped
+src/features/debug/
+
+# Firebase Android config — contains an API key. Distributed via EAS file env
+# var GOOGLE_SERVICES_JSON; keep a local copy at repo root for `expo run:android`.
+google-services.json
+
 .DS_Store

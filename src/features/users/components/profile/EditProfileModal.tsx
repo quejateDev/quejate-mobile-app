@@ -4,15 +4,17 @@ import {
   Animated,
   Dimensions,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { getInitials } from './userProfileUtils';
 import { editStyles } from './userProfileStyles';
@@ -49,6 +51,7 @@ export function EditProfileModal({
   const avatarUri = imageUri ?? currentImage ?? null;
   const initials = getInitials(name);
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (visible) {
@@ -64,83 +67,95 @@ export function EditProfileModal({
 
   return (
     <Modal visible={visible} animationType="none" transparent onRequestClose={onCancel}>
-      <View style={editStyles.overlay}>
-        <Pressable style={{ flex: 1 }} onPress={onCancel} />
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <Animated.View style={[editStyles.sheet, { transform: [{ translateY: slideAnim }] }]}>
-            <View style={editStyles.handle} />
-            <Text style={[editStyles.label, { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 16 }]}>
-              Editar perfil
-            </Text>
+      <KeyboardAvoidingView style={editStyles.overlay} behavior="padding">
+        <Pressable style={{ flex: 1 }} onPress={() => { Keyboard.dismiss(); onCancel(); }} />
+        <Animated.View
+          style={[
+            editStyles.sheet,
+            editStyles.sheetCapped,
+            { transform: [{ translateY: slideAnim }], paddingBottom: 32 + insets.bottom },
+          ]}
+        >
+          <View style={editStyles.handle} />
+          <Text style={[editStyles.label, { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 16 }]}>
+            Editar perfil
+          </Text>
 
-            <TouchableOpacity
-              style={editStyles.avatarContainer}
-              onPress={onPickImage}
-              disabled={isPending}
-              activeOpacity={0.7}
-            >
-              {avatarUri ? (
-                <Image source={{ uri: avatarUri }} style={editStyles.avatar} />
-              ) : (
-                <View style={editStyles.avatarFallback}>
-                  <Text style={editStyles.avatarFallbackText}>{initials}</Text>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            bounces={false}
+            contentContainerStyle={editStyles.sheetScrollContent}
+          >
+              <TouchableOpacity
+                style={editStyles.avatarContainer}
+                onPress={onPickImage}
+                disabled={isPending}
+                activeOpacity={0.7}
+              >
+                {avatarUri ? (
+                  <Image source={{ uri: avatarUri }} style={editStyles.avatar} />
+                ) : (
+                  <View style={editStyles.avatarFallback}>
+                    <Text style={editStyles.avatarFallbackText}>{initials}</Text>
+                  </View>
+                )}
+                <View style={editStyles.avatarOverlay}>
+                  <Ionicons name="camera" size={14} color="#fff" style={{ marginRight: 4 }} />
+                  <Text style={editStyles.avatarOverlayText}>Cambiar</Text>
                 </View>
-              )}
-              <View style={editStyles.avatarOverlay}>
-                <Ionicons name="camera" size={14} color="#fff" style={{ marginRight: 4 }} />
-                <Text style={editStyles.avatarOverlayText}>Cambiar</Text>
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
 
-            <Text style={editStyles.label}>Nombre</Text>
-            <TextInput
-              style={editStyles.input}
-              value={name}
-              onChangeText={onChangeName}
-              placeholder="Tu nombre"
-              placeholderTextColor="#9CA3AF"
-              editable={!isPending}
-              maxLength={100}
-              returnKeyType="next"
-            />
+              <Text style={editStyles.label}>Nombre</Text>
+              <TextInput
+                style={editStyles.input}
+                value={name}
+                onChangeText={onChangeName}
+                placeholder="Tu nombre"
+                placeholderTextColor="#9CA3AF"
+                editable={!isPending}
+                maxLength={100}
+                returnKeyType="next"
+              />
 
-            <Text style={editStyles.label}>Teléfono</Text>
-            <TextInput
-              style={editStyles.input}
-              value={phone}
-              onChangeText={onChangePhone}
-              placeholder="Tu teléfono"
-              placeholderTextColor="#9CA3AF"
-              keyboardType="phone-pad"
-              editable={!isPending}
-              maxLength={20}
-              returnKeyType="done"
-            />
+              <Text style={editStyles.label}>Teléfono</Text>
+              <TextInput
+                style={editStyles.input}
+                value={phone}
+                onChangeText={onChangePhone}
+                placeholder="Tu teléfono"
+                placeholderTextColor="#9CA3AF"
+                keyboardType="phone-pad"
+                editable={!isPending}
+                maxLength={20}
+                returnKeyType="done"
+                onSubmitEditing={Keyboard.dismiss}
+              />
 
-            <TouchableOpacity
-              style={[editStyles.saveBtn, (!name.trim() || isPending) && editStyles.saveBtnDisabled]}
-              onPress={onSave}
-              disabled={!name.trim() || isPending}
-              activeOpacity={0.8}
-            >
-              {isPending ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={editStyles.saveBtnText}>Guardar cambios</Text>
-              )}
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[editStyles.saveBtn, (!name.trim() || isPending) && editStyles.saveBtnDisabled]}
+                onPress={() => { Keyboard.dismiss(); onSave(); }}
+                disabled={!name.trim() || isPending}
+                activeOpacity={0.8}
+              >
+                {isPending ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={editStyles.saveBtnText}>Guardar cambios</Text>
+                )}
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={editStyles.cancelBtn}
-              onPress={onCancel}
-              disabled={isPending}
-              activeOpacity={0.7}
-            >
-              <Text style={editStyles.cancelBtnText}>Cancelar</Text>
-            </TouchableOpacity>
-          </Animated.View>
-        </KeyboardAvoidingView>
-      </View>
+              <TouchableOpacity
+                style={editStyles.cancelBtn}
+                onPress={() => { Keyboard.dismiss(); onCancel(); }}
+                disabled={isPending}
+                activeOpacity={0.7}
+              >
+                <Text style={editStyles.cancelBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+          </ScrollView>
+        </Animated.View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
