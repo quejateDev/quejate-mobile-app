@@ -1,7 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import * as VideoThumbnails from 'expo-video-thumbnails';
 import { apiClient } from '@core/api/client';
 import { ENDPOINTS } from '@core/api/endpoints';
 import { uploadToS3 } from '@shared/utils/s3Upload';
+import { debugLog } from '@core/debug/debugStore';
 import type { PQRS, PQRSType } from '@core/types';
 
 export interface LocalAttachment {
@@ -39,15 +41,42 @@ export interface CreatePQRInput {
   recaptchaToken: string;
 }
 
+interface UploadedAttachment {
+  name: string;
+  url: string;
+  type: string;
+  size: number;
+  thumbnailUrl?: string;
+}
+
+/**
+ * Para videos, el backend espera que el móvil genere y suba el poster (primer frame)
+ * y lo envíe como `thumbnailUrl`. Si la generación falla, se sube el video sin poster
+ * y la UI cae al ícono de play.
+ */
+async function uploadAttachment(file: LocalAttachment): Promise<UploadedAttachment> {
+  const url = await uploadToS3(file.uri, file.type);
+  const base: UploadedAttachment = { name: file.name, url, type: file.type, size: file.size };
+
+  if (!file.type.startsWith('video/')) return base;
+
+  try {
+    const { uri: thumbUri } = await VideoThumbnails.getThumbnailAsync(file.uri, {
+      time: 1000,
+      quality: 0.7,
+    });
+    const thumbnailUrl = await uploadToS3(thumbUri, 'image/jpeg');
+    return { ...base, thumbnailUrl };
+  } catch (error) {
+    debugLog('err', `THUMB gen/upload fail (${file.name}): ${String(error)}`);
+    return base;
+  }
+}
+
 async function submitPQR(input: CreatePQRInput): Promise<PQRS> {
   const { localAttachments, ...rest } = input;
 
-  const uploadedAttachments = await Promise.all(
-    localAttachments.map(async (file) => {
-      const s3Url = await uploadToS3(file.uri, file.type);
-      return { name: file.name, url: s3Url, type: file.type, size: file.size };
-    }),
-  );
+  const uploadedAttachments = await Promise.all(localAttachments.map(uploadAttachment));
 
   const payload = {
     ...rest,

@@ -1,6 +1,7 @@
-import React, { Dispatch, SetStateAction, useState } from 'react';
+import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import { StepHeader } from './StepHeader';
 import {
+  Alert,
   View,
   Text,
   TouchableOpacity,
@@ -9,12 +10,33 @@ import {
   TextInput,
   StyleSheet,
 } from 'react-native';
+import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import type { UseFormSetValue } from 'react-hook-form';
 import type { FormData } from './createPQRTypes';
 import { styles } from './createPQRStyles';
 
 import type { NamedItem } from './createPQRTypes';
+
+function normalize(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/\b(distrito\s+especial\s+de|departamento\s+de|municipio\s+de|de\s+la|de\s+el|del|de|la|el)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function findByName(list: NamedItem[], target: string): NamedItem | undefined {
+  const n = normalize(target);
+  if (!n) return undefined;
+  return (
+    list.find((item) => normalize(item.name) === n) ||
+    list.find((item) => normalize(item.name).includes(n)) ||
+    list.find((item) => n.includes(normalize(item.name)))
+  );
+}
 
 interface Props {
   geoDepId: string;
@@ -77,6 +99,61 @@ export function EntitySelector({
 }: Props) {
   const [entitySearch, setEntitySearch] = useState('');
   const [deptSearch, setDeptSearch] = useState('');
+  const [detecting, setDetecting] = useState(false);
+  const [pendingCity, setPendingCity] = useState<string | null>(null);
+
+  // Cuando muns cargan tras autodetectar el dep, intentamos matchear la ciudad.
+  useEffect(() => {
+    if (!pendingCity || municipalities.length === 0) return;
+    const match = findByName(municipalities, pendingCity);
+    if (match) setGeoMunId(match.id);
+    setPendingCity(null);
+  }, [municipalities, pendingCity, setGeoMunId]);
+
+  async function runAutodetect() {
+    setDetecting(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permiso requerido',
+          'Habilita la ubicación en ajustes para detectar automáticamente tu departamento y ciudad.',
+        );
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const results = await Location.reverseGeocodeAsync({
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+      });
+      const r = results[0];
+      if (!r) {
+        Alert.alert('Sin resultados', 'No pudimos detectar tu ubicación. Selecciona manualmente.');
+        return;
+      }
+      const region = r.region ?? r.subregion ?? '';
+      const city = r.city ?? r.district ?? r.subregion ?? '';
+      const depMatch = region ? findByName(departments, region) : undefined;
+      if (!depMatch) {
+        Alert.alert(
+          'Departamento no encontrado',
+          region
+            ? `No pudimos asociar "${region}" a un departamento disponible.`
+            : 'No pudimos detectar tu departamento.',
+        );
+        return;
+      }
+      setGeoDepId(depMatch.id);
+      setGeoMunId('');
+      setValue('entityId', '');
+      setValue('entityDepartmentId', '');
+      if (city) setPendingCity(city);
+    } catch {
+      Alert.alert('Error', 'No se pudo obtener tu ubicación. Intenta de nuevo o selecciona manualmente.');
+    } finally {
+      setDetecting(false);
+    }
+  }
 
   const filteredEntities = entitySearch.trim()
     ? entities.filter((e) => e.name.toLowerCase().includes(entitySearch.toLowerCase()))
@@ -100,6 +177,23 @@ export function EntitySelector({
   return (
     <View testID="step1-content">
       <StepHeader step={1} title="Ubicación y entidad" />
+
+      <TouchableOpacity
+        style={selectorStyles.autodetectBtn}
+        onPress={runAutodetect}
+        disabled={detecting}
+        accessibilityRole="button"
+        accessibilityLabel="Detectar mi ubicación"
+      >
+        {detecting ? (
+          <ActivityIndicator size="small" color="#2563EB" />
+        ) : (
+          <Ionicons name="locate" size={16} color="#2563EB" />
+        )}
+        <Text style={selectorStyles.autodetectText}>
+          {detecting ? 'Detectando ubicación…' : 'Usar mi ubicación'}
+        </Text>
+      </TouchableOpacity>
 
       {/* Departamento geográfico */}
       <View style={styles.fieldContainer}>
@@ -380,4 +474,22 @@ const selectorStyles = StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: 14, color: '#111827', paddingVertical: 2 },
   noResults: { textAlign: 'center', color: '#9CA3AF', padding: 16, fontSize: 13 },
+  autodetectBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+    marginBottom: 12,
+  },
+  autodetectText: {
+    fontSize: 13,
+    color: '#2563EB',
+    fontWeight: '600',
+  },
 });

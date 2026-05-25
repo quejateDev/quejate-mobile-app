@@ -102,9 +102,11 @@ export default function CreatePQRScreen() {
 
   const { departments, isLoading: loadingDepts } = useDepartments();
   const { municipalities, isLoading: loadingMuns } = useMunicipalities(geoDepId || undefined);
+  const hintCategoryId = route.params?.categoryId;
   const { entities, isLoading: loadingEntities } = useEntities({
     departmentId: geoDepId || undefined,
     municipalityId: geoMunId || undefined,
+    categoryId: hintCategoryId,
   });
   const { pqrConfig, entityDepartments, isLoading: loadingConfig } = usePQRConfig(
     watchedEntityId || undefined,
@@ -114,9 +116,20 @@ export default function CreatePQRScreen() {
     if (hintApplied) return;
     const hint = route.params?.entityNameHint?.trim().toLowerCase();
     const categoryHint = route.params?.categoryHint;
-    if (!hint || loadingEntities || entities.length === 0) return;
+    const categoryId = route.params?.categoryId;
+    if (loadingEntities) return;
+    if (!hint && !categoryId) return;
+    if (entities.length === 0) return;
 
-    const match = entities.find((e) => e.name.toLowerCase().includes(hint));
+    // Cuando navegan con categoryId, useEntities ya filtró por categoría: usar la
+    // primera. Si además mandaron entityNameHint, preferir el match por nombre dentro
+    // de las entidades filtradas (más preciso si hay varias en la misma categoría).
+    let match = hint
+      ? entities.find((e) => e.name.toLowerCase().includes(hint))
+      : undefined;
+    if (!match && categoryId && entities.length > 0) {
+      match = entities[0];
+    }
     if (match) {
       setValue('entityId', match.id);
       if (categoryHint) setValue('subject', categoryHint);
