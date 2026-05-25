@@ -11,5 +11,13 @@ module.exports = {
     '^@expo/vector-icons$': '<rootDir>/__mocks__/expoVectorIcons.js',
     '^@expo/vector-icons/(.*)$': '<rootDir>/__mocks__/expoVectorIcons.js',
     '^react-native-maps$': '<rootDir>/__mocks__/reactNativeMaps.js',
+    '^react-native-gesture-handler$': '<rootDir>/__mocks__/reactNativeGestureHandler.js',
+    '^react-native-view-shot$': '<rootDir>/__mocks__/reactNativeViewShot.js',
+    '^expo-image$': '<rootDir>/__mocks__/expoImage.js',
+    '^expo-video$': '<rootDir>/__mocks__/expoVideo.js',
+    '^expo-video-thumbnails$': '<rootDir>/__mocks__/expoVideoThumbnails.js',
+    '^expo-sharing$': '<rootDir>/__mocks__/expoSharing.js',
+    '^expo-file-system$': '<rootDir>/__mocks__/expoFileSystem.js',
+    '^expo-file-system/legacy$': '<rootDir>/__mocks__/expoFileSystem.js',
   },
 };
