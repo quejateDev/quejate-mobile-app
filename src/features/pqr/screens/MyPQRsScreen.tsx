@@ -26,7 +26,7 @@ const STATUS_FILTERS: Array<{ value: PQRSStatus | undefined; label: string; colo
   { value: 'PENDING',     label: 'Pendiente',  color: '#D97706' },
   { value: 'IN_PROGRESS', label: 'En Proceso', color: '#2563EB' },
   { value: 'RESOLVED',    label: 'Resuelto',   color: '#16A34A' },
-  { value: 'REJECTED',    label: 'Rechazado',  color: '#991B1B' },
+  { value: 'CLOSED',      label: 'Cerrado',    color: '#4B5563' },
 ];
 
 export default function MyPQRsScreen() {
