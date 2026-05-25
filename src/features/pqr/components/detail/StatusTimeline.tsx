@@ -9,7 +9,7 @@ const STATUS_ICON: Record<PQRSStatus, keyof typeof Ionicons.glyphMap> = {
   PENDING: 'document-outline',
   IN_PROGRESS: 'refresh-outline',
   RESOLVED: 'checkmark-circle-outline',
-  REJECTED: 'close-circle-outline',
+  CLOSED: 'lock-closed-outline',
 };
 
 export function StatusTimeline({ history }: { history: PQRStatusHistoryEntry[] }) {

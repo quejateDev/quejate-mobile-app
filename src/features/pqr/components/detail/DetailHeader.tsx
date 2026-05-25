@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
+  Linking,
   ScrollView,
-  Share,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
+import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -22,11 +23,15 @@ import {
   useUpdateStatus,
   useUpdatePrivacy,
 } from '@features/pqr/hooks/usePQRActions';
-import { isUnauthorized } from '@shared/utils/httpError';
+import { isUnauthorized, getErrorStatus } from '@shared/utils/httpError';
+import { debugLog } from '@core/debug/debugStore';
 import { AttachmentGalleryModal } from './AttachmentGalleryModal';
 import { DocumentViewerModal } from './DocumentViewerModal';
+import { OverdueModal } from './OverdueModal';
 import { StatusTimeline } from './StatusTimeline';
-import { formatBytes, isImageAttachment } from './detailUtils';
+import { formatBytes, isMediaAttachment, isVideoAttachment } from './detailUtils';
+import { resolveOverdue } from '../../utils/businessDays';
+import { PQRActionsSheet } from '../PQRActionsSheet';
 import { styles } from './pqrDetailStyles';
 
 interface Props {
@@ -43,6 +48,42 @@ export function DetailHeader({ pqrId, commentCount }: Props) {
   const privacyMutation = useUpdatePrivacy(pqrId);
   const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
   const [docViewer, setDocViewer] = useState<{ url: string; name: string } | null>(null);
+  const [resolvedAddress, setResolvedAddress] = useState<string | null>(null);
+  const [overdueModalVisible, setOverdueModalVisible] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const overdueShownRef = useRef(false);
+
+  const lat = pqr?.latitude;
+  const lng = pqr?.longitude;
+  const hasCoords = typeof lat === 'number' && typeof lng === 'number';
+
+  useEffect(() => {
+    if (!hasCoords) return;
+    let cancelled = false;
+    Location.reverseGeocodeAsync({ latitude: lat as number, longitude: lng as number })
+      .then((results) => {
+        if (cancelled) return;
+        const r = results[0];
+        if (!r) return;
+        const parts = [r.name || r.street, r.city, r.region].filter(Boolean);
+        if (parts.length > 0) setResolvedAddress(parts.join(', '));
+      })
+      .catch(() => {
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [hasCoords, lat, lng]);
+
+  useEffect(() => {
+    if (overdueShownRef.current) return;
+    if (!pqr) return;
+    const isOwnerNow = !!user?.id && user.id === pqr.creator?.id;
+    if (!isOwnerNow) return;
+    if (!resolveOverdue(pqr).isOverdue) return;
+    overdueShownRef.current = true;
+    setOverdueModalVisible(true);
+  }, [pqr, user]);
 
   if (isLoading || !pqr) {
     return (
@@ -79,26 +120,41 @@ export function DetailHeader({ pqrId, commentCount }: Props) {
   }
 
   function handleTogglePrivacy() {
+    const newPrivate = !pqr!.private;
+    debugLog('info', `PRIVACY mutate -> private=${newPrivate}`);
     privacyMutation.mutate(
-      { private: !pqr!.private },
+      { private: newPrivate },
       {
+        onSuccess: (response) => {
+          debugLog('info', `PRIVACY OK private=${response?.data?.private ?? '?'}`);
+        },
         onError: (error) => {
+          const status = getErrorStatus(error);
+          debugLog('err', `PRIVACY FAIL status=${status ?? 'NET'}`);
           if (isUnauthorized(error)) return;
-          Alert.alert('Error', 'No se pudo cambiar la privacidad. Inténtalo de nuevo.');
+          Alert.alert(
+            'Error',
+            `No se pudo cambiar la privacidad (${status ?? 'red'}). Revisa el DebugScreen para más detalles.`,
+          );
         },
       },
     );
   }
 
   function handleShare() {
-    void Share.share({
-      title: pqr!.subject ?? 'PQRSD',
-      message: `${pqr!.subject ?? 'PQRSD'}\n${pqr!.description ?? ''}`,
+    setShareOpen(true);
+  }
+
+  function openInMaps() {
+    if (!hasCoords) return;
+    const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    void Linking.openURL(url).catch(() => {
+      Alert.alert('No se pudo abrir', 'Verifica que tengas Google Maps o un navegador instalado.');
     });
   }
 
-  const imageAttachments = attachments.filter((a: Attachment) => isImageAttachment(a.type, a.name));
-  const fileAttachments = attachments.filter((a: Attachment) => !isImageAttachment(a.type, a.name));
+  const mediaAttachments = attachments.filter((a: Attachment) => isMediaAttachment(a.type, a.name));
+  const fileAttachments = attachments.filter((a: Attachment) => !isMediaAttachment(a.type, a.name));
 
   return (
     <View style={styles.detailHeader}>
@@ -137,7 +193,7 @@ export function DetailHeader({ pqrId, commentCount }: Props) {
             <Ionicons name="eye-off-outline" size={18} color="#6B7280" />
           </View>
         ) : pqr.creator?.image ? (
-          <Image source={{ uri: pqr.creator.image }} style={styles.authorAvatar} />
+          <Image source={{ uri: pqr.creator.image }} style={styles.authorAvatar} contentFit="cover" cachePolicy="memory-disk" />
         ) : (
           <View style={styles.authorAvatarPlaceholder}>
             <Text style={styles.authorAvatarText}>
@@ -201,6 +257,19 @@ export function DetailHeader({ pqrId, commentCount }: Props) {
         )}
       </View>
 
+      {hasCoords && (
+        <View style={styles.locationSection}>
+          <Text style={styles.metaLabel}>Ubicación</Text>
+          <Text style={styles.locationText} numberOfLines={2}>
+            {resolvedAddress ?? `${(lat as number).toFixed(5)}, ${(lng as number).toFixed(5)}`}
+          </Text>
+          <TouchableOpacity style={styles.openMapsButton} onPress={openInMaps}>
+            <Ionicons name="map-outline" size={15} color="#2563EB" style={{ marginRight: 6 }} />
+            <Text style={styles.openMapsText}>Ver en Google Maps</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {(isEmployee || isOwner) && (
         <View style={styles.ownerActions}>
           {isEmployee && pqr.status !== 'RESOLVED' && (
@@ -236,25 +305,57 @@ export function DetailHeader({ pqrId, commentCount }: Props) {
         <View style={styles.attachmentsSection}>
           <Text style={styles.sectionTitle}>Adjuntos</Text>
 
-          {imageAttachments.length > 0 && (
+          {mediaAttachments.length > 0 && (
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.thumbnailRow}
             >
-              {imageAttachments.map((att: Attachment, i: number) => (
-                <TouchableOpacity
-                  key={att.id}
-                  onPress={() => setGalleryIndex(i)}
-                  activeOpacity={0.85}
-                >
-                  <Image
-                    source={{ uri: att.url }}
-                    style={styles.thumbnail}
-                    resizeMode="cover"
-                  />
-                </TouchableOpacity>
-              ))}
+              {mediaAttachments.map((att: Attachment, i: number) => {
+                const isVideo = isVideoAttachment(att.type, att.name);
+                return (
+                  <TouchableOpacity
+                    key={att.id}
+                    onPress={() => setGalleryIndex(i)}
+                    activeOpacity={0.85}
+                    style={styles.thumbnailWrapper}
+                  >
+                    {isVideo ? (
+                      att.thumbnailUrl ? (
+                        <View style={styles.thumbnail}>
+                          <Image
+                            source={{ uri: att.thumbnailUrl }}
+                            style={styles.thumbnail}
+                            contentFit="cover"
+                            cachePolicy="memory-disk"
+                            transition={150}
+                          />
+                          <View style={styles.thumbnailPlayOverlay}>
+                            <Ionicons name="play-circle" size={40} color="#fff" />
+                          </View>
+                        </View>
+                      ) : (
+                        <View style={[styles.thumbnail, styles.videoThumbnail]}>
+                          <Ionicons name="play-circle" size={40} color="#fff" />
+                        </View>
+                      )
+                    ) : (
+                      <Image
+                        source={{ uri: att.url }}
+                        style={styles.thumbnail}
+                        contentFit="cover"
+                        cachePolicy="memory-disk"
+                        transition={150}
+                      />
+                    )}
+                    {isVideo && (
+                      <View style={styles.videoOverlayBadge}>
+                        <Ionicons name="videocam" size={12} color="#fff" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           )}
 
@@ -274,7 +375,7 @@ export function DetailHeader({ pqrId, commentCount }: Props) {
 
           {galleryIndex !== null && (
             <AttachmentGalleryModal
-              images={imageAttachments}
+              media={mediaAttachments}
               initialIndex={galleryIndex}
               onClose={() => setGalleryIndex(null)}
             />
@@ -294,6 +395,24 @@ export function DetailHeader({ pqrId, commentCount }: Props) {
       )}
 
       <Text style={styles.sectionTitle}>Comentarios ({commentCount})</Text>
+
+      <OverdueModal
+        visible={overdueModalVisible}
+        daysExceeded={resolveOverdue(pqr).businessDaysExceeded}
+        onConfirmResolved={() => {
+          setOverdueModalVisible(false);
+          statusMutation.mutate({ status: 'RESOLVED' });
+        }}
+        onStartFollowup={() => {
+          setOverdueModalVisible(false);
+          navigation.navigate('FormalFollowup', { pqrId });
+        }}
+        onDismiss={() => setOverdueModalVisible(false)}
+      />
+
+      {shareOpen && (
+        <PQRActionsSheet pqr={pqr} isOwner={false} onClose={() => setShareOpen(false)} />
+      )}
     </View>
   );
 }
