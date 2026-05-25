@@ -1,6 +1,9 @@
+import { Alert } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@core/api/client';
 import { ENDPOINTS } from '@core/api/endpoints';
+import { debugLog } from '@core/debug/debugStore';
+import { getErrorStatus, isUnauthorized } from '@shared/utils/httpError';
 import type { PQRS } from '@core/types';
 
 interface LikeResponse {
@@ -28,14 +31,70 @@ export function useUpdateStatus(id: string) {
 export function useUpdatePrivacy(id: string) {
   const queryClient = useQueryClient();
 
-  return useMutation<PQRS, unknown, { private: boolean }>({
+  return useMutation<
+    { success: boolean; data: PQRS; message: string },
+    unknown,
+    { private: boolean },
+    OptimisticContext
+  >({
     mutationFn: (body) =>
       apiClient.patch(ENDPOINTS.PQR.PRIVACY(id), body).then((r) => r.data),
+    onMutate: async ({ private: newPrivate }) => {
+      await queryClient.cancelQueries({ queryKey: ['pqr', id] });
+      const previous = queryClient.getQueryData<PQRS>(['pqr', id]);
+      if (previous) {
+        queryClient.setQueryData<PQRS>(['pqr', id], { ...previous, private: newPrivate });
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['pqr', id], context.previous);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pqr', id] });
       queryClient.invalidateQueries({ queryKey: ['pqrs'] });
+      queryClient.invalidateQueries({ queryKey: ['pqrs-by-user'] });
     },
   });
+}
+
+/**
+ * Encapsula el toggle de privacidad reutilizado por la tarjeta (ojo + sheet) y el detalle:
+ * dispara la mutación, loguea en DebugScreen y muestra error (ignorando 401).
+ */
+export function useTogglePrivacy(
+  pqr: Pick<PQRS, 'id' | 'private'>,
+  onDone?: () => void,
+) {
+  const mutation = useUpdatePrivacy(pqr.id);
+
+  function toggle() {
+    if (mutation.isPending) return;
+    const newPrivate = !pqr.private;
+    debugLog('info', `PRIVACY mutate -> private=${newPrivate}`);
+    mutation.mutate(
+      { private: newPrivate },
+      {
+        onSuccess: (response) => {
+          debugLog('info', `PRIVACY OK private=${response?.data?.private ?? '?'}`);
+          onDone?.();
+        },
+        onError: (error) => {
+          const status = getErrorStatus(error);
+          debugLog('err', `PRIVACY FAIL status=${status ?? 'NET'}`);
+          if (isUnauthorized(error)) return;
+          Alert.alert(
+            'Error',
+            `No se pudo cambiar la privacidad (${status ?? 'red'}). Revisa el DebugScreen.`,
+          );
+        },
+      },
+    );
+  }
+
+  return { toggle, isPending: mutation.isPending };
 }
 
 export function useLikePQR(id: string) {
