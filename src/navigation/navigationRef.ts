@@ -10,14 +10,25 @@ export type AppTabParamList = {
 
 export type AppStackParamList = {
   Tabs: NavigatorScreenParams<AppTabParamList> | undefined;
-  CreatePQR: { entityId?: string; entityNameHint?: string; categoryHint?: string } | undefined;
+  CreatePQR:
+    | {
+        entityId?: string;
+        entityNameHint?: string;
+        categoryHint?: string;
+        categoryId?: string;
+      }
+    | undefined;
   PQRDetail: { id: string };
   Notificaciones: undefined;
   PublicProfile: { userId: string };
-  LawyerDetail: { lawyerId: string };
+  FormalFollowup: { pqrId: string };
+  GenerateTutela: { pqrId: string };
+  LawyerList: { pqrId?: string } | undefined;
+  LawyerDetail: { lawyerId: string; pqrId?: string };
   MyLawyerRequests: undefined;
   RegisterAsLawyer: undefined;
   MapaCiudadano: undefined;
+  Debug: undefined;
 };
 
 export const navigationRef = createNavigationContainerRef<AppStackParamList>();

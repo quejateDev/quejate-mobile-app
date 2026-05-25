@@ -7,6 +7,9 @@ import CreatePQRScreen from '@features/pqr/screens/CreatePQRScreen';
 import PQRDetailScreen from '@features/pqr/screens/PQRDetailScreen';
 import NotificationsScreen from '@features/notifications/screens/NotificationsScreen';
 import PublicProfileScreen from '@features/users/screens/PublicProfileScreen';
+import FormalFollowupScreen from '@features/pqr/screens/FormalFollowupScreen';
+import GenerateTutelaScreen from '@features/pqr/screens/GenerateTutelaScreen';
+import LawyerListScreen from '@features/lawyers/screens/LawyerListScreen';
 import LawyerDetailScreen from '@features/lawyers/screens/LawyerDetailScreen';
 import MyLawyerRequestsScreen from '@features/lawyers/screens/MyLawyerRequestsScreen';
 import RegisterAsLawyerScreen from '@features/lawyers/screens/RegisterAsLawyerScreen';
@@ -46,6 +49,9 @@ export default function AppNavigator() {
       <Stack.Screen name="PQRDetail" component={withErrorBoundary(PQRDetailScreen)} options={{ ...headerDefaults, headerTitle: 'Detalle PQRSD' }} />
       <Stack.Screen name="Notificaciones" component={withErrorBoundary(NotificationsScreen)} options={{ headerShown: false }} />
       <Stack.Screen name="PublicProfile" component={withErrorBoundary(PublicProfileScreen)} options={{ ...headerDefaults, headerTitle: 'Perfil' }} />
+      <Stack.Screen name="FormalFollowup" component={withErrorBoundary(FormalFollowupScreen)} options={{ ...headerDefaults, headerTitle: 'Seguimiento formal' }} />
+      <Stack.Screen name="GenerateTutela" component={withErrorBoundary(GenerateTutelaScreen)} options={{ ...headerDefaults, headerTitle: 'Generar tutela' }} />
+      <Stack.Screen name="LawyerList" component={withErrorBoundary(LawyerListScreen)} options={{ ...headerDefaults, headerTitle: 'Abogados disponibles' }} />
       <Stack.Screen name="LawyerDetail" component={withErrorBoundary(LawyerDetailScreen)} options={{ ...headerDefaults, headerTitle: 'Perfil de abogado' }} />
       <Stack.Screen name="MyLawyerRequests" component={withErrorBoundary(MyLawyerRequestsScreen)} options={{ ...headerDefaults, headerTitle: 'Mis solicitudes' }} />
       <Stack.Screen name="RegisterAsLawyer" component={withErrorBoundary(RegisterAsLawyerScreen)} options={{ ...headerDefaults, headerTitle: 'Registro como abogado' }} />
