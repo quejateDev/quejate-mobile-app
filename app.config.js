@@ -69,6 +69,7 @@ module.exports = {
     plugins: [
       'expo-secure-store',
       'expo-web-browser',
+      'expo-video',
       [
         'expo-notifications',
         {
