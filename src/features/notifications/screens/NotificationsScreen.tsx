@@ -39,6 +39,7 @@ const TYPE_CONFIG: Record<NotificationType, { label: string; icon: keyof typeof 
   lawyer_request_rejected:   { label: 'Solicitud rechazada', icon: 'close-circle-outline',     color: '#DC2626' },
   new_lawyer_request:        { label: 'Nueva solicitud',     icon: 'briefcase-outline',        color: '#7C3AED' },
   pqrsd_time_expired:        { label: 'PQRSD vencida',       icon: 'time-outline',             color: '#D97706' },
+  pqrsd_response:            { label: 'Respuesta de la entidad', icon: 'chatbubble-ellipses-outline', color: '#0D9488' },
 };
 
 const NotificationItem = React.memo(function NotificationItem({
