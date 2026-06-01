@@ -15,7 +15,7 @@ module.exports = {
     slug: 'quejate-app',
     // 'quejate' = deep links de la app; el reverse-client-id permite que el redirect
     // de Google Sign-In (expo-auth-session) regrese a la app en builds nativos.
-    scheme: ['quejate', 'com.googleusercontent.apps.707381125809-orirrlofoud4r6k36kvk5hsme9207pp7'],
+    scheme: ['quejate', 'com.googleusercontent.apps.398000745519-gd6b8ogrn0uk38dv56q4v5kmikotkgsg'],
     version: '1.0.0',
     orientation: 'portrait',
     icon: './assets/icon.png',
