@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '@core/auth/useAuth';
+import { debugLog } from '@core/debug/debugStore';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -10,6 +11,22 @@ const ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
 const WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 
 const HAS_CLIENT = !!(ANDROID_CLIENT_ID || IOS_CLIENT_ID || WEB_CLIENT_ID);
+
+/**
+ * Decodifica el `aud` del id_token (sin verificar firma) solo para diagnóstico:
+ * el backend acepta varias audiencias, y necesitamos saber si expo-auth-session
+ * emite el token con aud = Android client ID o = Web client ID.
+ */
+function decodeTokenAud(idToken: string): string | null {
+  try {
+    const seg = idToken.split('.')[1];
+    if (!seg || typeof atob !== 'function') return null;
+    const json = atob(seg.replace(/-/g, '+').replace(/_/g, '/'));
+    return (JSON.parse(json).aud as string) ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export function useGoogleAuth() {
   const { signInWithGoogle } = useAuth();
@@ -26,7 +43,16 @@ export function useGoogleAuth() {
   });
 
   useEffect(() => {
-    if (response?.type !== 'success') return;
+    if (!response) return;
+    if (response.type !== 'success') {
+      // 'error' | 'dismiss' | 'cancel' — útil para diagnosticar bloqueos de Google
+      const detail =
+        response.type === 'error'
+          ? response.error?.message ?? response.params?.error ?? 'error'
+          : response.type;
+      debugLog('err', `GOOGLE auth no-success: ${detail}`);
+      return;
+    }
 
     const idToken = response.params?.id_token;
     if (!idToken) {
@@ -34,10 +60,15 @@ export function useGoogleAuth() {
       return;
     }
 
+    debugLog('info', `GOOGLE id_token OK aud=${decodeTokenAud(idToken) ?? '?'}`);
     setIsLoading(true);
     setError(null);
     signInWithGoogle(idToken)
-      .catch(() => setError('Error al iniciar sesión con Google. Intenta de nuevo'))
+      .then(() => debugLog('info', 'GOOGLE backend signin OK'))
+      .catch((e) => {
+        debugLog('err', `GOOGLE backend signin FAIL: ${String(e)}`);
+        setError('Error al iniciar sesión con Google. Intenta de nuevo');
+      })
       .finally(() => setIsLoading(false));
   }, [response]);
 
