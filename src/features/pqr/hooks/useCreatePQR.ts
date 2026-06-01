@@ -50,7 +50,7 @@ interface UploadedAttachment {
 }
 
 /**
- * Para videos, el backend espera que el móvil genere y suba el poster (primer frame)
+ * Para videos, el backend espera que el teléfono genere y suba el poster (primer frame)
  * y lo envíe como `thumbnailUrl`. Si la generación falla, se sube el video sin poster
  * y la UI cae al ícono de play.
  */

@@ -21,22 +21,31 @@ const STATUS_COLORS: Record<PQRSStatus, { bg: string; text: string }> = {
 
 const MAX_VISIBLE_MEDIA = 3;
 
-function InlineVideo({ uri, posterUri }: { uri: string; posterUri?: string | null }) {
-  const [playing, setPlaying] = useState(false);
+/** El reproductor nativo solo se monta cuando el usuario toca play, no en cada
+ *  tarjeta del muro (evita instanciar N players de expo-video en el feed). */
+function InlineVideoPlayer({ uri }: { uri: string }) {
   const player = useVideoPlayer(uri, (p) => {
     p.loop = false;
+    p.play();
   });
+  return (
+    <VideoView
+      style={StyleSheet.absoluteFill}
+      player={player}
+      nativeControls
+      allowsFullscreen
+      contentFit="contain"
+    />
+  );
+}
+
+function InlineVideo({ uri, posterUri }: { uri: string; posterUri?: string | null }) {
+  const [playing, setPlaying] = useState(false);
 
   if (playing) {
     return (
       <View style={styles.inlineVideo}>
-        <VideoView
-          style={StyleSheet.absoluteFill}
-          player={player}
-          nativeControls
-          allowsFullscreen
-          contentFit="contain"
-        />
+        <InlineVideoPlayer uri={uri} />
       </View>
     );
   }
@@ -46,10 +55,7 @@ function InlineVideo({ uri, posterUri }: { uri: string; posterUri?: string | nul
       <TouchableOpacity
         style={StyleSheet.absoluteFill}
         activeOpacity={0.9}
-        onPress={() => {
-          setPlaying(true);
-          player.play();
-        }}
+        onPress={() => setPlaying(true)}
         accessibilityRole="button"
         accessibilityLabel="Reproducir video"
       >
