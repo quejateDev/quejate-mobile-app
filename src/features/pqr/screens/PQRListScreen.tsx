@@ -30,6 +30,7 @@ import { AppStackParamList } from '@navigation/navigationRef';
 import { usePQRList } from '@features/pqr/hooks/usePQRList';
 import { useNotifications } from '@features/notifications/hooks/useNotifications';
 import PQRCard from '@features/pqr/components/PQRCard';
+import { CATEGORY_SHORTCUTS } from '@features/pqr/utils/categoryShortcuts';
 import { ErrorState } from '@shared/components/ui/ErrorState';
 import type { PQRS } from '@core/types';
 
@@ -42,22 +43,30 @@ const FRECUENTES: Array<{
   color: string;
   entityNameHint: string;
   categoryHint: string;
+  /** categoryId opcional. Cuando se llena (ver categoryShortcuts.ts), el matching
+   *  prioriza filtrar entidades por categoría (estable) sobre el substring por nombre. */
+  categoryId?: string;
+  /** Si es true, abre primero el Sonómetro para medir el ruido y adjuntarlo. */
+  viaSonometer?: boolean;
 }> = [
   {
-    label: 'Vías en mal estado',
-    sublabel: 'Huecos y pavimento',
-    icon: 'car-outline',
-    color: '#B45309',
-    entityNameHint: 'EDUS',
-    categoryHint: 'Vías en mal estado',
+    label: 'Contaminación auditiva',
+    sublabel: 'Ruido excesivo y constante',
+    icon: 'volume-high-outline',
+    color: '#9333EA',
+    entityNameHint: 'DADSA',
+    categoryHint: 'Contaminación auditiva',
+    categoryId: CATEGORY_SHORTCUTS.ambiental,
+    viaSonometer: true,
   },
   {
-    label: 'Acueducto y agua',
+    label: 'Acueducto y Alcantarillado',
     sublabel: 'Fugas y suministro',
     icon: 'water-outline',
     color: '#0891B2',
     entityNameHint: 'ESSMAR',
-    categoryHint: 'Acueducto y agua',
+    categoryHint: 'Acueducto y Alcantarillado',
+    categoryId: CATEGORY_SHORTCUTS.serviciosPublicos,
   },
   {
     label: 'Alumbrado público',
@@ -66,6 +75,7 @@ const FRECUENTES: Array<{
     color: '#D97706',
     entityNameHint: 'ATESA',
     categoryHint: 'Alumbrado público',
+    categoryId: CATEGORY_SHORTCUTS.serviciosPublicos,
   },
   {
     label: 'Recolección basura',
@@ -74,6 +84,7 @@ const FRECUENTES: Array<{
     color: '#16A34A',
     entityNameHint: 'ATESA',
     categoryHint: 'Recolección de basura',
+    categoryId: CATEGORY_SHORTCUTS.serviciosPublicos,
   },
 ];
 
@@ -157,9 +168,10 @@ export default function PQRListScreen() {
             key={item.label}
             style={styles.frecuenteItem}
             onPress={() =>
-              navigation.navigate('CreatePQR', {
+              navigation.navigate(item.viaSonometer ? 'Sonometro' : 'CreatePQR', {
                 entityNameHint: item.entityNameHint,
                 categoryHint: item.categoryHint,
+                categoryId: item.categoryId,
               })
             }
             activeOpacity={0.75}

@@ -1,6 +1,5 @@
 import axios from 'axios';
-import { SecureStorage, SESSION_TOKEN_KEY } from '@core/auth/SecureStorage';
-import { debugLog, maskToken } from '@core/debug/debugStore';
+import { SecureStorage } from '@core/auth/SecureStorage';
 
 declare module 'axios' {
   interface InternalAxiosRequestConfig {
@@ -21,11 +20,6 @@ export const apiClient = axios.create({
   },
 });
 
-debugLog(
-  'info',
-  `env: API_URL=${RESOLVED_API_URL ?? '<UNDEFINED>'} cookieKey=${SESSION_TOKEN_KEY}`,
-);
-
 let sessionExpiredHandler: (() => void) | null = null;
 
 export function setSessionExpiredHandler(handler: (() => void) | null): void {
@@ -40,38 +34,13 @@ apiClient.interceptors.request.use(async (config) => {
     // rules can't be satisfied from a manually-set header and auth() rejects it.
     config.headers['Authorization'] = `Bearer ${token}`;
   }
-  const method = (config.method ?? 'get').toUpperCase();
-  const url = `${config.baseURL ?? ''}${config.url ?? ''}`;
-  debugLog(
-    'req',
-    `${method} ${url} auth=${token ? 'Bearer' : 'NONE'} tok=${maskToken(token)}`,
-  );
   return config;
 });
 
 apiClient.interceptors.response.use(
-  (response) => {
-    const method = (response.config.method ?? 'get').toUpperCase();
-    debugLog('res', `${response.status} ${method} ${response.config.url ?? ''}`);
-    return response;
-  },
+  (response) => response,
   async (error) => {
     const status = error.response?.status;
-    const method = (error.config?.method ?? 'get').toUpperCase();
-    const url = error.config?.url ?? '';
-    let bodyPreview = '';
-    try {
-      const data = error.response?.data;
-      bodyPreview =
-        typeof data === 'string' ? data : JSON.stringify(data ?? {});
-    } catch {
-      bodyPreview = '<unserializable body>';
-    }
-    debugLog(
-      'err',
-      `${status ?? 'NETWORK'} ${method} ${url} skipAuth401=${!!error.config
-        ?.skipAuth401} :: ${bodyPreview.slice(0, 240)} :: ${error.message ?? ''}`,
-    );
     if (status === 401 && !error.config?.skipAuth401) {
       await SecureStorage.removeSessionToken();
       sessionExpiredHandler?.();

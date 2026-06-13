@@ -9,8 +9,10 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { useLawyers } from '@features/lawyers/hooks/useLawyers';
 import { LawyerCard } from '@features/lawyers/components/LawyerCard';
 import { ErrorState } from '@shared/components/ui/ErrorState';
@@ -20,6 +22,8 @@ import type { Lawyer } from '@core/types';
 
 export default function LawyerListScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
+  const route = useRoute<RouteProp<AppStackParamList, 'LawyerList'>>();
+  const pqrId = route.params?.pqrId;
   const { data: lawyers, isLoading, isError, refetch } = useLawyers();
   const { user } = useAuth();
   const [search, setSearch] = useState('');
@@ -45,9 +49,16 @@ export default function LawyerListScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      {pqrId && (
+        <View style={styles.linkBanner}>
+          <Ionicons name="link-outline" size={15} color="#2563EB" style={{ marginRight: 6 }} />
+          <Text style={styles.linkBannerText}>
+            La solicitud quedará vinculada a tu PQRSD
+          </Text>
+        </View>
+      )}
       <View style={styles.headerRow}>
-        <Text style={styles.title}>Abogados</Text>
         <View style={styles.headerActions}>
           {user?.role === 'CLIENT' && (
             <TouchableOpacity onPress={() => navigation.navigate('RegisterAsLawyer')}>
@@ -86,7 +97,7 @@ export default function LawyerListScreen() {
           renderItem={({ item }) => (
             <LawyerCard
               lawyer={item}
-              onPress={() => navigation.navigate('LawyerDetail', { lawyerId: item.id })}
+              onPress={() => navigation.navigate('LawyerDetail', { lawyerId: item.id, pqrId })}
             />
           )}
           ListEmptyComponent={
@@ -106,11 +117,15 @@ export default function LawyerListScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FAFB' },
   headerRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8,
+    flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center',
+    paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8,
   },
-  title: { fontSize: 22, fontWeight: '700', color: '#111827' },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  linkBanner: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#EFF6FF', paddingHorizontal: 16, paddingVertical: 10,
+  },
+  linkBannerText: { fontSize: 13, color: '#2563EB', fontWeight: '600', flex: 1 },
   registerLink: { fontSize: 13, fontWeight: '600', color: '#16A34A' },
   myRequestsLink: { fontSize: 13, fontWeight: '600', color: '#2563EB' },
   searchContainer: { paddingHorizontal: 16, paddingBottom: 8 },

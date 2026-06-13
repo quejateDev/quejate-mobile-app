@@ -35,7 +35,7 @@ type Route = RouteProp<AppStackParamList, 'LawyerDetail'>;
 
 export default function LawyerDetailScreen() {
   const route = useRoute<Route>();
-  const { lawyerId } = route.params;
+  const { lawyerId, pqrId } = route.params;
   const { user, isAuthenticated } = useAuth();
 
   const { data: lawyer, isLoading, isError, refetch } = useLawyerDetail(lawyerId);
@@ -93,6 +93,7 @@ export default function LawyerDetailScreen() {
       {
         lawyerId: lawyer!.id,
         message: requestMsg.trim(),
+        ...(pqrId ? { pqrId } : {}),
         ...(contactEmail.trim() ? { clientContactEmail: contactEmail.trim() } : {}),
         ...(contactPhone.trim() ? { clientContactPhone: contactPhone.trim() } : {}),
       },

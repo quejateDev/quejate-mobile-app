@@ -20,7 +20,6 @@ import { typeMap, statusMap } from '@core/types';
 import type { PQRS, PQRSType, PQRSStatus } from '@core/types';
 import type { AppStackParamList } from '@navigation/navigationRef';
 
-// Match the create-PQR MiniMap: centre on Santa Marta and its surroundings.
 const SANTA_MARTA_REGION: Region = {
   latitude: 11.2408,
   longitude: -74.199,
@@ -29,7 +28,7 @@ const SANTA_MARTA_REGION: Region = {
 };
 
 const TYPE_OPTIONS: PQRSType[] = ['PETITION', 'COMPLAINT', 'CLAIM', 'SUGGESTION', 'REPORT'];
-const STATUS_OPTIONS: PQRSStatus[] = ['PENDING', 'IN_PROGRESS', 'RESOLVED', 'REJECTED'];
+const STATUS_OPTIONS: PQRSStatus[] = ['PENDING', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
 
 interface PQRListResponse {
   pqrs: PQRS[];

@@ -1,81 +1,79 @@
-import { useEffect, useState } from 'react';
-import * as Google from 'expo-auth-session/providers/google';
-import * as AuthSession from 'expo-auth-session';
-import * as WebBrowser from 'expo-web-browser';
-import { Platform } from 'react-native';
-import Constants from 'expo-constants';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  GoogleSignin,
+  isErrorWithCode,
+  isSuccessResponse,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
 import { useAuth } from '@core/auth/useAuth';
 
-WebBrowser.maybeCompleteAuthSession();
-
-const IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
-const ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
+// El sign-in nativo necesita el WEB client ID para emitir un idToken con
+// aud = Web Client ID, que es lo que el backend (/auth/mobile/google) verifica.
+// El client de Android se resuelve por package + SHA-1 vía google-services.json.
 const WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-
-// TODO (semana de build): Google Sign-In no funciona en Expo Go con SDK 54 porque
-// el proxy auth.expo.io fue retirado y Google rechaza exp:// como redirect URI.
-// Para la build de producción (Android e iOS):
-//   1. Crear OAuth client Android en Google Cloud Console (requiere SHA-1 del keystore EAS)
-//   2. Crear OAuth client iOS en Google Cloud Console (requiere Bundle ID definitivo)
-//   3. Agregar EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID y EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID al .env
-//   4. Cambiar redirectUri a AuthSession.makeRedirectUri({ scheme: 'quejate' })
-//      que en builds nativos sí es aceptado por Google como URI nativo registrado.
-
-const isExpoGo = Constants.appOwnership === 'expo';
-
-function resolveClientId() {
-  if (Platform.OS === 'ios' && IOS_CLIENT_ID) return IOS_CLIENT_ID;
-  if (Platform.OS === 'android' && ANDROID_CLIENT_ID) return ANDROID_CLIENT_ID;
-  return WEB_CLIENT_ID;
-}
-
-const CLIENT_ID = resolveClientId();
-
-const redirectUri = isExpoGo
-  ? 'https://auth.expo.io/@quejateapp/quejate-app'
-  : AuthSession.makeRedirectUri({ scheme: 'quejate' });
+const HAS_CLIENT = !!WEB_CLIENT_ID;
 
 export function useGoogleAuth() {
   const { signInWithGoogle } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const configuredRef = useRef(false);
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: CLIENT_ID ?? '',
-    webClientId: WEB_CLIENT_ID ?? '',
-    redirectUri,
-  });
-
+  // Configuración única. La envolvemos en try/catch por si el módulo nativo no
+  // está presente (p. ej. corriendo en un entorno sin el build nativo).
   useEffect(() => {
-    if (response?.type !== 'success') return;
+    if (configuredRef.current || !HAS_CLIENT) return;
+    try {
+      GoogleSignin.configure({ webClientId: WEB_CLIENT_ID });
+      configuredRef.current = true;
+    } catch {
+      // módulo nativo no presente: el botón quedará deshabilitado en runtime
+    }
+  }, []);
 
-    const idToken = response.params?.id_token;
-    if (!idToken) {
-      setError('No se pudo obtener el token de Google');
+  const signIn = useCallback(async () => {
+    if (!HAS_CLIENT) {
+      setError('Google sign-in no está disponible en este momento');
       return;
     }
-
+    setError(null);
     setIsLoading(true);
-    setError(null);
-    signInWithGoogle(idToken)
-      .catch(() => setError('Error al iniciar sesión con Google. Intenta de nuevo'))
-      .finally(() => setIsLoading(false));
-  }, [response]);
+    try {
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const response = await GoogleSignin.signIn();
 
-  const signIn = async () => {
-    if (!CLIENT_ID) {
-      setError('Google sign-in no está configurado aún');
-      return;
+      if (!isSuccessResponse(response)) {
+        // type === 'cancelled': el usuario cerró el diálogo. Sin UI de error.
+        return;
+      }
+
+      const idToken = response.data.idToken;
+      if (!idToken) {
+        setError('No se pudo obtener el token de Google');
+        return;
+      }
+
+      await signInWithGoogle(idToken);
+    } catch (e) {
+      if (isErrorWithCode(e)) {
+        if (e.code === statusCodes.SIGN_IN_CANCELLED) return;
+        if (e.code === statusCodes.IN_PROGRESS) return;
+        if (e.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+          setError('Google Play Services no está disponible o desactualizado.');
+          return;
+        }
+      }
+      setError('Error al iniciar sesión con Google. Intenta de nuevo');
+    } finally {
+      setIsLoading(false);
     }
-    setError(null);
-    await promptAsync();
-  };
+  }, [signInWithGoogle]);
 
   return {
     signIn,
     isLoading,
     error,
-    isAvailable: !!CLIENT_ID,
-    isReady: !!request,
+    isAvailable: HAS_CLIENT,
+    isReady: HAS_CLIENT,
   };
 }

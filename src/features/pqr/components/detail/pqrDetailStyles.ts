@@ -198,19 +198,34 @@ export const styles = StyleSheet.create({
     color: '#16A34A',
     fontWeight: '600',
   },
-  privacyButton: {
-    backgroundColor: '#F5F3FF',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  privacyButtonText: {
-    fontSize: 13,
-    color: '#7C3AED',
-    fontWeight: '600',
-  },
   attachmentsSection: {
     marginBottom: 8,
+  },
+  locationSection: {
+    marginTop: 12,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  locationText: {
+    fontSize: 14,
+    color: '#374151',
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  openMapsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 8,
+  },
+  openMapsText: {
+    fontSize: 13,
+    color: '#2563EB',
+    fontWeight: '600',
   },
   thumbnailRow: {
     gap: 8,
@@ -221,6 +236,31 @@ export const styles = StyleSheet.create({
     height: 90,
     borderRadius: 8,
     backgroundColor: '#F3F4F6',
+  },
+  thumbnailWrapper: {
+    position: 'relative',
+  },
+  videoThumbnail: {
+    backgroundColor: '#111827',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  thumbnailPlayOverlay: {
+    position: 'absolute',
+    inset: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoOverlayBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sectionTitle: {
     fontSize: 15,

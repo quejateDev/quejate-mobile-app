@@ -6,7 +6,7 @@ export type UserRole = 'ADMIN' | 'SUPER_ADMIN' | 'CLIENT' | 'EMPLOYEE' | 'LAWYER
 
 export type PQRSType = 'PETITION' | 'COMPLAINT' | 'CLAIM' | 'SUGGESTION' | 'REPORT';
 
-export type PQRSStatus = 'PENDING' | 'IN_PROGRESS' | 'RESOLVED' | 'REJECTED';
+export type PQRSStatus = 'PENDING' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
 
 export type DocumentType = 'CC' | 'CE' | 'PPT' | 'NIT' | 'PASSPORT' | 'LICENSE';
 
@@ -26,7 +26,8 @@ export type NotificationType =
   | 'lawyer_request_accepted'
   | 'lawyer_request_rejected'
   | 'new_lawyer_request'
-  | 'pqrsd_time_expired';
+  | 'pqrsd_time_expired'
+  | 'pqrsd_response';
 
 // =============================================================================
 // Auth
@@ -155,6 +156,8 @@ export interface Attachment {
   type: string;
   size: number;
   pqrId: string;
+  /** Solo para videos: frame/poster generado por el backend. Si falta, la UI cae al ícono play. */
+  thumbnailUrl?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -236,6 +239,10 @@ export interface PQRS {
   guestPhone?: string;
   latitude?: number | null;
   longitude?: number | null;
+  /** Calculado por el backend (fuente de verdad, coincide con la notificación pqrsd_time_expired). */
+  isOverdue?: boolean;
+  /** Días hábiles excedidos desde dueDate, calculado por el backend. 0 si no ha vencido. */
+  businessDaysOverdue?: number;
   createdAt: Date;
   updatedAt: Date;
   entity: { id: string; name: string; description?: string; email?: string; imageUrl?: string };
@@ -258,6 +265,10 @@ export interface NotificationData {
   userId?: string;
   followerId?: string;
   requestId?: string;
+  /** pqrsd_response: nombre de la entidad que respondió, id de la respuesta y asunto. */
+  entityName?: string;
+  pqrSubject?: string;
+  responseId?: string;
   [key: string]: unknown;
 }
 
@@ -380,10 +391,10 @@ export const typeMap: Record<PQRSType, { label: string; color: string }> = {
 };
 
 export const statusMap: Record<PQRSStatus, { label: string }> = {
-  PENDING:     { label: 'Pendiente'   },
-  IN_PROGRESS: { label: 'En progreso' },
-  RESOLVED:    { label: 'Resuelto'    },
-  REJECTED:    { label: 'Rechazado'   },
+  PENDING:     { label: 'Pendiente'  },
+  IN_PROGRESS: { label: 'En Proceso' },
+  RESOLVED:    { label: 'Resuelto'   },
+  CLOSED:      { label: 'Cerrado'    },
 };
 
 export const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];

@@ -13,6 +13,9 @@ module.exports = {
   expo: {
     name: 'Quéjate',
     slug: 'quejate-app',
+    // 'quejate' = deep links de la app. El sign-in con Google ahora es nativo
+    // (@react-native-google-signin/google-signin) y NO usa un redirect por scheme,
+    // por eso ya no se declara el reverse-client-id.
     scheme: 'quejate',
     version: '1.0.0',
     orientation: 'portrait',
@@ -43,6 +46,7 @@ module.exports = {
         'android.permission.INTERNET',
         'android.permission.ACCESS_FINE_LOCATION',
         'android.permission.ACCESS_COARSE_LOCATION',
+        'android.permission.RECORD_AUDIO',
         'android.permission.CAMERA',
         'android.permission.READ_EXTERNAL_STORAGE',
         'android.permission.READ_MEDIA_IMAGES',
@@ -68,7 +72,19 @@ module.exports = {
     },
     plugins: [
       'expo-secure-store',
-      'expo-web-browser',
+      '@react-native-google-signin/google-signin',
+      'expo-font',
+      'expo-mail-composer',
+      'expo-video',
+      [
+        // Sonómetro (Contaminación auditiva). El usage description de micrófono
+        // es OBLIGATORIO para que iOS no rechace el build en review.
+        'expo-audio',
+        {
+          microphonePermission:
+            'La app necesita acceso al micrófono para medir el nivel de ruido (sonómetro).',
+        },
+      ],
       [
         'expo-notifications',
         {

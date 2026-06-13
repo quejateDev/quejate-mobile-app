@@ -16,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useEntities } from '@features/entities/hooks/useEntities';
+import { useEntityLocationFilter } from '@features/entities/hooks/useEntityLocationFilter';
 import { useCategories } from '@features/entities/hooks/useCategories';
 import { ErrorState } from '@shared/components/ui/ErrorState';
 import type { AppStackParamList } from '@navigation/navigationRef';
@@ -140,10 +141,15 @@ export default function EntityListScreen() {
   const [search, setSearch] = useState('');
   const [activeCategoryId, setActiveCategoryId] = useState<string | undefined>(undefined);
 
-  // Fetch — pass categoryId to API (works once backend deploys the fix)
-  const { data: entities, isLoading, isError, refetch, isRefetching } = useEntities(
-    activeCategoryId ? { categoryId: activeCategoryId } : {},
-  );
+  // Filtro por ubicación (auto-detecta el municipio/departamento del ciudadano).
+  const location = useEntityLocationFilter();
+
+  // Fetch — categoryId + ubicación detectada (departmentId/municipalityId).
+  const { data: entities, isLoading, isError, refetch, isRefetching } = useEntities({
+    categoryId: activeCategoryId,
+    departmentId: location.departmentId,
+    municipalityId: location.municipalityId,
+  });
   const { data: categories } = useCategories();
 
   // Client-side filter as safety net (covers both search and category)
@@ -191,6 +197,39 @@ export default function EntityListScreen() {
           clearButtonMode="while-editing"
         />
       </View>
+
+      {location.detecting ? (
+        <View style={styles.locationBar}>
+          <ActivityIndicator size="small" color="#2563EB" />
+          <Text style={styles.locationDetectingText}>Detectando tu ubicación…</Text>
+        </View>
+      ) : location.isActive ? (
+        <View style={styles.locationBar}>
+          <Ionicons name="location" size={15} color="#2563EB" />
+          <Text style={styles.locationActiveText} numberOfLines={1}>
+            {location.label ?? 'Tu ubicación'}
+          </Text>
+          <TouchableOpacity
+            style={styles.locationClearBtn}
+            onPress={location.clear}
+            accessibilityRole="button"
+            accessibilityLabel="Ver todas las entidades"
+          >
+            <Text style={styles.locationClearText}>Ver todas</Text>
+            <Ionicons name="close" size={13} color="#6B7280" />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity
+          style={styles.locationBar}
+          onPress={() => location.detect()}
+          accessibilityRole="button"
+          accessibilityLabel="Filtrar por mi ubicación"
+        >
+          <Ionicons name="locate-outline" size={15} color="#2563EB" />
+          <Text style={styles.locationActiveText}>Filtrar por mi ubicación</Text>
+        </TouchableOpacity>
+      )}
 
       {categories && categories.length > 0 && (
         <ScrollView
@@ -292,6 +331,23 @@ const styles = StyleSheet.create({
     height: 42,
   },
   searchInput: { flex: 1, fontSize: 14, color: '#111827' },
+  locationBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+  },
+  locationDetectingText: { fontSize: 13, color: '#2563EB', fontWeight: '500' },
+  locationActiveText: { flex: 1, fontSize: 13, color: '#1E40AF', fontWeight: '600' },
+  locationClearBtn: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  locationClearText: { fontSize: 12, color: '#6B7280', fontWeight: '600' },
   categoriesScroll: {
     flexShrink: 0,
     flexGrow: 0,

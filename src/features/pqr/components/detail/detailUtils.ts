@@ -5,9 +5,20 @@ export function formatBytes(bytes: number): string {
 }
 
 const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif'];
+const VIDEO_EXTENSIONS = ['mp4', 'mov', 'avi', 'wmv', 'flv', 'mkv', 'webm', 'm4v', '3gp'];
 
 export function isImageAttachment(mimeType?: string | null, name?: string | null): boolean {
   if (mimeType && mimeType.startsWith('image/')) return true;
   const ext = (name ?? '').split('.').pop()?.toLowerCase() ?? '';
   return IMAGE_EXTENSIONS.includes(ext);
+}
+
+export function isVideoAttachment(mimeType?: string | null, name?: string | null): boolean {
+  if (mimeType && mimeType.startsWith('video/')) return true;
+  const ext = (name ?? '').split('.').pop()?.toLowerCase() ?? '';
+  return VIDEO_EXTENSIONS.includes(ext);
+}
+
+export function isMediaAttachment(mimeType?: string | null, name?: string | null): boolean {
+  return isImageAttachment(mimeType, name) || isVideoAttachment(mimeType, name);
 }

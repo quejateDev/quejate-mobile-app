@@ -1,6 +1,5 @@
 import React from 'react';
 import { ErrorState } from '@shared/components/ui/ErrorState';
-import { debugLog } from '@core/debug/debugStore';
 
 interface Props {
   children: React.ReactNode;
@@ -17,13 +16,6 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
   static getDerivedStateFromError(): State {
     return { hasError: true };
-  }
-
-  componentDidCatch(error: Error, info: React.ErrorInfo) {
-    debugLog(
-      'err',
-      `RENDER CRASH: ${error?.message ?? error} :: ${(info?.componentStack ?? '').slice(0, 200)}`,
-    );
   }
 
   handleReset = () => {
