@@ -10,6 +10,9 @@ interface EntityListResponse {
 
 interface EntityFilters {
   categoryId?: string;
+  /** departmentId = regionalDepartmentId (geográfico). municipalityId tiene prioridad. */
+  departmentId?: string;
+  municipalityId?: string;
   search?: string;
   limit?: number;
 }

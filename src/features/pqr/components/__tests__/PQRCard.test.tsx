@@ -75,4 +75,44 @@ describe('PQRCard', () => {
     expect(getByText('3')).toBeTruthy();
     expect(getByText('1')).toBeTruthy();
   });
+
+  it('muestra "Vence en 1d" para una PQRSD pendiente que vence mañana', () => {
+    const pqr: PQRS = {
+      ...basePQR,
+      dueDate: new Date(Date.now() + 1 * 86400000) as unknown as Date,
+    };
+    const { getByText } = renderCard(<PQRCard pqr={pqr} onPress={() => {}} />);
+    expect(getByText('Vence en 1d')).toBeTruthy();
+  });
+
+  it('no muestra "Vence en Xd" cuando la PQRSD está resuelta (bug del muro)', () => {
+    const pqr: PQRS = {
+      ...basePQR,
+      status: 'RESOLVED',
+      dueDate: new Date(Date.now() + 1 * 86400000) as unknown as Date,
+    };
+    const { queryByText } = renderCard(<PQRCard pqr={pqr} onPress={() => {}} />);
+    expect(queryByText(/Vence/)).toBeNull();
+  });
+
+  it('no muestra "Vencida" cuando la PQRSD está cerrada aunque el dueDate pasó', () => {
+    const pqr: PQRS = {
+      ...basePQR,
+      status: 'CLOSED',
+      dueDate: new Date(Date.now() - 2 * 86400000) as unknown as Date,
+    };
+    const { queryByText } = renderCard(<PQRCard pqr={pqr} onPress={() => {}} />);
+    expect(queryByText('Vencida')).toBeNull();
+  });
+
+  it('ignora isOverdue=true del backend cuando el estado es final', () => {
+    const pqr: PQRS = {
+      ...basePQR,
+      status: 'RESOLVED',
+      isOverdue: true,
+      dueDate: new Date(Date.now() - 2 * 86400000) as unknown as Date,
+    };
+    const { queryByText } = renderCard(<PQRCard pqr={pqr} onPress={() => {}} />);
+    expect(queryByText('Vencida')).toBeNull();
+  });
 });

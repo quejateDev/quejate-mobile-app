@@ -57,6 +57,10 @@ jest.mock('@features/pqr/hooks/usePQRConfig', () => ({
   usePQRConfig: jest.fn(),
 }));
 
+jest.mock('@features/pqr/hooks/useAreaPQRConfig', () => ({
+  useAreaPQRConfig: () => ({ areaCustomFields: [], isLoading: false }),
+}));
+
 jest.mock('@features/pqr/hooks/useCreatePQR', () => ({
   useCreatePQR: jest.fn(),
 }));

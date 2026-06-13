@@ -12,7 +12,6 @@ import { captureRef } from 'react-native-view-shot';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { PQRS } from '@core/types';
-import { debugLog } from '@core/debug/debugStore';
 import { useTogglePrivacy } from '../hooks/usePQRActions';
 import { downloadFirstImage, shareImage, shareLink } from '../utils/pqrShare';
 import { PQRShareCard } from './share/PQRShareCard';
@@ -43,6 +42,8 @@ export function PQRActionsSheet({ pqr, isOwner, onClose }: Props) {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    // Una PQRSD privada no se comparte, así que no precargamos su imagen.
+    if (pqr.private) return;
     let cancelled = false;
     void downloadFirstImage(pqr).then((uri) => {
       if (!cancelled) setSrcImage(uri);
@@ -68,8 +69,7 @@ export function PQRActionsSheet({ pqr, isOwner, onClose }: Props) {
       const ok = await shareImage(uri, pqr.subject ?? 'Compartir en Quéjate');
       if (!ok) await shareLink(pqr);
       onClose();
-    } catch (error) {
-      debugLog('err', `SHARE post fail: ${String(error)}`);
+    } catch {
       try {
         await shareLink(pqr);
         onClose();
@@ -86,8 +86,8 @@ export function PQRActionsSheet({ pqr, isOwner, onClose }: Props) {
     try {
       await shareLink(pqr);
       onClose();
-    } catch (error) {
-      debugLog('err', `SHARE link fail: ${String(error)}`);
+    } catch {
+      // compartir es best-effort; si falla, no interrumpimos al usuario
     }
   }
 
@@ -101,21 +101,27 @@ export function PQRActionsSheet({ pqr, isOwner, onClose }: Props) {
               {pqr.subject ?? 'Opciones'}
             </Text>
 
-            <SheetRow
-              icon="image-outline"
-              label={busy ? 'Generando…' : 'Compartir como publicación'}
-              sublabel="Imagen con la marca Quéjate"
-              onPress={handleSharePost}
-              disabled={busy}
-              trailing={busy ? <ActivityIndicator size="small" color="#2563EB" /> : undefined}
-            />
-            <SheetRow
-              icon="link-outline"
-              label="Compartir enlace"
-              sublabel="Texto + link de la PQRSD"
-              onPress={handleShareLink}
-              disabled={busy}
-            />
+            {/* Una PQRSD privada no se comparte: solo el dueño puede volverla
+             *  pública (toggle de abajo) y desde ahí ya podrá compartirla. */}
+            {!pqr.private && (
+              <>
+                <SheetRow
+                  icon="image-outline"
+                  label={busy ? 'Generando…' : 'Compartir como publicación'}
+                  sublabel="Imagen con la marca Quéjate"
+                  onPress={handleSharePost}
+                  disabled={busy}
+                  trailing={busy ? <ActivityIndicator size="small" color="#2563EB" /> : undefined}
+                />
+                <SheetRow
+                  icon="link-outline"
+                  label="Compartir enlace"
+                  sublabel="Texto + link de la PQRSD"
+                  onPress={handleShareLink}
+                  disabled={busy}
+                />
+              </>
+            )}
 
             {isOwner && (
               <SheetRow
@@ -144,17 +150,20 @@ export function PQRActionsSheet({ pqr, isOwner, onClose }: Props) {
         </Pressable>
       </Modal>
 
-      {/* Tarjeta branded fuera de pantalla, lista para capturar */}
-      <View style={styles.offscreen} pointerEvents="none">
-        <PQRShareCard
-          ref={cardRef}
-          pqr={pqr}
-          imageUri={srcImage}
-          onImageLoad={() => {
-            bannerReadyRef.current = true;
-          }}
-        />
-      </View>
+      {/* Tarjeta branded fuera de pantalla, lista para capturar (solo si se puede
+       *  compartir, es decir, cuando la PQRSD no es privada). */}
+      {!pqr.private && (
+        <View style={styles.offscreen} pointerEvents="none">
+          <PQRShareCard
+            ref={cardRef}
+            pqr={pqr}
+            imageUri={srcImage}
+            onImageLoad={() => {
+              bannerReadyRef.current = true;
+            }}
+          />
+        </View>
+      )}
     </>
   );
 }

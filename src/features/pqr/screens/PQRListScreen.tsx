@@ -46,6 +46,8 @@ const FRECUENTES: Array<{
   /** categoryId opcional. Cuando se llena (ver categoryShortcuts.ts), el matching
    *  prioriza filtrar entidades por categoría (estable) sobre el substring por nombre. */
   categoryId?: string;
+  /** Si es true, abre primero el Sonómetro para medir el ruido y adjuntarlo. */
+  viaSonometer?: boolean;
 }> = [
   {
     label: 'Contaminación auditiva',
@@ -55,6 +57,7 @@ const FRECUENTES: Array<{
     entityNameHint: 'DADSA',
     categoryHint: 'Contaminación auditiva',
     categoryId: CATEGORY_SHORTCUTS.ambiental,
+    viaSonometer: true,
   },
   {
     label: 'Acueducto y Alcantarillado',
@@ -165,7 +168,7 @@ export default function PQRListScreen() {
             key={item.label}
             style={styles.frecuenteItem}
             onPress={() =>
-              navigation.navigate('CreatePQR', {
+              navigation.navigate(item.viaSonometer ? 'Sonometro' : 'CreatePQR', {
                 entityNameHint: item.entityNameHint,
                 categoryHint: item.categoryHint,
                 categoryId: item.categoryId,

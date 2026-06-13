@@ -21,16 +21,13 @@ import { usePQRDetail } from '@features/pqr/hooks/usePQRDetail';
 import {
   useLikePQR,
   useUpdateStatus,
-  useUpdatePrivacy,
 } from '@features/pqr/hooks/usePQRActions';
-import { isUnauthorized, getErrorStatus } from '@shared/utils/httpError';
-import { debugLog } from '@core/debug/debugStore';
 import { AttachmentGalleryModal } from './AttachmentGalleryModal';
 import { DocumentViewerModal } from './DocumentViewerModal';
 import { OverdueModal } from './OverdueModal';
 import { StatusTimeline } from './StatusTimeline';
 import { formatBytes, isMediaAttachment, isVideoAttachment } from './detailUtils';
-import { resolveOverdue } from '../../utils/businessDays';
+import { dueDaysLeft, resolveOverdue } from '../../utils/businessDays';
 import { PQRActionsSheet } from '../PQRActionsSheet';
 import { styles } from './pqrDetailStyles';
 
@@ -45,7 +42,6 @@ export function DetailHeader({ pqrId, commentCount }: Props) {
   const { data: pqr, isLoading } = usePQRDetail(pqrId);
   const likeMutation = useLikePQR(pqrId);
   const statusMutation = useUpdateStatus(pqrId);
-  const privacyMutation = useUpdatePrivacy(pqrId);
   const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
   const [docViewer, setDocViewer] = useState<{ url: string; name: string } | null>(null);
   const [resolvedAddress, setResolvedAddress] = useState<string | null>(null);
@@ -96,10 +92,11 @@ export function DetailHeader({ pqrId, commentCount }: Props) {
   const type = typeMap[pqr.type] ?? { label: pqr.type ?? '—', color: '#6B7280' };
   const status = statusMap[pqr.status] ?? { label: pqr.status ?? '—' };
   const authorName = pqr.anonymous ? 'Anónimo' : (pqr.creator?.name ?? 'Desconocido');
-  const dueTime = pqr.dueDate ? new Date(pqr.dueDate).getTime() : NaN;
-  const daysLeft = Number.isFinite(dueTime) ? Math.ceil((dueTime - Date.now()) / 86400000) : NaN;
-  const isExpired = Number.isFinite(daysLeft) && daysLeft < 0;
-  const isExpiringSoon = Number.isFinite(daysLeft) && daysLeft <= 3;
+  // Misma regla que PQRCard: el plazo solo aplica a PQRSDs activas
+  // (dueDaysLeft devuelve NaN para RESOLVED/CLOSED/SUGGESTION).
+  const daysLeft = dueDaysLeft(pqr);
+  const isExpired = resolveOverdue(pqr).isOverdue;
+  const isExpiringSoon = !isExpired && Number.isFinite(daysLeft) && daysLeft >= 0 && daysLeft <= 3;
   const likes = pqr.likes ?? [];
   const attachments = pqr.attachments ?? [];
   const statusHistory = pqr.statusHistory ?? [];
@@ -117,28 +114,6 @@ export function DetailHeader({ pqrId, commentCount }: Props) {
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Confirmar', onPress: () => statusMutation.mutate({ status: 'RESOLVED' }) },
     ]);
-  }
-
-  function handleTogglePrivacy() {
-    const newPrivate = !pqr!.private;
-    debugLog('info', `PRIVACY mutate -> private=${newPrivate}`);
-    privacyMutation.mutate(
-      { private: newPrivate },
-      {
-        onSuccess: (response) => {
-          debugLog('info', `PRIVACY OK private=${response?.data?.private ?? '?'}`);
-        },
-        onError: (error) => {
-          const status = getErrorStatus(error);
-          debugLog('err', `PRIVACY FAIL status=${status ?? 'NET'}`);
-          if (isUnauthorized(error)) return;
-          Alert.alert(
-            'Error',
-            `No se pudo cambiar la privacidad (${status ?? 'red'}). Revisa el DebugScreen para más detalles.`,
-          );
-        },
-      },
-    );
   }
 
   function handleShare() {
@@ -170,7 +145,7 @@ export function DetailHeader({ pqrId, commentCount }: Props) {
             <Text style={styles.privateBadgeText}>Privada</Text>
           </View>
         )}
-        {isExpiringSoon && (
+        {(isExpired || isExpiringSoon) && (
           <View style={styles.dueBadge}>
             <Text style={styles.dueBadgeText}>
               {isExpired ? 'Vencida' : daysLeft === 0 ? 'Hoy' : `${daysLeft}d`}
@@ -249,12 +224,12 @@ export function DetailHeader({ pqrId, commentCount }: Props) {
           </Text>
         </TouchableOpacity>
 
-        {!pqr.private && (
-          <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-            <Ionicons name="share-outline" size={15} color="#374151" style={{ marginRight: 6 }} />
-            <Text style={styles.shareButtonText}>Compartir</Text>
-          </TouchableOpacity>
-        )}
+        {/* Menú ⋮: compartir y (si es dueño) cambiar privacidad. El toggle de
+         *  privacidad vive solo aquí, no como botón/ojo aparte. */}
+        <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+          <Ionicons name="ellipsis-horizontal" size={16} color="#374151" style={{ marginRight: 6 }} />
+          <Text style={styles.shareButtonText}>Opciones</Text>
+        </TouchableOpacity>
       </View>
 
       {hasCoords && (
@@ -270,34 +245,17 @@ export function DetailHeader({ pqrId, commentCount }: Props) {
         </View>
       )}
 
-      {(isEmployee || isOwner) && (
+      {isEmployee && pqr.status !== 'RESOLVED' && (
         <View style={styles.ownerActions}>
-          {isEmployee && pqr.status !== 'RESOLVED' && (
-            <TouchableOpacity
-              style={styles.resolveButton}
-              onPress={handleMarkResolved}
-              disabled={statusMutation.isPending}
-            >
-              <Text style={styles.resolveButtonText}>
-                {statusMutation.isPending ? 'Actualizando…' : 'Marcar como resuelta'}
-              </Text>
-            </TouchableOpacity>
-          )}
-          {isOwner && (
-            <TouchableOpacity
-              style={styles.privacyButton}
-              onPress={handleTogglePrivacy}
-              disabled={privacyMutation.isPending}
-            >
-              <Text style={styles.privacyButtonText}>
-                {privacyMutation.isPending
-                  ? 'Actualizando…'
-                  : pqr.private
-                  ? 'Hacer pública'
-                  : 'Hacer privada'}
-              </Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.resolveButton}
+            onPress={handleMarkResolved}
+            disabled={statusMutation.isPending}
+          >
+            <Text style={styles.resolveButtonText}>
+              {statusMutation.isPending ? 'Actualizando…' : 'Marcar como resuelta'}
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -411,7 +369,7 @@ export function DetailHeader({ pqrId, commentCount }: Props) {
       />
 
       {shareOpen && (
-        <PQRActionsSheet pqr={pqr} isOwner={false} onClose={() => setShareOpen(false)} />
+        <PQRActionsSheet pqr={pqr} isOwner={isOwner} onClose={() => setShareOpen(false)} />
       )}
     </View>
   );

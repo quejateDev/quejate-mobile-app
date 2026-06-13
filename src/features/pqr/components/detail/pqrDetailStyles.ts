@@ -198,17 +198,6 @@ export const styles = StyleSheet.create({
     color: '#16A34A',
     fontWeight: '600',
   },
-  privacyButton: {
-    backgroundColor: '#F5F3FF',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  privacyButtonText: {
-    fontSize: 13,
-    color: '#7C3AED',
-    fontWeight: '600',
-  },
   attachmentsSection: {
     marginBottom: 8,
   },

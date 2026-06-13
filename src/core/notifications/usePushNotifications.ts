@@ -6,8 +6,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { navigationRef } from '@navigation/navigationRef';
 import { apiClient } from '@core/api/client';
 import { ENDPOINTS } from '@core/api/endpoints';
-import { debugLog } from '@core/debug/debugStore';
-import { getErrorStatus } from '@shared/utils/httpError';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -41,35 +39,27 @@ async function registerForPushNotifications(): Promise<void> {
     await ensureAndroidChannel();
 
     const { status } = await Notifications.requestPermissionsAsync();
-    debugLog('info', `PUSH permiso=${status}`);
     if (status !== 'granted') return;
 
     const projectId = getProjectId();
-    if (!projectId) {
-      debugLog('err', 'PUSH sin projectId en expoConfig.extra.eas');
-      return;
-    }
+    if (!projectId) return;
 
-    const tokenResult = await Notifications.getExpoPushTokenAsync({ projectId }).catch((err) => {
-      debugLog('err', `PUSH getExpoPushToken FALLÓ: ${err?.message ?? err}`);
-      return null;
-    });
+    const tokenResult = await Notifications.getExpoPushTokenAsync({ projectId }).catch(
+      () => null,
+    );
     if (!tokenResult) return;
-    debugLog('info', `PUSH token=${tokenResult.data.slice(0, 24)}…`);
 
     try {
-      const r = await apiClient.post(
+      await apiClient.post(
         ENDPOINTS.PUSH_TOKEN,
         { token: tokenResult.data },
         { skipAuth401: true },
       );
-      debugLog('info', `PUSH POST token -> ${r.status}`);
-    } catch (e) {
-      const status = getErrorStatus(e);
-      debugLog('err', `PUSH POST token FALLÓ status=${status ?? 'NET'}`);
+    } catch {
+      // registro best-effort: si falla, se reintenta en el próximo arranque
     }
-  } catch (e) {
-    debugLog('err', `PUSH registro error: ${(e as Error)?.message ?? String(e)}`);
+  } catch {
+    // registro best-effort
   }
 }
 
@@ -82,7 +72,6 @@ export function usePushNotifications(): void {
     registerForPushNotifications();
 
     receivedSub.current = Notifications.addNotificationReceivedListener(() => {
-      debugLog('info', 'PUSH recibida (foreground)');
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     });
 

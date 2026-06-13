@@ -63,16 +63,35 @@ export function calculateBusinessDaysExceeded(
   return n;
 }
 
+const FINAL_STATUSES: ReadonlySet<PQRSStatus> = new Set(['RESOLVED', 'CLOSED']);
+const NO_DEADLINE_TYPES: ReadonlySet<PQRSType> = new Set(['SUGGESTION']);
+
+/**
+ * Réplica de la regla web: los plazos legales solo aplican a PQRSDs activas
+ * (no RESOLVED/CLOSED) y con plazo (no SUGGESTION). Cualquier indicador de
+ * vencimiento ("Vencida", "Vence en Xd", modal de vencida) debe pasar por acá.
+ */
+export function deadlineApplies(pqr: Pick<PQRS, 'status' | 'type'>): boolean {
+  return !FINAL_STATUSES.has(pqr.status) && !NO_DEADLINE_TYPES.has(pqr.type);
+}
+
+/**
+ * Días calendario hasta el dueDate (negativo si ya pasó). NaN cuando el plazo
+ * no aplica (estado final / sugerencia / sin dueDate).
+ */
+export function dueDaysLeft(pqr: Pick<PQRS, 'dueDate' | 'status' | 'type'>): number {
+  if (!deadlineApplies(pqr) || !pqr.dueDate) return Number.NaN;
+  const dueTime = new Date(pqr.dueDate).getTime();
+  if (!Number.isFinite(dueTime)) return Number.NaN;
+  return Math.ceil((dueTime - Date.now()) / 86400000);
+}
+
 /**
  * Réplica de la lógica web: la PQRSD se considera vencida si dueDate ya pasó,
  * el status no es RESOLVED/CLOSED y el tipo no es SUGGESTION.
  */
 export function isPQROverdue(pqr: Pick<PQRS, 'dueDate' | 'status' | 'type'>): boolean {
-  if (!pqr.dueDate) return false;
-  const finalStatuses: PQRSStatus[] = ['RESOLVED', 'CLOSED'];
-  if (finalStatuses.includes(pqr.status)) return false;
-  const skipTypes: PQRSType[] = ['SUGGESTION'];
-  if (skipTypes.includes(pqr.type)) return false;
+  if (!pqr.dueDate || !deadlineApplies(pqr)) return false;
   return new Date(pqr.dueDate) < new Date();
 }
 
@@ -90,6 +109,10 @@ export function resolveOverdue(pqr: OverduePQR): {
   isOverdue: boolean;
   businessDaysExceeded: number;
 } {
+  // Clamp por estado: una PQRSD resuelta/cerrada (o una sugerencia) nunca está
+  // vencida, aunque el backend mande isOverdue=true o el dueDate ya haya pasado
+  // (visto en datos reales: "Resuelto" + "Vence en 1d" en el muro).
+  if (!deadlineApplies(pqr)) return { isOverdue: false, businessDaysExceeded: 0 };
   const isOverdue = pqr.isOverdue ?? isPQROverdue(pqr);
   const businessDaysExceeded =
     pqr.businessDaysOverdue ??

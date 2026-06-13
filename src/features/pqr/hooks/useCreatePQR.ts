@@ -3,7 +3,6 @@ import * as VideoThumbnails from 'expo-video-thumbnails';
 import { apiClient } from '@core/api/client';
 import { ENDPOINTS } from '@core/api/endpoints';
 import { uploadToS3 } from '@shared/utils/s3Upload';
-import { debugLog } from '@core/debug/debugStore';
 import type { PQRS, PQRSType } from '@core/types';
 
 export interface LocalAttachment {
@@ -67,8 +66,8 @@ async function uploadAttachment(file: LocalAttachment): Promise<UploadedAttachme
     });
     const thumbnailUrl = await uploadToS3(thumbUri, 'image/jpeg');
     return { ...base, thumbnailUrl };
-  } catch (error) {
-    debugLog('err', `THUMB gen/upload fail (${file.name}): ${String(error)}`);
+  } catch {
+    // miniatura best-effort: si falla, se sube el video sin thumbnail
     return base;
   }
 }

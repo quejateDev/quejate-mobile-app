@@ -2,7 +2,6 @@ import { Alert } from 'react-native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@core/api/client';
 import { ENDPOINTS } from '@core/api/endpoints';
-import { debugLog } from '@core/debug/debugStore';
 import { getErrorStatus, isUnauthorized } from '@shared/utils/httpError';
 import type { PQRS } from '@core/types';
 
@@ -61,8 +60,8 @@ export function useUpdatePrivacy(id: string) {
 }
 
 /**
- * Encapsula el toggle de privacidad reutilizado por la tarjeta (ojo + sheet) y el detalle:
- * dispara la mutación, loguea en DebugScreen y muestra error (ignorando 401).
+ * Encapsula el toggle de privacidad usado desde el menú ⋮ (PQRActionsSheet), tanto
+ * en la tarjeta como en el detalle: dispara la mutación y muestra error (ignorando 401).
  */
 export function useTogglePrivacy(
   pqr: Pick<PQRS, 'id' | 'private'>,
@@ -73,21 +72,18 @@ export function useTogglePrivacy(
   function toggle() {
     if (mutation.isPending) return;
     const newPrivate = !pqr.private;
-    debugLog('info', `PRIVACY mutate -> private=${newPrivate}`);
     mutation.mutate(
       { private: newPrivate },
       {
-        onSuccess: (response) => {
-          debugLog('info', `PRIVACY OK private=${response?.data?.private ?? '?'}`);
+        onSuccess: () => {
           onDone?.();
         },
         onError: (error) => {
-          const status = getErrorStatus(error);
-          debugLog('err', `PRIVACY FAIL status=${status ?? 'NET'}`);
           if (isUnauthorized(error)) return;
+          const status = getErrorStatus(error);
           Alert.alert(
             'Error',
-            `No se pudo cambiar la privacidad (${status ?? 'red'}). Revisa el DebugScreen.`,
+            `No se pudo cambiar la privacidad (${status ?? 'red'}). Intenta de nuevo.`,
           );
         },
       },

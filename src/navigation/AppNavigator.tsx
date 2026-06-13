@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { navigationRef } from '@navigation/navigationRef';
 import type { AppStackParamList } from '@navigation/navigationRef';
 import CreatePQRScreen from '@features/pqr/screens/CreatePQRScreen';
+import SonometerScreen from '@features/pqr/screens/SonometerScreen';
 import PQRDetailScreen from '@features/pqr/screens/PQRDetailScreen';
 import NotificationsScreen from '@features/notifications/screens/NotificationsScreen';
 import PublicProfileScreen from '@features/users/screens/PublicProfileScreen';
@@ -46,6 +47,7 @@ export default function AppNavigator() {
     <Stack.Navigator>
       <Stack.Screen name="Tabs" component={AppTabNavigator} options={{ headerShown: false }} />
       <Stack.Screen name="CreatePQR" component={withErrorBoundary(CreatePQRScreen)} options={{ ...headerDefaults, headerTitle: 'Nueva PQRSD' }} />
+      <Stack.Screen name="Sonometro" component={withErrorBoundary(SonometerScreen)} options={{ ...headerDefaults, headerTitle: 'Sonómetro' }} />
       <Stack.Screen name="PQRDetail" component={withErrorBoundary(PQRDetailScreen)} options={{ ...headerDefaults, headerTitle: 'Detalle PQRSD' }} />
       <Stack.Screen name="Notificaciones" component={withErrorBoundary(NotificationsScreen)} options={{ headerShown: false }} />
       <Stack.Screen name="PublicProfile" component={withErrorBoundary(PublicProfileScreen)} options={{ ...headerDefaults, headerTitle: 'Perfil' }} />

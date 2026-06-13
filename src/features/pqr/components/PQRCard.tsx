@@ -9,8 +9,7 @@ import { typeMap, statusMap } from '@core/types';
 import { isMediaAttachment, isVideoAttachment } from './detail/detailUtils';
 import { AttachmentGalleryModal } from './detail/AttachmentGalleryModal';
 import { PQRActionsSheet } from './PQRActionsSheet';
-import { useTogglePrivacy } from '../hooks/usePQRActions';
-import { resolveOverdue } from '../utils/businessDays';
+import { dueDaysLeft, resolveOverdue } from '../utils/businessDays';
 
 const STATUS_COLORS: Record<PQRSStatus, { bg: string; text: string }> = {
   PENDING:     { bg: '#FEF3C7', text: '#D97706' },
@@ -89,13 +88,13 @@ function PQRCardBase({ pqr, onPress }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const isOwner = !!user?.id && user.id === pqr.creator?.id;
-  const privacy = useTogglePrivacy(pqr);
   const type = typeMap[pqr.type] ?? { label: pqr.type ?? '—', color: '#6B7280' };
   const status = statusMap[pqr.status] ?? { label: pqr.status ?? '—' };
   const statusColors = STATUS_COLORS[pqr.status] ?? { bg: '#F3F4F6', text: '#6B7280' };
   const authorName = pqr.anonymous ? 'Anónimo' : (pqr.creator?.name ?? 'Desconocido');
-  const dueTime = pqr.dueDate ? new Date(pqr.dueDate).getTime() : NaN;
-  const daysLeft = Number.isFinite(dueTime) ? Math.ceil((dueTime - Date.now()) / 86400000) : NaN;
+  // dueDaysLeft ya devuelve NaN para RESOLVED/CLOSED/SUGGESTION: una PQRSD
+  // resuelta o cerrada no muestra "Vencida" ni "Vence en Xd".
+  const daysLeft = dueDaysLeft(pqr);
   const isExpired = resolveOverdue(pqr).isOverdue;
   const isExpiringSoon = !isExpired && Number.isFinite(daysLeft) && daysLeft >= 0 && daysLeft <= 3;
   const likes = pqr._count?.likes ?? 0;
@@ -128,30 +127,8 @@ function PQRCardBase({ pqr, onPress }: Props) {
             <Text style={[styles.statusText, { color: statusColors.text }]}>{status.label}</Text>
           </View>
           <View style={{ flex: 1 }} />
-          {isOwner ? (
-            <TouchableOpacity
-              onPress={privacy.toggle}
-              disabled={privacy.isPending}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              style={styles.privacyIcon}
-              accessibilityRole="button"
-              accessibilityLabel={pqr.private ? 'Hacer pública' : 'Hacer privada'}
-            >
-              <Ionicons
-                name={pqr.private ? 'eye-off-outline' : 'eye-outline'}
-                size={18}
-                color={pqr.private ? '#7C3AED' : '#9CA3AF'}
-              />
-            </TouchableOpacity>
-          ) : pqr.private ? (
-            <Ionicons
-              name="eye-off-outline"
-              size={17}
-              color="#7C3AED"
-              style={styles.privacyIcon}
-              accessibilityLabel="PQRSD privada"
-            />
-          ) : null}
+          {/* La privacidad se cambia desde el menú ⋮ (PQRActionsSheet); ya no hay
+           *  ícono de ojo en la tarjeta (ni muro ni "Mis PQRSD"). */}
           <TouchableOpacity
             onPress={() => setMenuOpen(true)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -320,9 +297,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '600',
-  },
-  privacyIcon: {
-    marginLeft: 4,
   },
   menuButton: {
     paddingHorizontal: 2,

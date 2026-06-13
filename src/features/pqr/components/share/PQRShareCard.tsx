@@ -2,12 +2,21 @@ import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import type { PQRS } from '@core/types';
 import { typeMap, statusMap } from '@core/types';
+import { resolveOverdue } from '../../utils/businessDays';
 
 const LOGO = require('../../../../../assets/LogotipoEditableterpng.png');
 
 type SharePQR = Pick<
   PQRS,
-  'id' | 'type' | 'status' | 'subject' | 'description' | 'entity' | 'dueDate'
+  | 'id'
+  | 'type'
+  | 'status'
+  | 'subject'
+  | 'description'
+  | 'entity'
+  | 'dueDate'
+  | 'isOverdue'
+  | 'businessDaysOverdue'
 >;
 
 interface Props {
@@ -22,8 +31,9 @@ export const PQRShareCard = React.forwardRef<View, Props>(function PQRShareCard(
 ) {
   const type = typeMap[pqr.type] ?? { label: pqr.type ?? '—', color: '#6B7280' };
   const status = statusMap[pqr.status] ?? { label: pqr.status ?? '—' };
-  const dueTime = pqr.dueDate ? new Date(pqr.dueDate).getTime() : NaN;
-  const isExpired = Number.isFinite(dueTime) && dueTime < Date.now();
+  // Misma regla que la tarjeta/detalle: una PQRSD resuelta o cerrada no se
+  // comparte con el badge "Tiempo excedido".
+  const isExpired = resolveOverdue(pqr).isOverdue;
 
   return (
     <View ref={ref} collapsable={false} style={styles.card}>

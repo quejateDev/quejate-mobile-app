@@ -20,6 +20,7 @@ import { useAuth } from '@core/auth/useAuth';
 import { useDepartments, useMunicipalities } from '@features/pqr/hooks/useLocations';
 import { useEntities } from '@features/pqr/hooks/useEntities';
 import { usePQRConfig } from '@features/pqr/hooks/usePQRConfig';
+import { useAreaPQRConfig } from '@features/pqr/hooks/useAreaPQRConfig';
 import { useCreatePQR } from '@features/pqr/hooks/useCreatePQR';
 import { useAttachments } from '@features/pqr/hooks/useAttachments';
 import type { CustomField } from '@core/types';
@@ -37,6 +38,9 @@ import { getErrorStatus } from '@shared/utils/httpError';
 
 type Nav = NativeStackNavigationProp<AppStackParamList, 'CreatePQR'>;
 type RouteProps = NativeStackScreenProps<AppStackParamList, 'CreatePQR'>['route'];
+
+/** Campo personalizado donde se adjunta la lectura del sonómetro. */
+const NOISE_FIELD_NAME = 'Nivel de ruido (dB)';
 
 export default function CreatePQRScreen() {
   const navigation = useNavigation<Nav>();
@@ -71,6 +75,11 @@ export default function CreatePQRScreen() {
     if (preselectedEntityId) {
       setValue('entityId', preselectedEntityId);
       setCurrentStep(2);
+    }
+    // Prellenamos la lectura del sonómetro si venimos del flujo de ruido.
+    const noise = route.params?.noiseLevelDb;
+    if (typeof noise === 'number') {
+      setCustomFieldValues((prev) => ({ ...prev, [NOISE_FIELD_NAME]: String(Math.round(noise)) }));
     }
   }, []);
 
@@ -111,6 +120,9 @@ export default function CreatePQRScreen() {
   const { pqrConfig, entityDepartments, isLoading: loadingConfig } = usePQRConfig(
     watchedEntityId || undefined,
   );
+  // Paridad con web: además de los campos de la entidad, cargamos los del ÁREA
+  // seleccionada y mostramos la unión (deduplicada por nombre).
+  const { areaCustomFields } = useAreaPQRConfig(watchedEntityDeptId || undefined);
 
   useEffect(() => {
     if (hintApplied) return;
@@ -138,9 +150,33 @@ export default function CreatePQRScreen() {
     setHintApplied(true);
   }, [hintApplied, route.params, entities, loadingEntities, setValue]);
 
+  function getMergedCustomFields(): CustomField[] {
+    const entityFields = pqrConfig?.customFields ?? [];
+    const seen = new Set(entityFields.map((f) => f.name));
+    const merged = [...entityFields];
+    for (const field of areaCustomFields) {
+      if (!seen.has(field.name)) {
+        merged.push(field);
+        seen.add(field.name);
+      }
+    }
+    // Lectura del sonómetro: campo adicional cuando venimos del flujo de ruido.
+    if (typeof route.params?.noiseLevelDb === 'number' && !seen.has(NOISE_FIELD_NAME)) {
+      merged.push({
+        id: 'noise-db',
+        name: NOISE_FIELD_NAME,
+        type: 'number',
+        placeholder: 'dB medidos',
+        required: false,
+        isForAnonymous: true,
+      });
+      seen.add(NOISE_FIELD_NAME);
+    }
+    return merged;
+  }
+
   function getVisibleCustomFields(): CustomField[] {
-    if (!pqrConfig) return [];
-    return pqrConfig.customFields.filter(
+    return getMergedCustomFields().filter(
       (field) => !(field.isForAnonymous === false && watchedIsAnonymous),
     );
   }
@@ -291,6 +327,11 @@ export default function CreatePQRScreen() {
           watchedEntityId={watchedEntityId}
           watchedEntityDeptId={watchedEntityDeptId}
           setValue={setValue}
+          autoDetectOnMount={
+            !route.params?.entityId &&
+            !route.params?.entityNameHint &&
+            !route.params?.categoryId
+          }
         />
       )}
 

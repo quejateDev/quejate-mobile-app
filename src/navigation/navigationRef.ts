@@ -16,6 +16,15 @@ export type AppStackParamList = {
         entityNameHint?: string;
         categoryHint?: string;
         categoryId?: string;
+        /** Lectura del sonómetro (dB aprox.) que se adjunta como campo personalizado. */
+        noiseLevelDb?: number;
+      }
+    | undefined;
+  Sonometro:
+    | {
+        entityNameHint?: string;
+        categoryHint?: string;
+        categoryId?: string;
       }
     | undefined;
   PQRDetail: { id: string };
@@ -28,7 +37,6 @@ export type AppStackParamList = {
   MyLawyerRequests: undefined;
   RegisterAsLawyer: undefined;
   MapaCiudadano: undefined;
-  Debug: undefined;
 };
 
 export const navigationRef = createNavigationContainerRef<AppStackParamList>();
