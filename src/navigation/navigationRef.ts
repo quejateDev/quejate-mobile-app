@@ -18,6 +18,8 @@ export type AppStackParamList = {
         categoryId?: string;
         /** Lectura del sonómetro (dB aprox.) que se adjunta como campo personalizado. */
         noiseLevelDb?: number;
+        /** Audio de la medición del sonómetro, que se pre-adjunta en el paso de adjuntos. */
+        noiseAudio?: { uri: string; name: string; type: string; size: number };
       }
     | undefined;
   Sonometro:

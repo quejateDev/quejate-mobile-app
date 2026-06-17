@@ -135,7 +135,36 @@ export default function SonometerScreen() {
     setMeasuring(false);
   }
 
-  function handleUseMeasurement() {
+  // Finaliza la grabación y arma el adjunto de audio de la medición. No sirve
+  // como prueba pericial, pero da una idea del ruido medido. Best-effort: si algo
+  // falla, devolvemos undefined y se continúa sin audio.
+  async function stopAndCaptureAudio(): Promise<
+    { uri: string; name: string; type: string; size: number } | undefined
+  > {
+    try {
+      await recorder.stop(); // finaliza el archivo en disco
+    } catch {
+      // ya estaba detenido (p. ej. tras "Detener"): el archivo sigue válido
+    }
+    const uri = recorder.uri;
+    if (!uri) return undefined;
+    try {
+      const blob = await (await fetch(uri)).blob();
+      const ext = uri.split('.').pop()?.toLowerCase();
+      const type =
+        ext === 'm4a' ? 'audio/m4a' : ext === 'caf' ? 'audio/x-caf' : ext === 'wav' ? 'audio/wav' : 'audio/mp4';
+      return {
+        uri,
+        name: `medicion_ruido_${Date.now()}.${ext ?? 'm4a'}`,
+        type,
+        size: blob.size,
+      };
+    } catch {
+      return undefined;
+    }
+  }
+
+  async function handleUseMeasurement() {
     // Adjuntamos el PROMEDIO (Leq), no el pico: es la métrica de ruido ambiental
     // y es robusta a transitorios puntuales.
     const reading = avgDb ?? currentDb;
@@ -143,12 +172,13 @@ export default function SonometerScreen() {
       Alert.alert('Sin medición', 'Toma una medición de unos segundos antes de continuar.');
       return;
     }
-    safeStop();
+    const noiseAudio = await stopAndCaptureAudio();
     navigation.navigate('CreatePQR', {
       entityNameHint: route.params?.entityNameHint,
       categoryHint: route.params?.categoryHint,
       categoryId: route.params?.categoryId,
       noiseLevelDb: reading,
+      noiseAudio,
     });
   }
 
