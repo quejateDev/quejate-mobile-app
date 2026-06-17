@@ -53,7 +53,8 @@ export default function CreatePQRScreen() {
   const [currentStep, setCurrentStep] = useState(1);
   const [stepError, setStepError] = useState<string | null>(null);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
-  const { attachments, pickImage, pickDocument, removeAttachment } = useAttachments();
+  const { attachments, pickImage, captureWithCamera, pickDocument, addAttachment, removeAttachment } =
+    useAttachments();
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const [pinLatitude, setPinLatitude] = useState<number | null>(null);
   const [pinLongitude, setPinLongitude] = useState<number | null>(null);
@@ -80,6 +81,10 @@ export default function CreatePQRScreen() {
     const noise = route.params?.noiseLevelDb;
     if (typeof noise === 'number') {
       setCustomFieldValues((prev) => ({ ...prev, [NOISE_FIELD_NAME]: String(Math.round(noise)) }));
+    }
+    // Pre-adjuntamos el audio de la medición (si el sonómetro lo capturó).
+    if (route.params?.noiseAudio) {
+      addAttachment(route.params.noiseAudio);
     }
   }, []);
 
@@ -351,6 +356,7 @@ export default function CreatePQRScreen() {
           setCustomFieldValues={setCustomFieldValues}
           attachments={attachments}
           onPickImage={pickImage}
+          onOpenCamera={captureWithCamera}
           onPickDocument={pickDocument}
           onRemoveAttachment={removeAttachment}
         />

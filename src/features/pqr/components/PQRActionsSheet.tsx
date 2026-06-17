@@ -130,10 +130,14 @@ export function PQRActionsSheet({ pqr, isOwner, onClose }: Props) {
                   privacy.isPending
                     ? 'Actualizando…'
                     : pqr.private
-                    ? 'Hacer pública'
-                    : 'Hacer privada'
+                    ? 'Mostrar en el muro público'
+                    : 'Ocultar del muro público'
                 }
-                sublabel={pqr.private ? 'Visible en el muro público' : 'Solo tú la verás'}
+                sublabel={
+                  pqr.private
+                    ? 'Vuelve a ser visible para todos'
+                    : 'Solo tú la verás; no aparece en el muro'
+                }
                 onPress={privacy.toggle}
                 disabled={privacy.isPending || busy}
               />

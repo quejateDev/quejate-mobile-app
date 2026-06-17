@@ -12,6 +12,7 @@ interface Props {
   setCustomFieldValues: Dispatch<SetStateAction<Record<string, string>>>;
   attachments: LocalAttachment[];
   onPickImage: () => void;
+  onOpenCamera: () => void;
   onPickDocument: () => void;
   onRemoveAttachment: (index: number) => void;
 }
@@ -23,6 +24,7 @@ export function Attachments({
   setCustomFieldValues,
   attachments,
   onPickImage,
+  onOpenCamera,
   onPickDocument,
   onRemoveAttachment,
 }: Props) {
@@ -65,11 +67,18 @@ export function Attachments({
 
         <View style={styles.attachmentButtons}>
           <TouchableOpacity
+            testID="open-camera-btn"
+            style={styles.attachmentBtn}
+            onPress={onOpenCamera}
+          >
+            <Text style={styles.attachmentBtnText}>+ Cámara</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             testID="add-image-btn"
             style={styles.attachmentBtn}
             onPress={onPickImage}
           >
-            <Text style={styles.attachmentBtnText}>+ Imagen / Video</Text>
+            <Text style={styles.attachmentBtnText}>+ Galería</Text>
           </TouchableOpacity>
           <TouchableOpacity
             testID="add-doc-btn"
