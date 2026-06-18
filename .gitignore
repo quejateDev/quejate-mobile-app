@@ -29,4 +29,7 @@ src/features/debug/
 # var GOOGLE_SERVICES_JSON; keep a local copy at repo root for `expo run:android`.
 google-services.json
 
+# Google Play service account key (eas submit). Secret — never commit.
+play-service-account.json
+
 .DS_Store
