@@ -21,11 +21,7 @@ export function useRegisterLawyerForm() {
   const [feePerHour, setFeePerHour] = useState('');
 
   async function pickImage(onSelect: (uri: string) => void) {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permiso requerido', 'Necesitamos acceso a tu galería para adjuntar imágenes.');
-      return;
-    }
+    // Usa el selector de fotos del sistema (no requiere permiso de galería).
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       quality: 0.8,
