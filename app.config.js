@@ -48,8 +48,10 @@ module.exports = {
         'android.permission.ACCESS_COARSE_LOCATION',
         'android.permission.RECORD_AUDIO',
         'android.permission.CAMERA',
-        'android.permission.READ_EXTERNAL_STORAGE',
-        'android.permission.READ_MEDIA_IMAGES',
+        // No declaramos READ_MEDIA_IMAGES / READ_EXTERNAL_STORAGE: la selección de
+        // imágenes/videos usa el selector de fotos del sistema (photo picker de
+        // expo-image-picker), que no requiere acceso amplio a la galería. Así
+        // cumplimos la política de Photo & Video Permissions de Google Play.
         'android.permission.RECEIVE_BOOT_COMPLETED',
         'android.permission.VIBRATE',
       ],
