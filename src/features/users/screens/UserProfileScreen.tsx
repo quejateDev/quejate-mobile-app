@@ -213,6 +213,28 @@ export default function UserProfileScreen() {
           ) : null}
         </View>
 
+        {/* Asesoría legal */}
+        <Text style={profileStyles.sectionHeader}>Asesoría legal</Text>
+        <View style={profileStyles.settingsCard}>
+          <SettingsRow
+            icon="briefcase-outline"
+            label="Buscar abogado"
+            onPress={() => navigation.navigate('LawyerList')}
+          />
+          <View style={profileStyles.divider} />
+          <SettingsRow
+            icon="paper-plane-outline"
+            label="Mis solicitudes"
+            onPress={() => navigation.navigate('MyLawyerRequests')}
+          />
+          <View style={profileStyles.divider} />
+          <SettingsRow
+            icon="school-outline"
+            label="Registrarme como abogado"
+            onPress={() => navigation.navigate('RegisterAsLawyer')}
+          />
+        </View>
+
         {/* Settings */}
         <Text style={profileStyles.sectionHeader}>Configuración</Text>
         <View style={profileStyles.settingsCard}>
