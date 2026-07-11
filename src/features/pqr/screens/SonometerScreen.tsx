@@ -2,12 +2,13 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Linking,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -48,7 +49,6 @@ const recordingOptions = { ...RecordingPresets.LOW_QUALITY, isMeteringEnabled: t
 export default function SonometerScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<RouteProps>();
-  const insets = useSafeAreaInsets();
 
   const recorder = useAudioRecorder(recordingOptions);
   const recorderState = useAudioRecorderState(recorder, 200);
@@ -197,7 +197,14 @@ export default function SonometerScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <View style={styles.content}>
+      {/* El contenido scrollea y el footer queda anclado: con fuentes del sistema
+          grandes el contenido crece, y sin scroll empujaba los botones fuera de
+          la pantalla sin forma de alcanzarlos. */}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={styles.title}>Sonómetro</Text>
         <Text style={styles.subtitle}>
           Mide el nivel de ruido del lugar y adjúntalo a tu reporte de contaminación auditiva.
@@ -216,7 +223,9 @@ export default function SonometerScreen() {
           </View>
         ) : (
           <View style={styles.meterBox}>
-            <Text style={[styles.dbValue, { color }]}>
+            {/* Readout numérico de 64pt: se limita la escala de fuente del sistema
+                para que no desborde el medidor (el resto de textos escalan libre). */}
+            <Text style={[styles.dbValue, { color }]} maxFontSizeMultiplier={1.3}>
               {currentDb != null ? currentDb : '--'}
             </Text>
             <Text style={styles.dbUnit}>dB aprox.</Text>
@@ -249,9 +258,11 @@ export default function SonometerScreen() {
           depende del micrófono y del control de ganancia de cada equipo, por lo que sirve como
           referencia, no como prueba pericial. Mide unos segundos para un valor estable.
         </Text>
-      </View>
+      </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
+      {/* El SafeAreaView (edges bottom) ya aplica el inset del sistema; aquí solo
+          va el respiro visual, o el hueco se duplica en equipos con gesture nav. */}
+      <View style={styles.footer}>
         {permission !== 'denied' && (
           measuring ? (
             <TouchableOpacity style={[styles.primaryBtn, styles.stopBtn]} onPress={stopMeasuring}>
@@ -287,7 +298,8 @@ export default function SonometerScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB', justifyContent: 'space-between' },
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  scroll: { flex: 1 },
   content: { padding: 20 },
   title: { fontSize: 24, fontWeight: '800', color: '#111827' },
   subtitle: { fontSize: 14, color: '#6B7280', marginTop: 6, lineHeight: 20 },
@@ -331,7 +343,14 @@ const styles = StyleSheet.create({
   },
   permissionTitle: { fontSize: 16, fontWeight: '700', color: '#374151', marginBottom: 6 },
   permissionText: { fontSize: 14, color: '#9CA3AF', textAlign: 'center', lineHeight: 20 },
-  footer: { paddingHorizontal: 20, gap: 10 },
+  footer: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 12,
+    gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
   primaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
