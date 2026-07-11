@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface Props {
@@ -26,67 +26,74 @@ export function OverdueModal({
       statusBarTranslucent
     >
       <View style={styles.backdrop}>
+        {/* maxHeight + scroll: con fuentes del sistema grandes el contenido puede
+            superar la pantalla; al estar centrado se recortaría por ambos extremos
+            y las opciones quedarían inalcanzables. */}
         <View style={styles.modal}>
-          <View style={styles.headerRow}>
-            <Ionicons name="warning" size={22} color="#D97706" />
-            <Text style={styles.title}>Tiempo de respuesta excedido</Text>
-            <View style={{ flex: 1 }} />
-            <TouchableOpacity
-              onPress={onDismiss}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              accessibilityLabel="Cerrar"
-            >
-              <Ionicons name="close" size={20} color="#6B7280" />
-            </TouchableOpacity>
-          </View>
+          {/* El indicador de scroll queda visible: es la única pista de que hay
+              más contenido cuando el modal se desborda con fuentes grandes. */}
+          <ScrollView>
+            <View style={styles.headerRow}>
+              <Ionicons name="warning" size={22} color="#D97706" />
+              <Text style={styles.title}>Tiempo de respuesta excedido</Text>
+              <View style={{ flex: 1 }} />
+              <TouchableOpacity
+                onPress={onDismiss}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityLabel="Cerrar"
+              >
+                <Ionicons name="close" size={20} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
 
-          <View style={styles.alertBox}>
-            <Ionicons name="time-outline" size={18} color="#B45309" style={{ marginRight: 8 }} />
-            <Text style={styles.alertText}>
-              Tu PQRSD ha excedido el tiempo de respuesta por {daysExceeded} día
-              {daysExceeded === 1 ? '' : 's'} hábil{daysExceeded === 1 ? '' : 'es'}
-            </Text>
-          </View>
-
-          <Text style={styles.question}>
-            ¿Has recibido una respuesta a tu solicitud o deseas realizar un seguimiento?
-          </Text>
-
-          <TouchableOpacity
-            style={styles.optionGreen}
-            onPress={onConfirmResolved}
-            accessibilityRole="button"
-          >
-            <Ionicons name="checkmark-circle" size={24} color="#16A34A" style={{ marginRight: 12 }} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.optionTitleGreen}>Ya recibí respuesta</Text>
-              <Text style={styles.optionSubtitleGreen}>
-                Marcar como resuelta y finalizar la solicitud
+            <View style={styles.alertBox}>
+              <Ionicons name="time-outline" size={18} color="#B45309" style={{ marginRight: 8 }} />
+              <Text style={styles.alertText}>
+                Tu PQRSD ha excedido el tiempo de respuesta por {daysExceeded} día
+                {daysExceeded === 1 ? '' : 's'} hábil{daysExceeded === 1 ? '' : 'es'}
               </Text>
             </View>
-          </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.optionBlue}
-            onPress={onStartFollowup}
-            accessibilityRole="button"
-          >
-            <Ionicons name="document-text" size={24} color="#2563EB" style={{ marginRight: 12 }} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.optionTitleBlue}>No he recibido respuesta</Text>
-              <Text style={styles.optionSubtitleBlue}>Iniciar proceso de seguimiento formal</Text>
-            </View>
-          </TouchableOpacity>
+            <Text style={styles.question}>
+              ¿Has recibido una respuesta a tu solicitud o deseas realizar un seguimiento?
+            </Text>
 
-          <View style={styles.dismissRow}>
             <TouchableOpacity
-              style={styles.dismissBtn}
-              onPress={onDismiss}
+              style={styles.optionGreen}
+              onPress={onConfirmResolved}
               accessibilityRole="button"
             >
-              <Text style={styles.dismissText}>Revisar más tarde</Text>
+              <Ionicons name="checkmark-circle" size={24} color="#16A34A" style={{ marginRight: 12 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.optionTitleGreen}>Ya recibí respuesta</Text>
+                <Text style={styles.optionSubtitleGreen}>
+                  Marcar como resuelta y finalizar la solicitud
+                </Text>
+              </View>
             </TouchableOpacity>
-          </View>
+
+            <TouchableOpacity
+              style={styles.optionBlue}
+              onPress={onStartFollowup}
+              accessibilityRole="button"
+            >
+              <Ionicons name="document-text" size={24} color="#2563EB" style={{ marginRight: 12 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.optionTitleBlue}>No he recibido respuesta</Text>
+                <Text style={styles.optionSubtitleBlue}>Iniciar proceso de seguimiento formal</Text>
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.dismissRow}>
+              <TouchableOpacity
+                style={styles.dismissBtn}
+                onPress={onDismiss}
+                accessibilityRole="button"
+              >
+                <Text style={styles.dismissText}>Revisar más tarde</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -104,6 +111,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 14,
     padding: 18,
+    maxHeight: '85%',
   },
   headerRow: {
     flexDirection: 'row',
