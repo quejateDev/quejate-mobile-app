@@ -52,9 +52,14 @@ module.exports = {
         // imágenes/videos usa el selector de fotos del sistema (photo picker de
         // expo-image-picker), que no requiere acceso amplio a la galería. Así
         // cumplimos la política de Photo & Video Permissions de Google Play.
-        'android.permission.RECEIVE_BOOT_COMPLETED',
         'android.permission.VIBRATE',
       ],
+      // Sin RECEIVE_BOOT_COMPLETED: la app no usa notificaciones programadas
+      // (solo push FCM, que no lo necesita) y expo-notifications lo inyecta por
+      // defecto. Con targetSdk 35+, Play marca "Restricted foreground service
+      // types" por la combinación boot receiver + servicios de micrófono de
+      // expo-audio (sonómetro); bloquearlo elimina esa ruta.
+      blockedPermissions: ['android.permission.RECEIVE_BOOT_COMPLETED'],
       config: {
         googleMaps: {
           apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
