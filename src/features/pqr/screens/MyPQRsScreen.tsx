@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { AppStackParamList } from '@navigation/navigationRef';
@@ -45,6 +45,21 @@ export default function MyPQRsScreen() {
     isRefetching,
     isError,
   } = useMyPQRs();
+
+  // La tab nunca se desmonta, así que al volver del detalle (o de otra tab) la
+  // lista no se volvía a pedir y los estados quedaban viejos (p. ej. "Pendiente"
+  // en la tarjeta con la PQRSD ya resuelta). Refrescamos en cada re-foco; el
+  // primer foco se salta porque el mount ya dispara el fetch inicial.
+  const firstFocusRef = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (firstFocusRef.current) {
+        firstFocusRef.current = false;
+        return;
+      }
+      refetch();
+    }, [refetch]),
+  );
 
   const allPqrs: PQRS[] = Array.from(
     new Map(
