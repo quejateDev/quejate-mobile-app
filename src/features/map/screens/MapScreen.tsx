@@ -17,7 +17,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { apiClient } from '@core/api/client';
 import { ENDPOINTS } from '@core/api/endpoints';
 import { typeMap, statusMap } from '@core/types';
-import type { PQRS, PQRSType, PQRSStatus } from '@core/types';
+import type { MapPQR, PQRSType, PQRSStatus } from '@core/types';
 import type { AppStackParamList } from '@navigation/navigationRef';
 
 const SANTA_MARTA_REGION: Region = {
@@ -30,17 +30,16 @@ const SANTA_MARTA_REGION: Region = {
 const TYPE_OPTIONS: PQRSType[] = ['PETITION', 'COMPLAINT', 'CLAIM', 'SUGGESTION', 'REPORT'];
 const STATUS_OPTIONS: PQRSStatus[] = ['PENDING', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
 
-interface PQRListResponse {
-  pqrs: PQRS[];
-}
-
 function useMapPQRs() {
-  return useQuery<PQRS[]>({
+  return useQuery<MapPQR[]>({
     queryKey: ['pqrs-map'],
     queryFn: () =>
+      // `/pqr/map` responde un array pelado: hasta 1000 PQRSD públicas con
+      // coordenadas, en vez de las 50 del muro completo. El guard de Array es
+      // defensivo: sin OTA, una respuesta con otra forma no puede parchearse.
       apiClient
-        .get<PQRListResponse>(ENDPOINTS.PQR.LIST, { params: { limit: 50 } })
-        .then((r) => r.data.pqrs),
+        .get<MapPQR[]>(ENDPOINTS.PQR.MAP)
+        .then((r) => (Array.isArray(r.data) ? r.data : [])),
     staleTime: 30_000,
   });
 }
@@ -59,7 +58,7 @@ export default function MapScreen() {
   const { data: pqrs, isLoading, isError, error, refetch, isRefetching } = useMapPQRs();
   const [selectedType, setSelectedType] = useState<PQRSType | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<PQRSStatus | null>(null);
-  const [selected, setSelected] = useState<PQRS | null>(null);
+  const [selected, setSelected] = useState<MapPQR | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -69,6 +68,8 @@ export default function MapScreen() {
 
   const markers = useMemo(() => {
     if (!pqrs) return [];
+    // El servidor ya excluye las PQRSD sin coordenadas; el filtro se mantiene
+    // como red de seguridad. Tipo y estado siguen filtrándose en el cliente.
     return pqrs.filter(
       (p) =>
         p.latitude != null &&
@@ -181,7 +182,7 @@ export default function MapScreen() {
             return (
               <Marker
                 key={p.id}
-                coordinate={{ latitude: p.latitude!, longitude: p.longitude! }}
+                coordinate={{ latitude: p.latitude, longitude: p.longitude }}
                 pinColor={pType.color}
                 onPress={() => setSelected(p)}
               />
