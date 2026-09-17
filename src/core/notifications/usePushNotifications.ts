@@ -6,6 +6,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { navigationRef } from '@navigation/navigationRef';
 import { apiClient } from '@core/api/client';
 import { ENDPOINTS } from '@core/api/endpoints';
+import {
+  setPushRegistrationStatus,
+  type PushRegistrationStatus,
+} from './pushRegistrationStatus';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -34,18 +38,43 @@ function getProjectId(): string | undefined {
     ?.projectId;
 }
 
+/**
+ * Registra este teléfono para recibir avisos.
+ *
+ * 🔴 **Sigue siendo best-effort —nunca lanza— pero ya no es mudo.** Tenía
+ * cuatro salidas silenciosas, y eso convirtió un fallo sencillo en un misterio
+ * de meses: las notificaciones llegaban a la app pero el teléfono no sonaba, y
+ * ni la app ni el backend podían decir en qué paso se paraba. Ahora cada salida
+ * publica su motivo en {@link setPushRegistrationStatus}, que la pantalla de
+ * Perfil enseña, y lo escribe en la consola para quien mire con `adb logcat`.
+ */
 async function registerForPushNotifications(): Promise<void> {
   try {
     await ensureAndroidChannel();
 
     const { status } = await Notifications.requestPermissionsAsync();
-    if (status !== 'granted') return;
+    if (status !== 'granted') {
+      report({ state: 'failed', reason: 'permission-denied', detail: status });
+      return;
+    }
 
     const projectId = getProjectId();
-    if (!projectId) return;
+    if (!projectId) {
+      // Llega de `extra.eas.projectId`, que se congela al compilar: si falta,
+      // es que este binario se construyó sin él.
+      report({ state: 'failed', reason: 'missing-project-id' });
+      return;
+    }
 
     const tokenResult = await Notifications.getExpoPushTokenAsync({ projectId }).catch(
-      () => null,
+      (error: unknown) => {
+        report({
+          state: 'failed',
+          reason: 'token-unavailable',
+          detail: messageOf(error),
+        });
+        return null;
+      },
     );
     if (!tokenResult) return;
 
@@ -55,12 +84,40 @@ async function registerForPushNotifications(): Promise<void> {
         { token: tokenResult.data },
         { skipAuth401: true },
       );
-    } catch {
-      // registro best-effort: si falla, se reintenta en el próximo arranque
+      report({ state: 'registered' });
+    } catch (error) {
+      // Se reintenta en el próximo arranque, como antes; la diferencia es que
+      // ahora se sabe que hubo que reintentar.
+      report({
+        state: 'failed',
+        reason: 'backend-rejected',
+        detail: messageOf(error),
+      });
     }
-  } catch {
-    // registro best-effort
+  } catch (error) {
+    report({
+      state: 'failed',
+      reason: 'token-unavailable',
+      detail: messageOf(error),
+    });
   }
+}
+
+/** Publica el estado y deja rastro en la consola del dispositivo. */
+function report(next: PushRegistrationStatus): void {
+  setPushRegistrationStatus(next);
+  if (next.state === 'failed') {
+    console.warn(
+      `[push] registro no completado: ${next.reason}${
+        next.detail ? ` (${next.detail})` : ''
+      }`,
+    );
+  }
+}
+
+/** Mensaje de un error desconocido, sin arriesgar un `undefined` en el log. */
+function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : 'error desconocido';
 }
 
 export function usePushNotifications(): void {

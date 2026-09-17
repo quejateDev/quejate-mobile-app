@@ -9,6 +9,10 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import {
+  describePushRegistration,
+  usePushRegistrationStatus,
+} from '@core/notifications/pushRegistrationStatus';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -60,6 +64,9 @@ function SettingsRow({
 export default function UserProfileScreen() {
   const { user: sessionUser, signOut } = useAuth();
   const navigation = useNavigation<Nav>();
+  // El registro para recibir avisos ocurre una vez, al montar las pestañas;
+  // esta pantalla solo lo mira (ver `pushRegistrationStatus.ts`).
+  const pushStatus = usePushRegistrationStatus();
 
   const [modal, setModal] = useState<'followers' | 'following' | null>(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -233,6 +240,26 @@ export default function UserProfileScreen() {
             label="Registrarme como abogado"
             onPress={() => navigation.navigate('RegisterAsLawyer')}
           />
+        </View>
+
+        {/* Notificaciones push: por qué llegan o por qué no */}
+        <Text style={profileStyles.sectionHeader}>Notificaciones</Text>
+        <View style={profileStyles.infoCard}>
+          <View style={profileStyles.infoRow}>
+            <View style={profileStyles.infoIconCircle}>
+              <Ionicons
+                name={pushStatus.state === 'registered' ? 'notifications' : 'notifications-off-outline'}
+                size={18}
+                color={pushStatus.state === 'registered' ? '#2563EB' : '#9CA3AF'}
+              />
+            </View>
+            <View style={profileStyles.infoContent}>
+              <Text style={profileStyles.infoLabel}>Avisos en este teléfono</Text>
+              <Text style={profileStyles.infoValue}>
+                {describePushRegistration(pushStatus)}
+              </Text>
+            </View>
+          </View>
         </View>
 
         {/* Settings */}
