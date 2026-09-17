@@ -142,6 +142,13 @@ describe('signInWithGoogle', () => {
 });
 
 describe('signOut', () => {
+  const originalApiUrl = process.env.EXPO_PUBLIC_API_URL;
+
+  afterEach(() => {
+    if (originalApiUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
+    else process.env.EXPO_PUBLIC_API_URL = originalApiUrl;
+  });
+
   it('exitoso → token eliminado, user=null, isAuthenticated=false', async () => {
     useAuth.setState({ user: mockUser, isAuthenticated: true, isLoading: false });
 
@@ -158,6 +165,57 @@ describe('signOut', () => {
     const state = useAuth.getState();
     expect(state.user).toBeNull();
     expect(state.isAuthenticated).toBe(false);
+  });
+
+  it('arma el signout sobre EXPO_PUBLIC_API_URL sin romper el host api.*', async () => {
+    // Regresión de Tarea 14: con `https://api.quejate.com.co/api`, el antiguo
+    // `.replace('/api', '')` casaba con el `//api` del host y pegaba a
+    // `https:/.quejate.com.co/api/api/auth/csrf`. El fetch fallaba en silencio
+    // (va dentro de un try/catch), así que la sesión seguía viva en el servidor.
+    process.env.EXPO_PUBLIC_API_URL = 'https://api.quejate.com.co/api';
+
+    (SecureStorage.getSessionToken as jest.Mock).mockResolvedValue('tok123');
+    (SecureStorage.removeSessionToken as jest.Mock).mockResolvedValue(undefined);
+
+    mockFetch
+      .mockResolvedValueOnce(makeCsrfResponse())
+      .mockResolvedValueOnce({ json: async () => ({}), headers: { get: () => null } });
+
+    await useAuth.getState().signOut();
+
+    expect(mockFetch.mock.calls[0][0]).toBe('https://api.quejate.com.co/api/auth/csrf');
+    expect(mockFetch.mock.calls[1][0]).toBe('https://api.quejate.com.co/api/auth/signout');
+  });
+
+  it('sigue armando las mismas URLs con el host antiguo', async () => {
+    process.env.EXPO_PUBLIC_API_URL = 'https://www.quejate.com.co/api';
+
+    (SecureStorage.getSessionToken as jest.Mock).mockResolvedValue('tok123');
+    (SecureStorage.removeSessionToken as jest.Mock).mockResolvedValue(undefined);
+
+    mockFetch
+      .mockResolvedValueOnce(makeCsrfResponse())
+      .mockResolvedValueOnce({ json: async () => ({}), headers: { get: () => null } });
+
+    await useAuth.getState().signOut();
+
+    expect(mockFetch.mock.calls[0][0]).toBe('https://www.quejate.com.co/api/auth/csrf');
+    expect(mockFetch.mock.calls[1][0]).toBe('https://www.quejate.com.co/api/auth/signout');
+  });
+
+  it('tolera una barra final en EXPO_PUBLIC_API_URL', async () => {
+    process.env.EXPO_PUBLIC_API_URL = 'https://api.quejate.com.co/api/';
+
+    (SecureStorage.getSessionToken as jest.Mock).mockResolvedValue('tok123');
+    (SecureStorage.removeSessionToken as jest.Mock).mockResolvedValue(undefined);
+
+    mockFetch
+      .mockResolvedValueOnce(makeCsrfResponse())
+      .mockResolvedValueOnce({ json: async () => ({}), headers: { get: () => null } });
+
+    await useAuth.getState().signOut();
+
+    expect(mockFetch.mock.calls[0][0]).toBe('https://api.quejate.com.co/api/auth/csrf');
   });
 
   it('con error de red → igual limpia el estado local', async () => {

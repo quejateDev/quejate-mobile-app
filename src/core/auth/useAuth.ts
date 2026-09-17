@@ -77,7 +77,14 @@ export const useAuth = create<AuthState>((set, get) => ({
 
   signOut: async () => {
     const { clearUser } = get();
-    const BASE_URL = process.env.EXPO_PUBLIC_API_URL?.replace('/api', '') ?? '';
+    // Estas dos llamadas usan `fetch` y no `apiClient` porque necesitan leer
+    // `set-cookie` y enviar la cabecera `Cookie`, que axios bloquea en RN.
+    //
+    // La URL se arma directamente sobre EXPO_PUBLIC_API_URL. NO se puede quitar
+    // el sufijo con `.replace('/api', '')` y volver a añadirlo: en
+    // `https://api.quejate.com.co/api` esa búsqueda casa primero con el `//api`
+    // del host y deja `https:/.quejate.com.co/api`, una URL rota.
+    const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/+$/, '');
 
     const sessionToken = await SecureStorage.getSessionToken();
 
@@ -85,7 +92,7 @@ export const useAuth = create<AuthState>((set, get) => ({
     clearUser();
 
     try {
-      const csrfRes = await fetch(`${BASE_URL}/api/auth/csrf`);
+      const csrfRes = await fetch(`${API_URL}${ENDPOINTS.AUTH.CSRF}`);
       const { csrfToken } = await csrfRes.json();
       const csrfCookie = extractCsrfCookie(csrfRes.headers.get('set-cookie') ?? '');
 
@@ -93,7 +100,7 @@ export const useAuth = create<AuthState>((set, get) => ({
         ? `${csrfCookie}; ${SESSION_TOKEN_KEY}=${sessionToken}`
         : csrfCookie;
 
-      await fetch(`${BASE_URL}/api/auth/signout`, {
+      await fetch(`${API_URL}${ENDPOINTS.AUTH.SIGNOUT}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
