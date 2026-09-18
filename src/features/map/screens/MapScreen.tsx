@@ -96,7 +96,9 @@ export default function MapScreen() {
         <Text style={[styles.title, { flex: 1 }]}>Mapa ciudadano</Text>
         <View style={styles.headerRight}>
           {markers.length > 0 && (
-            <Text style={styles.counter}>{markers.length} ubicación{markers.length !== 1 ? 'es' : ''}</Text>
+            <Text style={styles.counter}>
+              {markers.length} {markers.length === 1 ? 'ubicación' : 'ubicaciones'}
+            </Text>
           )}
           <TouchableOpacity
             onPress={() => refetch()}

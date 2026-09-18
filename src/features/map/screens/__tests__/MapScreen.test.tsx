@@ -95,10 +95,24 @@ describe('MapScreen', () => {
     });
   });
 
-  it('muestra el contador de ubicaciones', async () => {
+  it('el contador usa el singular con un solo marcador', async () => {
     const { getByText } = renderWithQuery(<MapScreen />);
     await waitFor(() => {
       expect(getByText('1 ubicación')).toBeTruthy();
+    });
+  });
+
+  it('el contador usa el plural bien escrito con varios marcadores', async () => {
+    (apiClient.get as jest.Mock).mockResolvedValue({
+      data: [
+        basePQR,
+        { ...basePQR, id: 'pqr-3', latitude: 5.0, longitude: -75.0 },
+      ],
+    });
+
+    const { getByText } = renderWithQuery(<MapScreen />);
+    await waitFor(() => {
+      expect(getByText('2 ubicaciones')).toBeTruthy();
     });
   });
 
@@ -219,9 +233,7 @@ describe('MapScreen', () => {
     const { getAllByTestId, getByText } = renderWithQuery(<MapScreen />);
 
     await waitFor(() => expect(getAllByTestId('map-marker')).toHaveLength(120));
-    // Matcher laxo a propósito: el plural del contador viene mal escrito de
-    // antes ("ubicaciónes") y este test no debe fijar esa errata.
-    expect(getByText(/^120 ubicaci/)).toBeTruthy();
+    expect(getByText('120 ubicaciones')).toBeTruthy();
   });
 
   it('muestra los datos de la PQRSD al tocar el marcador', async () => {
