@@ -3,7 +3,8 @@ import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import MapScreen from '../MapScreen';
 import { apiClient } from '@core/api/client';
-import type { PQRS } from '@core/types';
+import { ENDPOINTS } from '@core/api/endpoints';
+import type { MapPQR } from '@core/types';
 
 jest.mock('@react-navigation/native', () => ({
   useFocusEffect: jest.fn((cb: () => void) => cb()),
@@ -34,40 +35,31 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
-const basePQR: PQRS = {
+// Forma exacta que devuelve GET /pqr/map (array pelado, campos recortados).
+const basePQR: MapPQR = {
   id: 'pqr-1',
-  consecutiveCode: 'PQR-001',
+  subject: 'Problema de agua',
   type: 'PETITION',
   status: 'PENDING',
-  subject: 'Problema de agua',
-  description: undefined,
-  anonymous: false,
-  private: false,
-  entityId: 'e1',
   latitude: 4.711,
   longitude: -74.0721,
-  guestName: undefined,
-  guestEmail: undefined,
-  guestPhone: undefined,
-  dueDate: new Date('2024-03-01'),
   createdAt: new Date('2024-01-15'),
-  updatedAt: new Date('2024-01-15'),
-  entity: { id: 'e1', name: 'Alcaldía de Bogotá' },
-  department: null,
-  attachments: [],
-  comments: [],
-  likes: [],
-  customFieldValues: [],
+  anonymous: false,
+  creatorId: 'user-1',
+  entity: { name: 'Alcaldía de Bogotá' },
+  creator: { id: 'user-1', name: 'Ana Ruiz' },
 };
 
-const pqrWithoutCoords: PQRS = {
+// El servidor ya excluye las PQRSD sin coordenadas; el cast documenta que esta
+// forma no es parte del contrato y solo ejercita el filtro defensivo.
+const pqrWithoutCoords = {
   ...basePQR,
   id: 'pqr-2',
   type: 'COMPLAINT',
   status: 'RESOLVED',
   latitude: null,
   longitude: null,
-};
+} as unknown as MapPQR;
 
 function renderWithQuery(ui: React.ReactElement) {
   const queryClient = new QueryClient({
@@ -81,7 +73,7 @@ function renderWithQuery(ui: React.ReactElement) {
 beforeEach(() => {
   jest.clearAllMocks();
   (apiClient.get as jest.Mock).mockResolvedValue({
-    data: { pqrs: [basePQR, pqrWithoutCoords] },
+    data: [basePQR, pqrWithoutCoords],
   });
 });
 
@@ -103,10 +95,24 @@ describe('MapScreen', () => {
     });
   });
 
-  it('muestra el contador de ubicaciones', async () => {
+  it('el contador usa el singular con un solo marcador', async () => {
     const { getByText } = renderWithQuery(<MapScreen />);
     await waitFor(() => {
       expect(getByText('1 ubicación')).toBeTruthy();
+    });
+  });
+
+  it('el contador usa el plural bien escrito con varios marcadores', async () => {
+    (apiClient.get as jest.Mock).mockResolvedValue({
+      data: [
+        basePQR,
+        { ...basePQR, id: 'pqr-3', latitude: 5.0, longitude: -75.0 },
+      ],
+    });
+
+    const { getByText } = renderWithQuery(<MapScreen />);
+    await waitFor(() => {
+      expect(getByText('2 ubicaciones')).toBeTruthy();
     });
   });
 
@@ -124,12 +130,10 @@ describe('MapScreen', () => {
 
   it('chip de tipo activo filtra los marcadores', async () => {
     (apiClient.get as jest.Mock).mockResolvedValue({
-      data: {
-        pqrs: [
-          basePQR,
-          { ...basePQR, id: 'pqr-3', type: 'COMPLAINT', latitude: 5.0, longitude: -75.0 },
-        ],
-      },
+      data: [
+        basePQR,
+        { ...basePQR, id: 'pqr-3', type: 'COMPLAINT', latitude: 5.0, longitude: -75.0 },
+      ],
     });
 
     const { getAllByText, getAllByTestId } = renderWithQuery(<MapScreen />);
@@ -144,12 +148,10 @@ describe('MapScreen', () => {
 
   it('chip de tipo se deselecciona al presionarlo de nuevo', async () => {
     (apiClient.get as jest.Mock).mockResolvedValue({
-      data: {
-        pqrs: [
-          basePQR,
-          { ...basePQR, id: 'pqr-3', type: 'COMPLAINT', latitude: 5.0, longitude: -75.0 },
-        ],
-      },
+      data: [
+        basePQR,
+        { ...basePQR, id: 'pqr-3', type: 'COMPLAINT', latitude: 5.0, longitude: -75.0 },
+      ],
     });
 
     const { getAllByText, getAllByTestId } = renderWithQuery(<MapScreen />);
@@ -175,12 +177,10 @@ describe('MapScreen', () => {
 
   it('"Limpiar" elimina todos los filtros', async () => {
     (apiClient.get as jest.Mock).mockResolvedValue({
-      data: {
-        pqrs: [
-          basePQR,
-          { ...basePQR, id: 'pqr-3', type: 'COMPLAINT', latitude: 5.0, longitude: -75.0 },
-        ],
-      },
+      data: [
+        basePQR,
+        { ...basePQR, id: 'pqr-3', type: 'COMPLAINT', latitude: 5.0, longitude: -75.0 },
+      ],
     });
 
     const { getByText, getAllByText, getAllByTestId, queryByText } = renderWithQuery(<MapScreen />);
@@ -195,11 +195,45 @@ describe('MapScreen', () => {
     expect(queryByText('Limpiar')).toBeNull();
   });
 
-  it('llama a GET /api/pqr con limit=50', async () => {
+  it('pide GET /pqr/map, sin el limit del muro', async () => {
     renderWithQuery(<MapScreen />);
     await waitFor(() => expect(apiClient.get).toHaveBeenCalled());
-    const [, config] = (apiClient.get as jest.Mock).mock.calls[0];
-    expect(config?.params?.limit).toBe(50);
+
+    const [url, config] = (apiClient.get as jest.Mock).mock.calls[0];
+    expect(url).toBe(ENDPOINTS.PQR.MAP);
+    expect(url).toBe('/pqr/map');
+    expect(config?.params?.limit).toBeUndefined();
+  });
+
+  it('lee el array pelado de /pqr/map (sin envoltorio { pqrs })', async () => {
+    const { getAllByTestId } = renderWithQuery(<MapScreen />);
+    await waitFor(() => expect(getAllByTestId('map-marker')).toHaveLength(1));
+  });
+
+  it('no rompe si la respuesta no es un array', async () => {
+    (apiClient.get as jest.Mock).mockResolvedValue({ data: { pqrs: [basePQR] } });
+
+    const { getByTestId, queryAllByTestId, queryByText } = renderWithQuery(<MapScreen />);
+
+    await waitFor(() => expect(apiClient.get).toHaveBeenCalled());
+    expect(getByTestId('map-view')).toBeTruthy();
+    expect(queryAllByTestId('map-marker')).toHaveLength(0);
+    expect(queryByText('Error al cargar los datos')).toBeNull();
+  });
+
+  it('pinta más de 50 marcadores (el tope viejo del muro)', async () => {
+    const many: MapPQR[] = Array.from({ length: 120 }, (_, i) => ({
+      ...basePQR,
+      id: `pqr-${i}`,
+      latitude: 4.7 + i * 0.001,
+      longitude: -74.07 + i * 0.001,
+    }));
+    (apiClient.get as jest.Mock).mockResolvedValue({ data: many });
+
+    const { getAllByTestId, getByText } = renderWithQuery(<MapScreen />);
+
+    await waitFor(() => expect(getAllByTestId('map-marker')).toHaveLength(120));
+    expect(getByText('120 ubicaciones')).toBeTruthy();
   });
 
   it('muestra los datos de la PQRSD al tocar el marcador', async () => {
@@ -211,6 +245,21 @@ describe('MapScreen', () => {
     await waitFor(() => {
       expect(getByText('Problema de agua')).toBeTruthy();
       expect(getByText('Alcaldía de Bogotá')).toBeTruthy();
+      expect(getByText('Ana Ruiz')).toBeTruthy();
     });
+  });
+
+  it('rotula "Anónimo" cuando el servidor anula creator (H-18)', async () => {
+    (apiClient.get as jest.Mock).mockResolvedValue({
+      data: [{ ...basePQR, anonymous: true, creatorId: null, creator: null }],
+    });
+
+    const { getByText, getByTestId, queryByText } = renderWithQuery(<MapScreen />);
+    await waitFor(() => expect(getByTestId('map-marker')).toBeTruthy());
+
+    fireEvent.press(getByTestId('map-marker'));
+
+    await waitFor(() => expect(getByText('Anónimo')).toBeTruthy());
+    expect(queryByText('Ana Ruiz')).toBeNull();
   });
 });

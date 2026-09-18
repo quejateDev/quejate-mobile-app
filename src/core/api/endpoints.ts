@@ -15,6 +15,12 @@ export const ENDPOINTS = {
     LIST:     '/pqr',
     CREATE:   '/pqr',
     TOP:      '/pqr/top',
+    /**
+     * Proyección ligera para el mapa: array pelado (sin envoltorio `{ pqrs }`),
+     * hasta 1000 puntos y solo PQRSD públicas con coordenadas. El anonimato lo
+     * aplica el servidor: en las anónimas `creator` y `creatorId` llegan en null.
+     */
+    MAP:      '/pqr/map',
     DETAIL:   (id: string) => `/pqr/${id}`,
     BY_USER:  (id: string) => `/pqr/user/${id}`,
     STATUS:   (id: string) => `/pqr/${id}/status`,

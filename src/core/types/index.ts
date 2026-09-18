@@ -256,6 +256,29 @@ export interface PQRS {
   _count?: { likes: number; comments: number };
 }
 
+/**
+ * Respuesta de `GET /pqr/map`: proyección mínima del muro pensada para pintar
+ * marcadores. Llega como array pelado (no `{ pqrs }`), con hasta 1000 puntos y
+ * solo PQRSD públicas que tienen coordenadas.
+ *
+ * El anonimato lo resuelve el servidor: en las PQRSD anónimas `creator` y
+ * `creatorId` llegan en null, así que la identidad del autor nunca viaja al
+ * teléfono. La pantalla igual respeta el flag `anonymous` para el rótulo.
+ */
+export interface MapPQR {
+  id: string;
+  subject?: string;
+  type: PQRSType;
+  status: PQRSStatus;
+  latitude: number;
+  longitude: number;
+  createdAt: Date;
+  anonymous: boolean;
+  creatorId: string | null;
+  entity: { name: string };
+  creator: { id: string; name: string; image?: string } | null;
+}
+
 // =============================================================================
 // Notification
 // =============================================================================
