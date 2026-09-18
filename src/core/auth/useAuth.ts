@@ -91,6 +91,32 @@ export const useAuth = create<AuthState>((set, get) => ({
     await SecureStorage.removeSessionToken();
     clearUser();
 
+    // El módulo nativo de Google guarda su propia sesión, independiente de la
+    // nuestra. Sin esto, el siguiente signIn() resuelve con la cuenta que tiene
+    // cacheada sin enseñar el selector, y no hay forma de cambiar de cuenta
+    // desde la app: en un teléfono compartido, cerrar sesión no deja entrar a
+    // otra persona.
+    //
+    // `signOut()` y no `revokeAccess()`: basta con soltar la cuenta para que
+    // reaparezca el selector, sin obligar a conceder los permisos otra vez.
+    //
+    // Va antes de la llamada al servidor para que la cuenta quede suelta aunque
+    // la red falle. Solo se ejecuta en el cierre de sesión explícito; cuando la
+    // sesión caduca sola, AuthProvider llama a `clearUser` y la cuenta de Google
+    // se conserva a propósito, para que volver a entrar sea directo.
+    //
+    // El módulo se carga aquí dentro y no con un import arriba a propósito: sin
+    // el binario nativo revienta al importarse, no al llamarse, y este fichero
+    // lo carga la app entera al arrancar. Con el require dentro del try, un
+    // entorno sin el módulo (Expo Go) se queda sin limpiar la cuenta en vez de
+    // tumbar el arranque.
+    try {
+      const { GoogleSignin } = require('@react-native-google-signin/google-signin');
+      await GoogleSignin.signOut();
+    } catch {
+      // Sin módulo nativo (Expo Go) o sin sesión de Google: nada que limpiar.
+    }
+
     try {
       const csrfRes = await fetch(`${API_URL}${ENDPOINTS.AUTH.CSRF}`);
       const { csrfToken } = await csrfRes.json();

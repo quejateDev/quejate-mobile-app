@@ -1,6 +1,7 @@
 import { useAuth } from '../useAuth';
 import { SecureStorage } from '@core/auth/SecureStorage';
 import { apiClient, extractSessionToken } from '@core/api/client';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { SessionUser } from '@core/types';
 
 jest.mock('@core/auth/SecureStorage', () => ({
@@ -10,6 +11,10 @@ jest.mock('@core/auth/SecureStorage', () => ({
     removeSessionToken: jest.fn(),
   },
   SESSION_TOKEN_KEY: 'authjs.session-token',
+}));
+
+jest.mock('@react-native-google-signin/google-signin', () => ({
+  GoogleSignin: { signOut: jest.fn() },
 }));
 
 jest.mock('@core/api/client', () => ({
@@ -44,6 +49,7 @@ function makeCsrfResponse(cookie = 'csrfcookie=abc') {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  (GoogleSignin.signOut as jest.Mock).mockResolvedValue(undefined);
   useAuth.setState({
     user: null,
     isAuthenticated: false,
@@ -216,6 +222,54 @@ describe('signOut', () => {
     await useAuth.getState().signOut();
 
     expect(mockFetch.mock.calls[0][0]).toBe('https://api.quejate.com.co/api/auth/csrf');
+  });
+
+  it('suelta la cuenta de Google para que reaparezca el selector', async () => {
+    // Sin esto, el siguiente GoogleSignin.signIn() resuelve con la cuenta
+    // cacheada sin enseñar el selector y no se puede cambiar de cuenta.
+    (SecureStorage.getSessionToken as jest.Mock).mockResolvedValue('tok123');
+    (SecureStorage.removeSessionToken as jest.Mock).mockResolvedValue(undefined);
+
+    mockFetch
+      .mockResolvedValueOnce(makeCsrfResponse())
+      .mockResolvedValueOnce({ json: async () => ({}), headers: { get: () => null } });
+
+    await useAuth.getState().signOut();
+
+    expect(GoogleSignin.signOut).toHaveBeenCalledTimes(1);
+  });
+
+  it('suelta la cuenta de Google aunque la red falle después', async () => {
+    (SecureStorage.getSessionToken as jest.Mock).mockResolvedValue('tok123');
+    (SecureStorage.removeSessionToken as jest.Mock).mockResolvedValue(undefined);
+
+    mockFetch.mockRejectedValue(new TypeError('Network request failed'));
+
+    await useAuth.getState().signOut();
+
+    expect(GoogleSignin.signOut).toHaveBeenCalledTimes(1);
+  });
+
+  it('si el módulo nativo de Google falla, igual cierra la sesión', async () => {
+    // Expo Go, o un teléfono sin sesión de Google: no debe impedir salir.
+    useAuth.setState({ user: mockUser, isAuthenticated: true, isLoading: false });
+
+    (GoogleSignin.signOut as jest.Mock).mockRejectedValue(new Error('RNGoogleSignin is null'));
+    (SecureStorage.getSessionToken as jest.Mock).mockResolvedValue('tok123');
+    (SecureStorage.removeSessionToken as jest.Mock).mockResolvedValue(undefined);
+
+    mockFetch
+      .mockResolvedValueOnce(makeCsrfResponse())
+      .mockResolvedValueOnce({ json: async () => ({}), headers: { get: () => null } });
+
+    await expect(useAuth.getState().signOut()).resolves.toBeUndefined();
+
+    expect(SecureStorage.removeSessionToken).toHaveBeenCalled();
+    const state = useAuth.getState();
+    expect(state.user).toBeNull();
+    expect(state.isAuthenticated).toBe(false);
+    // Y la sesión del servidor se sigue revocando pese al fallo nativo.
+    expect(mockFetch.mock.calls[1][0]).toContain('/auth/signout');
   });
 
   it('con error de red → igual limpia el estado local', async () => {
