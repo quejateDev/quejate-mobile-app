@@ -26,6 +26,15 @@ export function setSessionExpiredHandler(handler: (() => void) | null): void {
   sessionExpiredHandler = handler;
 }
 
+/**
+ * Dispara el mismo flujo de sesión caducada que el interceptor de abajo, para
+ * las descargas que NO pasan por apiClient (`FileSystem.downloadAsync`) y por
+ * tanto no tienen interceptor que lo haga por ellas.
+ */
+export function notifySessionExpired(): void {
+  sessionExpiredHandler?.();
+}
+
 apiClient.interceptors.request.use(async (config) => {
   const token = await SecureStorage.getSessionToken();
   if (token) {

@@ -236,6 +236,12 @@ export default function UserProfileScreen() {
           />
           <View style={profileStyles.divider} />
           <SettingsRow
+            icon="document-text-outline"
+            label="Mis documentos legales"
+            onPress={() => navigation.navigate('MyLegalDocs')}
+          />
+          <View style={profileStyles.divider} />
+          <SettingsRow
             icon="school-outline"
             label="Registrarme como abogado"
             onPress={() => navigation.navigate('RegisterAsLawyer')}

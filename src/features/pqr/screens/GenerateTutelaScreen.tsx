@@ -24,6 +24,10 @@ import type { AppStackParamList } from '@navigation/navigationRef';
 import { usePQRDetail } from '@features/pqr/hooks/usePQRDetail';
 import { useDepartments, useMunicipalities } from '@features/pqr/hooks/useLocations';
 import { useGenerateTutela } from '@features/pqr/hooks/useLegalDocs';
+import { downloadLegalDocPdf } from '@features/pqr/utils/legalDocShare';
+import { usePdfDownload } from '@features/pqr/hooks/usePdfDownload';
+import { LEGAL_DOC_RETENTION_NOTICE } from '@features/pqr/utils/legalDocsCopy';
+import type { GeneratedTutela } from '@features/pqr/hooks/useLegalDocs';
 import { FUNDAMENTAL_RIGHTS } from '@features/pqr/utils/fundamentalRights';
 import { resolveOverdue } from '@features/pqr/utils/businessDays';
 
@@ -46,7 +50,8 @@ export default function GenerateTutelaScreen() {
   const [city, setCity] = useState<string | null>(null);
   const [rightViolated, setRightViolated] = useState<string | null>(null);
   const [description, setDescription] = useState<string | null>(null);
-  const [result, setResult] = useState<string | null>(null);
+  const [result, setResult] = useState<GeneratedTutela | null>(null);
+  const pdf = usePdfDownload();
 
   const { municipalities, isLoading: loadingMunis } = useMunicipalities(departmentId ?? undefined);
 
@@ -123,9 +128,22 @@ export default function GenerateTutelaScreen() {
     );
   }
 
-  function handleShare() {
+  /** Camino de respaldo: sin `id` no hay PDF, pero el texto no se pierde. */
+  function handleShareText() {
     if (!result) return;
-    void Share.share({ message: result });
+    void Share.share({ message: result.content });
+  }
+
+  /**
+   * Un solo botón a propósito. En un teléfono no hay una carpeta de descargas
+   * donde escribir sin más: lo que hay es la hoja del sistema, y ahí conviven
+   * «Guardar en Archivos» y «enviar por WhatsApp». Separar «descargar» de
+   * «compartir» sería pintar dos controles que acaban en el mismo sitio.
+   */
+  function handlePdf() {
+    const docId = result?.id;
+    if (!docId) return;
+    void pdf.run('pdf', () => downloadLegalDocPdf(docId), 'Guardar o compartir la tutela');
   }
 
   if (result) {
@@ -139,18 +157,61 @@ export default function GenerateTutelaScreen() {
         </View>
         <ScrollView contentContainerStyle={styles.resultScroll}>
           <Text style={styles.resultText} selectable>
-            {result}
+            {result.content}
           </Text>
         </ScrollView>
-        <View style={styles.resultActions}>
-          <TouchableOpacity style={styles.secondaryBtn} onPress={() => setResult(null)}>
-            <Ionicons name="arrow-back" size={16} color="#374151" style={{ marginRight: 6 }} />
-            <Text style={styles.secondaryBtnText}>Editar datos</Text>
+        {result.id ? (
+          <View style={styles.resultActions}>
+            <TouchableOpacity
+              style={[styles.primaryBtn, pdf.busy !== null && styles.btnDisabled]}
+              onPress={handlePdf}
+              disabled={pdf.busy !== null}
+            >
+              {pdf.busy !== null ? (
+                <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />
+              ) : (
+                <Ionicons
+                  name="document-outline"
+                  size={16}
+                  color="#fff"
+                  style={{ marginRight: 6 }}
+                />
+              )}
+              <Text style={styles.primaryBtnText}>Guardar o compartir el PDF</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.noPdfBlock}>
+            {/* El guardado es best effort: si falló, no hay PDF que pedir. El
+             *  texto sí está, y hay que decirlo — un ciudadano que ve su tutela
+             *  y ningún botón no sabe si la app está rota o si hizo algo mal. */}
+            <Text style={styles.noPdfTitle}>
+              No pudimos guardar este documento. Cópialo antes de salir de esta pantalla.
+            </Text>
+            <Text style={styles.noPdfText}>
+              Mantén pulsado el texto para seleccionarlo y copiarlo, o compártelo. Sin guardar
+              no hay PDF y no aparecerá en Mis documentos legales.
+            </Text>
+            <TouchableOpacity style={styles.primaryBtn} onPress={handleShareText}>
+              <Ionicons name="share-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
+              <Text style={styles.primaryBtnText}>Compartir texto</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <View style={styles.resultFooter}>
+          <TouchableOpacity onPress={() => setResult(null)} disabled={pdf.busy !== null}>
+            <Text style={[styles.linkBtnText, pdf.busy !== null && styles.btnDisabled]}>
+              Editar datos
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.primaryBtn} onPress={handleShare}>
-            <Ionicons name="share-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
-            <Text style={styles.primaryBtnText}>Compartir</Text>
-          </TouchableOpacity>
+          {result.id ? (
+            <TouchableOpacity onPress={handleShareText} disabled={pdf.busy !== null}>
+              <Text style={[styles.linkBtnText, pdf.busy !== null && styles.btnDisabled]}>
+                Compartir texto
+              </Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       </SafeAreaView>
     );
@@ -167,6 +228,13 @@ export default function GenerateTutelaScreen() {
             Genera una acción de tutela con los datos de tu PQRSD. La entidad y la descripción
             vienen pre-llenadas; completa el resto.
           </Text>
+
+          {/* El aviso va antes de generar, no solo después: el ciudadano debe
+           *  saber cuánto se conserva el documento antes de crearlo. */}
+          <View style={styles.retentionNotice}>
+            <Ionicons name="time-outline" size={15} color="#92400E" style={{ marginRight: 8 }} />
+            <Text style={styles.retentionNoticeText}>{LEGAL_DOC_RETENTION_NOTICE}</Text>
+          </View>
 
           <Field label="Nombre completo">
             <TextInput
@@ -322,16 +390,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
   },
-  secondaryBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    paddingVertical: 13,
-  },
-  secondaryBtnText: { color: '#374151', fontSize: 14, fontWeight: '700' },
   primaryBtn: {
     flex: 1,
     flexDirection: 'row',
@@ -342,4 +400,26 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
   },
   primaryBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  btnDisabled: { opacity: 0.5 },
+  noPdfBlock: { paddingHorizontal: 16, paddingBottom: 8, gap: 10 },
+  noPdfTitle: { fontSize: 14, fontWeight: '700', color: '#92400E', lineHeight: 20 },
+  noPdfText: { fontSize: 13, color: '#92400E', lineHeight: 19 },
+  resultFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  linkBtnText: { fontSize: 13, fontWeight: '600', color: '#2563EB' },
+  retentionNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    padding: 12,
+    marginBottom: 16,
+  },
+  retentionNoticeText: { flex: 1, fontSize: 12, color: '#92400E', lineHeight: 17 },
 });

@@ -10,6 +10,8 @@ import NotificationsScreen from '@features/notifications/screens/NotificationsSc
 import PublicProfileScreen from '@features/users/screens/PublicProfileScreen';
 import FormalFollowupScreen from '@features/pqr/screens/FormalFollowupScreen';
 import GenerateTutelaScreen from '@features/pqr/screens/GenerateTutelaScreen';
+import MyLegalDocsScreen from '@features/pqr/screens/MyLegalDocsScreen';
+import LegalDocDetailScreen from '@features/pqr/screens/LegalDocDetailScreen';
 import LawyerListScreen from '@features/lawyers/screens/LawyerListScreen';
 import LawyerDetailScreen from '@features/lawyers/screens/LawyerDetailScreen';
 import MyLawyerRequestsScreen from '@features/lawyers/screens/MyLawyerRequestsScreen';
@@ -56,6 +58,8 @@ export default function AppNavigator() {
       <Stack.Screen name="LawyerList" component={withErrorBoundary(LawyerListScreen)} options={{ ...headerDefaults, headerTitle: 'Abogados disponibles' }} />
       <Stack.Screen name="LawyerDetail" component={withErrorBoundary(LawyerDetailScreen)} options={{ ...headerDefaults, headerTitle: 'Perfil de abogado' }} />
       <Stack.Screen name="MyLawyerRequests" component={withErrorBoundary(MyLawyerRequestsScreen)} options={{ ...headerDefaults, headerTitle: 'Mis solicitudes' }} />
+      <Stack.Screen name="MyLegalDocs" component={withErrorBoundary(MyLegalDocsScreen)} options={{ ...headerDefaults, headerTitle: 'Mis documentos legales' }} />
+      <Stack.Screen name="LegalDocDetail" component={withErrorBoundary(LegalDocDetailScreen)} options={{ ...headerDefaults, headerTitle: 'Documento' }} />
       <Stack.Screen name="RegisterAsLawyer" component={withErrorBoundary(RegisterAsLawyerScreen)} options={{ ...headerDefaults, headerTitle: 'Registro como abogado' }} />
       <Stack.Screen name="MapaCiudadano" component={withErrorBoundary(MapScreen)} options={{ headerShown: false }} />
     </Stack.Navigator>

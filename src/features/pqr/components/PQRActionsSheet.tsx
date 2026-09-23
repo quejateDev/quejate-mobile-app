@@ -14,6 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import type { PQRS } from '@core/types';
 import { useTogglePrivacy } from '../hooks/usePQRActions';
 import { downloadFirstImage, shareImage, shareLink } from '../utils/pqrShare';
+import { downloadCertificatePdf } from '../utils/legalDocShare';
+import { usePdfDownload } from '../hooks/usePdfDownload';
 import { PQRShareCard } from './share/PQRShareCard';
 
 interface Props {
@@ -36,6 +38,7 @@ function waitUntil(cond: () => boolean, timeout = 2500, interval = 50): Promise<
 export function PQRActionsSheet({ pqr, isOwner, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const privacy = useTogglePrivacy(pqr, onClose);
+  const pdf = usePdfDownload();
   const cardRef = useRef<View>(null);
   const bannerReadyRef = useRef(false);
   const [srcImage, setSrcImage] = useState<string | null>(null);
@@ -91,10 +94,29 @@ export function PQRActionsSheet({ pqr, isOwner, onClose }: Props) {
     }
   }
 
+  async function handleCertificate() {
+    // La opción se muestra siempre: la autorización la decide el servidor, que
+    // responde 404 a quien no sea el autor igual que si la PQRSD no existiera.
+    // Replicar esa regla aquí con `isOwner` sería adivinar — y en una PQRSD
+    // anónima el propio autor podría no reconocerse en `creator`.
+    const ok = await pdf.run(
+      'certificate',
+      () => downloadCertificatePdf(pqr.id),
+      'Certificado de radicación',
+      {
+        notFoundMessage:
+          'No hay certificado disponible para esta PQRSD. Solo su autor puede descargarlo.',
+      },
+    );
+    if (ok) onClose();
+  }
+
+  const downloading = pdf.busy !== null;
+
   return (
     <>
       <Modal visible transparent animationType="fade" onRequestClose={onClose}>
-        <Pressable style={styles.scrim} onPress={busy ? undefined : onClose}>
+        <Pressable style={styles.scrim} onPress={busy || downloading ? undefined : onClose}>
           <Pressable style={[styles.sheet, { paddingBottom: insets.bottom + 12 }]}>
             <View style={styles.handle} />
             <Text style={styles.title} numberOfLines={1}>
@@ -110,7 +132,7 @@ export function PQRActionsSheet({ pqr, isOwner, onClose }: Props) {
                   label={busy ? 'Generando…' : 'Compartir como publicación'}
                   sublabel="Imagen con la marca Quéjate"
                   onPress={handleSharePost}
-                  disabled={busy}
+                  disabled={busy || downloading}
                   trailing={busy ? <ActivityIndicator size="small" color="#2563EB" /> : undefined}
                 />
                 <SheetRow
@@ -118,10 +140,23 @@ export function PQRActionsSheet({ pqr, isOwner, onClose }: Props) {
                   label="Compartir enlace"
                   sublabel="Texto + link de la PQRSD"
                   onPress={handleShareLink}
-                  disabled={busy}
+                  disabled={busy || downloading}
                 />
               </>
             )}
+
+            <SheetRow
+              icon="ribbon-outline"
+              label={pdf.busy === 'certificate' ? 'Descargando…' : 'Descargar certificado'}
+              sublabel="Constancia de radicación en PDF"
+              onPress={() => void handleCertificate()}
+              disabled={downloading || busy}
+              trailing={
+                pdf.busy === 'certificate' ? (
+                  <ActivityIndicator size="small" color="#2563EB" />
+                ) : undefined
+              }
+            />
 
             {isOwner && (
               <SheetRow
@@ -139,14 +174,14 @@ export function PQRActionsSheet({ pqr, isOwner, onClose }: Props) {
                     : 'Solo tú la verás; no aparece en el muro'
                 }
                 onPress={privacy.toggle}
-                disabled={privacy.isPending || busy}
+                disabled={privacy.isPending || busy || downloading}
               />
             )}
 
             <Pressable
               style={styles.cancelBtn}
-              onPress={busy ? undefined : onClose}
-              disabled={busy}
+              onPress={busy || downloading ? undefined : onClose}
+              disabled={busy || downloading}
             >
               <Text style={styles.cancelText}>Cancelar</Text>
             </Pressable>

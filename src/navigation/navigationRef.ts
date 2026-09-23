@@ -37,6 +37,8 @@ export type AppStackParamList = {
   LawyerList: { pqrId?: string } | undefined;
   LawyerDetail: { lawyerId: string; pqrId?: string };
   MyLawyerRequests: undefined;
+  MyLegalDocs: undefined;
+  LegalDocDetail: { id: string };
   RegisterAsLawyer: undefined;
   MapaCiudadano: undefined;
 };
