@@ -24,6 +24,7 @@ import type { AppStackParamList } from '@navigation/navigationRef';
 import { usePQRDetail } from '@features/pqr/hooks/usePQRDetail';
 import { useDepartments, useMunicipalities } from '@features/pqr/hooks/useLocations';
 import { useGenerateTutela } from '@features/pqr/hooks/useLegalDocs';
+import type { GeneratedTutela } from '@features/pqr/hooks/useLegalDocs';
 import { FUNDAMENTAL_RIGHTS } from '@features/pqr/utils/fundamentalRights';
 import { resolveOverdue } from '@features/pqr/utils/businessDays';
 
@@ -46,7 +47,7 @@ export default function GenerateTutelaScreen() {
   const [city, setCity] = useState<string | null>(null);
   const [rightViolated, setRightViolated] = useState<string | null>(null);
   const [description, setDescription] = useState<string | null>(null);
-  const [result, setResult] = useState<string | null>(null);
+  const [result, setResult] = useState<GeneratedTutela | null>(null);
 
   const { municipalities, isLoading: loadingMunis } = useMunicipalities(departmentId ?? undefined);
 
@@ -125,7 +126,7 @@ export default function GenerateTutelaScreen() {
 
   function handleShare() {
     if (!result) return;
-    void Share.share({ message: result });
+    void Share.share({ message: result.content });
   }
 
   if (result) {
@@ -139,7 +140,7 @@ export default function GenerateTutelaScreen() {
         </View>
         <ScrollView contentContainerStyle={styles.resultScroll}>
           <Text style={styles.resultText} selectable>
-            {result}
+            {result.content}
           </Text>
         </ScrollView>
         <View style={styles.resultActions}>
