@@ -182,11 +182,15 @@ export default function GenerateTutelaScreen() {
           </View>
         ) : (
           <View style={styles.noPdfBlock}>
-            {/* El guardado es best effort: si falló, no hay PDF que pedir, pero
-             *  el texto ya está generado y el ciudadano no puede quedarse sin nada. */}
+            {/* El guardado es best effort: si falló, no hay PDF que pedir. El
+             *  texto sí está, y hay que decirlo — un ciudadano que ve su tutela
+             *  y ningún botón no sabe si la app está rota o si hizo algo mal. */}
+            <Text style={styles.noPdfTitle}>
+              No pudimos guardar este documento. Cópialo antes de salir de esta pantalla.
+            </Text>
             <Text style={styles.noPdfText}>
-              No pudimos guardar este documento, así que esta vez no hay PDF ni queda en tus
-              documentos. Copia o comparte el texto para no perderlo.
+              Mantén pulsado el texto para seleccionarlo y copiarlo, o compártelo. Sin guardar
+              no hay PDF y no aparecerá en Mis documentos legales.
             </Text>
             <TouchableOpacity style={styles.primaryBtn} onPress={handleShareText}>
               <Ionicons name="share-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
@@ -398,6 +402,7 @@ const styles = StyleSheet.create({
   primaryBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   btnDisabled: { opacity: 0.5 },
   noPdfBlock: { paddingHorizontal: 16, paddingBottom: 8, gap: 10 },
+  noPdfTitle: { fontSize: 14, fontWeight: '700', color: '#92400E', lineHeight: 20 },
   noPdfText: { fontSize: 13, color: '#92400E', lineHeight: 19 },
   resultFooter: {
     flexDirection: 'row',
