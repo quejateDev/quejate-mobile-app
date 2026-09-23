@@ -1,6 +1,7 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiClient } from '@core/api/client';
 import { ENDPOINTS } from '@core/api/endpoints';
+import type { LegalDoc, LegalDocSummary } from '@core/types';
 
 export interface GenerateTutelaInput {
   fullName: string;
@@ -59,5 +60,33 @@ export function useGenerateTutela() {
 
       return { content, id: res.data.id ?? null };
     },
+  });
+}
+
+/**
+ * Documentos guardados del usuario. Las filas llegan SIN el texto.
+ *
+ * Sin `staleTime`: el backend responde `private, no-store` y la lista cambia
+ * cada vez que se genera un documento o expira uno, así que se recarga al
+ * montar en vez de servir algo viejo.
+ */
+export function useMyLegalDocs() {
+  return useQuery<LegalDocSummary[]>({
+    queryKey: ['legal-docs'],
+    queryFn: () =>
+      apiClient
+        .get<LegalDocSummary[]>(ENDPOINTS.LEGAL_DOCS.LIST)
+        // Guard defensivo: la pantalla no puede romperse por una forma inesperada.
+        .then((r) => (Array.isArray(r.data) ? r.data : [])),
+  });
+}
+
+/** Un documento guardado, con su texto. */
+export function useLegalDoc(id: string) {
+  return useQuery<LegalDoc>({
+    queryKey: ['legal-doc', id],
+    queryFn: () =>
+      apiClient.get<LegalDoc>(ENDPOINTS.LEGAL_DOCS.DETAIL(id)).then((r) => r.data),
+    enabled: !!id,
   });
 }

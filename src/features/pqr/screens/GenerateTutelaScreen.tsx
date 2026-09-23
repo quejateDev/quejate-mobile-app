@@ -24,11 +24,8 @@ import type { AppStackParamList } from '@navigation/navigationRef';
 import { usePQRDetail } from '@features/pqr/hooks/usePQRDetail';
 import { useDepartments, useMunicipalities } from '@features/pqr/hooks/useLocations';
 import { useGenerateTutela } from '@features/pqr/hooks/useLegalDocs';
-import {
-  downloadLegalDocPdf,
-  sharePdf,
-  pdfFailureMessage,
-} from '@features/pqr/utils/legalDocShare';
+import { downloadLegalDocPdf } from '@features/pqr/utils/legalDocShare';
+import { usePdfDownload } from '@features/pqr/hooks/usePdfDownload';
 import { LEGAL_DOC_RETENTION_NOTICE } from '@features/pqr/utils/legalDocsCopy';
 import type { GeneratedTutela } from '@features/pqr/hooks/useLegalDocs';
 import { FUNDAMENTAL_RIGHTS } from '@features/pqr/utils/fundamentalRights';
@@ -54,7 +51,7 @@ export default function GenerateTutelaScreen() {
   const [rightViolated, setRightViolated] = useState<string | null>(null);
   const [description, setDescription] = useState<string | null>(null);
   const [result, setResult] = useState<GeneratedTutela | null>(null);
-  const [pdfBusy, setPdfBusy] = useState<'download' | 'share' | null>(null);
+  const pdf = usePdfDownload();
 
   const { municipalities, isLoading: loadingMunis } = useMunicipalities(departmentId ?? undefined);
 
@@ -137,28 +134,14 @@ export default function GenerateTutelaScreen() {
     void Share.share({ message: result.content });
   }
 
-  async function handlePdf(mode: 'download' | 'share') {
-    if (!result?.id || pdfBusy) return;
-    setPdfBusy(mode);
-    try {
-      const res = await downloadLegalDocPdf(result.id);
-      if (!res.ok) {
-        Alert.alert('No se pudo obtener el PDF', pdfFailureMessage(res.reason));
-        return;
-      }
-      const shared = await sharePdf(
-        res.uri,
-        mode === 'download' ? 'Guardar tutela' : 'Compartir tutela',
-      );
-      if (!shared) {
-        Alert.alert(
-          'No disponible',
-          'Este teléfono no permite abrir ni compartir archivos. Puedes compartir el texto.',
-        );
-      }
-    } finally {
-      setPdfBusy(null);
-    }
+  function handlePdf(mode: 'download' | 'share') {
+    const docId = result?.id;
+    if (!docId) return;
+    void pdf.run(
+      mode,
+      () => downloadLegalDocPdf(docId),
+      mode === 'download' ? 'Guardar tutela' : 'Compartir tutela',
+    );
   }
 
   if (result) {
@@ -178,11 +161,11 @@ export default function GenerateTutelaScreen() {
         {result.id ? (
           <View style={styles.resultActions}>
             <TouchableOpacity
-              style={[styles.secondaryBtn, pdfBusy !== null && styles.btnDisabled]}
-              onPress={() => void handlePdf('download')}
-              disabled={pdfBusy !== null}
+              style={[styles.secondaryBtn, pdf.busy !== null && styles.btnDisabled]}
+              onPress={() => handlePdf('download')}
+              disabled={pdf.busy !== null}
             >
-              {pdfBusy === 'download' ? (
+              {pdf.busy === 'download' ? (
                 <ActivityIndicator size="small" color="#374151" style={{ marginRight: 6 }} />
               ) : (
                 <Ionicons name="download-outline" size={16} color="#374151" style={{ marginRight: 6 }} />
@@ -190,11 +173,11 @@ export default function GenerateTutelaScreen() {
               <Text style={styles.secondaryBtnText}>Descargar PDF</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.primaryBtn, pdfBusy !== null && styles.btnDisabled]}
-              onPress={() => void handlePdf('share')}
-              disabled={pdfBusy !== null}
+              style={[styles.primaryBtn, pdf.busy !== null && styles.btnDisabled]}
+              onPress={() => handlePdf('share')}
+              disabled={pdf.busy !== null}
             >
-              {pdfBusy === 'share' ? (
+              {pdf.busy === 'share' ? (
                 <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />
               ) : (
                 <Ionicons name="share-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
@@ -218,14 +201,14 @@ export default function GenerateTutelaScreen() {
         )}
 
         <View style={styles.resultFooter}>
-          <TouchableOpacity onPress={() => setResult(null)} disabled={pdfBusy !== null}>
-            <Text style={[styles.linkBtnText, pdfBusy !== null && styles.btnDisabled]}>
+          <TouchableOpacity onPress={() => setResult(null)} disabled={pdf.busy !== null}>
+            <Text style={[styles.linkBtnText, pdf.busy !== null && styles.btnDisabled]}>
               Editar datos
             </Text>
           </TouchableOpacity>
           {result.id ? (
-            <TouchableOpacity onPress={handleShareText} disabled={pdfBusy !== null}>
-              <Text style={[styles.linkBtnText, pdfBusy !== null && styles.btnDisabled]}>
+            <TouchableOpacity onPress={handleShareText} disabled={pdf.busy !== null}>
+              <Text style={[styles.linkBtnText, pdf.busy !== null && styles.btnDisabled]}>
                 Compartir texto
               </Text>
             </TouchableOpacity>

@@ -10,3 +10,16 @@
  */
 export const LEGAL_DOC_RETENTION_NOTICE =
   'Guardamos este documento seis meses para que puedas volver a descargarlo. Después se borra.';
+
+/**
+ * Fecha absoluta y corta para documentos legales. Aquí no sirve un «hace 3
+ * meses»: el ciudadano necesita saber el día exacto hasta el que puede
+ * descargar el documento.
+ */
+export function formatLegalDocDate(date: Date | string): string {
+  return new Date(date).toLocaleDateString('es-CO', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+}
