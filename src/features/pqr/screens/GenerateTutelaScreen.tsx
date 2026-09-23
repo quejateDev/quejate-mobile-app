@@ -134,14 +134,16 @@ export default function GenerateTutelaScreen() {
     void Share.share({ message: result.content });
   }
 
-  function handlePdf(mode: 'download' | 'share') {
+  /**
+   * Un solo botón a propósito. En un teléfono no hay una carpeta de descargas
+   * donde escribir sin más: lo que hay es la hoja del sistema, y ahí conviven
+   * «Guardar en Archivos» y «enviar por WhatsApp». Separar «descargar» de
+   * «compartir» sería pintar dos controles que acaban en el mismo sitio.
+   */
+  function handlePdf() {
     const docId = result?.id;
     if (!docId) return;
-    void pdf.run(
-      mode,
-      () => downloadLegalDocPdf(docId),
-      mode === 'download' ? 'Guardar tutela' : 'Compartir tutela',
-    );
+    void pdf.run('pdf', () => downloadLegalDocPdf(docId), 'Guardar o compartir la tutela');
   }
 
   if (result) {
@@ -161,28 +163,21 @@ export default function GenerateTutelaScreen() {
         {result.id ? (
           <View style={styles.resultActions}>
             <TouchableOpacity
-              style={[styles.secondaryBtn, pdf.busy !== null && styles.btnDisabled]}
-              onPress={() => handlePdf('download')}
-              disabled={pdf.busy !== null}
-            >
-              {pdf.busy === 'download' ? (
-                <ActivityIndicator size="small" color="#374151" style={{ marginRight: 6 }} />
-              ) : (
-                <Ionicons name="download-outline" size={16} color="#374151" style={{ marginRight: 6 }} />
-              )}
-              <Text style={styles.secondaryBtnText}>Descargar PDF</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
               style={[styles.primaryBtn, pdf.busy !== null && styles.btnDisabled]}
-              onPress={() => handlePdf('share')}
+              onPress={handlePdf}
               disabled={pdf.busy !== null}
             >
-              {pdf.busy === 'share' ? (
+              {pdf.busy !== null ? (
                 <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />
               ) : (
-                <Ionicons name="share-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
+                <Ionicons
+                  name="document-outline"
+                  size={16}
+                  color="#fff"
+                  style={{ marginRight: 6 }}
+                />
               )}
-              <Text style={styles.primaryBtnText}>Compartir PDF</Text>
+              <Text style={styles.primaryBtnText}>Guardar o compartir el PDF</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -391,16 +386,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
   },
-  secondaryBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    paddingVertical: 13,
-  },
-  secondaryBtnText: { color: '#374151', fontSize: 14, fontWeight: '700' },
   primaryBtn: {
     flex: 1,
     flexDirection: 'row',

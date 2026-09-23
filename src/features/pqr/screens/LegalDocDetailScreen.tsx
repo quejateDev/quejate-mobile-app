@@ -64,34 +64,24 @@ export default function LegalDocDetailScreen() {
       </ScrollView>
 
       <View style={styles.actions}>
-        <TouchableOpacity
-          style={[styles.secondaryBtn, pdf.busy !== null && styles.btnDisabled]}
-          onPress={() =>
-            void pdf.run('download', () => downloadLegalDocPdf(doc.id), 'Guardar documento')
-          }
-          disabled={pdf.busy !== null}
-        >
-          {pdf.busy === 'download' ? (
-            <ActivityIndicator size="small" color="#374151" style={{ marginRight: 6 }} />
-          ) : (
-            <Ionicons name="download-outline" size={16} color="#374151" style={{ marginRight: 6 }} />
-          )}
-          <Text style={styles.secondaryBtnText}>Descargar PDF</Text>
-        </TouchableOpacity>
-
+        {/* Un solo botón: la hoja del sistema ya ofrece guardar y enviar. */}
         <TouchableOpacity
           style={[styles.primaryBtn, pdf.busy !== null && styles.btnDisabled]}
           onPress={() =>
-            void pdf.run('share', () => downloadLegalDocPdf(doc.id), 'Compartir documento')
+            void pdf.run(
+              'pdf',
+              () => downloadLegalDocPdf(doc.id),
+              'Guardar o compartir el documento',
+            )
           }
           disabled={pdf.busy !== null}
         >
-          {pdf.busy === 'share' ? (
+          {pdf.busy !== null ? (
             <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />
           ) : (
-            <Ionicons name="share-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
+            <Ionicons name="document-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
           )}
-          <Text style={styles.primaryBtnText}>Compartir PDF</Text>
+          <Text style={styles.primaryBtnText}>Guardar o compartir el PDF</Text>
         </TouchableOpacity>
       </View>
 
@@ -118,16 +108,6 @@ const styles = StyleSheet.create({
   scroll: { padding: 16, paddingTop: 4 },
   text: { fontSize: 13, color: '#374151', lineHeight: 20 },
   actions: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingTop: 10 },
-  secondaryBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 10,
-    paddingVertical: 12,
-  },
-  secondaryBtnText: { color: '#374151', fontSize: 14, fontWeight: '700' },
   primaryBtn: {
     flex: 1,
     flexDirection: 'row',
