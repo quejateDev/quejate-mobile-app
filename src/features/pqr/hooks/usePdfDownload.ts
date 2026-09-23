@@ -15,16 +15,33 @@ import type { PdfResult } from '@features/pqr/utils/legalDocShare';
 export function usePdfDownload() {
   const [busy, setBusy] = useState<string | null>(null);
 
+  /**
+   * Devuelve `true` si el PDF llegó a manos del sistema, para que quien llame
+   * pueda cerrar su menú o su hoja solo cuando la cosa salió bien.
+   *
+   * `notFoundMessage` deja afinar el 404: en un documento legal significa que
+   * expiró, y en un certificado que la PQRSD no es tuya o no existe — el
+   * servidor no distingue esos dos casos a propósito.
+   */
   const run = useCallback(
-    async (key: string, download: () => Promise<PdfResult>, dialogTitle: string) => {
+    async (
+      key: string,
+      download: () => Promise<PdfResult>,
+      dialogTitle: string,
+      options?: { notFoundMessage?: string },
+    ): Promise<boolean> => {
       // Una descarga a la vez: dos diálogos del sistema a la vez no aportan nada.
-      if (busy !== null) return;
+      if (busy !== null) return false;
       setBusy(key);
       try {
         const res = await download();
         if (!res.ok) {
-          Alert.alert('No se pudo obtener el PDF', pdfFailureMessage(res.reason));
-          return;
+          const message =
+            res.reason === 'not-found' && options?.notFoundMessage
+              ? options.notFoundMessage
+              : pdfFailureMessage(res.reason);
+          Alert.alert('No se pudo obtener el PDF', message);
+          return false;
         }
         const shared = await sharePdf(res.uri, dialogTitle);
         if (!shared) {
@@ -32,7 +49,9 @@ export function usePdfDownload() {
             'No disponible',
             'Este teléfono no permite abrir ni compartir archivos.',
           );
+          return false;
         }
+        return true;
       } finally {
         setBusy(null);
       }
