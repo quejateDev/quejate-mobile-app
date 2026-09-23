@@ -24,6 +24,12 @@ import type { AppStackParamList } from '@navigation/navigationRef';
 import { usePQRDetail } from '@features/pqr/hooks/usePQRDetail';
 import { useDepartments, useMunicipalities } from '@features/pqr/hooks/useLocations';
 import { useGenerateTutela } from '@features/pqr/hooks/useLegalDocs';
+import {
+  downloadLegalDocPdf,
+  sharePdf,
+  pdfFailureMessage,
+} from '@features/pqr/utils/legalDocShare';
+import { LEGAL_DOC_RETENTION_NOTICE } from '@features/pqr/utils/legalDocsCopy';
 import type { GeneratedTutela } from '@features/pqr/hooks/useLegalDocs';
 import { FUNDAMENTAL_RIGHTS } from '@features/pqr/utils/fundamentalRights';
 import { resolveOverdue } from '@features/pqr/utils/businessDays';
@@ -48,6 +54,7 @@ export default function GenerateTutelaScreen() {
   const [rightViolated, setRightViolated] = useState<string | null>(null);
   const [description, setDescription] = useState<string | null>(null);
   const [result, setResult] = useState<GeneratedTutela | null>(null);
+  const [pdfBusy, setPdfBusy] = useState<'download' | 'share' | null>(null);
 
   const { municipalities, isLoading: loadingMunis } = useMunicipalities(departmentId ?? undefined);
 
@@ -124,9 +131,34 @@ export default function GenerateTutelaScreen() {
     );
   }
 
-  function handleShare() {
+  /** Camino de respaldo: sin `id` no hay PDF, pero el texto no se pierde. */
+  function handleShareText() {
     if (!result) return;
     void Share.share({ message: result.content });
+  }
+
+  async function handlePdf(mode: 'download' | 'share') {
+    if (!result?.id || pdfBusy) return;
+    setPdfBusy(mode);
+    try {
+      const res = await downloadLegalDocPdf(result.id);
+      if (!res.ok) {
+        Alert.alert('No se pudo obtener el PDF', pdfFailureMessage(res.reason));
+        return;
+      }
+      const shared = await sharePdf(
+        res.uri,
+        mode === 'download' ? 'Guardar tutela' : 'Compartir tutela',
+      );
+      if (!shared) {
+        Alert.alert(
+          'No disponible',
+          'Este teléfono no permite abrir ni compartir archivos. Puedes compartir el texto.',
+        );
+      }
+    } finally {
+      setPdfBusy(null);
+    }
   }
 
   if (result) {
@@ -143,15 +175,61 @@ export default function GenerateTutelaScreen() {
             {result.content}
           </Text>
         </ScrollView>
-        <View style={styles.resultActions}>
-          <TouchableOpacity style={styles.secondaryBtn} onPress={() => setResult(null)}>
-            <Ionicons name="arrow-back" size={16} color="#374151" style={{ marginRight: 6 }} />
-            <Text style={styles.secondaryBtnText}>Editar datos</Text>
+        {result.id ? (
+          <View style={styles.resultActions}>
+            <TouchableOpacity
+              style={[styles.secondaryBtn, pdfBusy !== null && styles.btnDisabled]}
+              onPress={() => void handlePdf('download')}
+              disabled={pdfBusy !== null}
+            >
+              {pdfBusy === 'download' ? (
+                <ActivityIndicator size="small" color="#374151" style={{ marginRight: 6 }} />
+              ) : (
+                <Ionicons name="download-outline" size={16} color="#374151" style={{ marginRight: 6 }} />
+              )}
+              <Text style={styles.secondaryBtnText}>Descargar PDF</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.primaryBtn, pdfBusy !== null && styles.btnDisabled]}
+              onPress={() => void handlePdf('share')}
+              disabled={pdfBusy !== null}
+            >
+              {pdfBusy === 'share' ? (
+                <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />
+              ) : (
+                <Ionicons name="share-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
+              )}
+              <Text style={styles.primaryBtnText}>Compartir PDF</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.noPdfBlock}>
+            {/* El guardado es best effort: si falló, no hay PDF que pedir, pero
+             *  el texto ya está generado y el ciudadano no puede quedarse sin nada. */}
+            <Text style={styles.noPdfText}>
+              No pudimos guardar este documento, así que esta vez no hay PDF ni queda en tus
+              documentos. Copia o comparte el texto para no perderlo.
+            </Text>
+            <TouchableOpacity style={styles.primaryBtn} onPress={handleShareText}>
+              <Ionicons name="share-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
+              <Text style={styles.primaryBtnText}>Compartir texto</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <View style={styles.resultFooter}>
+          <TouchableOpacity onPress={() => setResult(null)} disabled={pdfBusy !== null}>
+            <Text style={[styles.linkBtnText, pdfBusy !== null && styles.btnDisabled]}>
+              Editar datos
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.primaryBtn} onPress={handleShare}>
-            <Ionicons name="share-outline" size={16} color="#fff" style={{ marginRight: 6 }} />
-            <Text style={styles.primaryBtnText}>Compartir</Text>
-          </TouchableOpacity>
+          {result.id ? (
+            <TouchableOpacity onPress={handleShareText} disabled={pdfBusy !== null}>
+              <Text style={[styles.linkBtnText, pdfBusy !== null && styles.btnDisabled]}>
+                Compartir texto
+              </Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       </SafeAreaView>
     );
@@ -168,6 +246,13 @@ export default function GenerateTutelaScreen() {
             Genera una acción de tutela con los datos de tu PQRSD. La entidad y la descripción
             vienen pre-llenadas; completa el resto.
           </Text>
+
+          {/* El aviso va antes de generar, no solo después: el ciudadano debe
+           *  saber cuánto se conserva el documento antes de crearlo. */}
+          <View style={styles.retentionNotice}>
+            <Ionicons name="time-outline" size={15} color="#92400E" style={{ marginRight: 8 }} />
+            <Text style={styles.retentionNoticeText}>{LEGAL_DOC_RETENTION_NOTICE}</Text>
+          </View>
 
           <Field label="Nombre completo">
             <TextInput
@@ -343,4 +428,25 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
   },
   primaryBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  btnDisabled: { opacity: 0.5 },
+  noPdfBlock: { paddingHorizontal: 16, paddingBottom: 8, gap: 10 },
+  noPdfText: { fontSize: 13, color: '#92400E', lineHeight: 19 },
+  resultFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  linkBtnText: { fontSize: 13, fontWeight: '600', color: '#2563EB' },
+  retentionNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    padding: 12,
+    marginBottom: 16,
+  },
+  retentionNoticeText: { flex: 1, fontSize: 12, color: '#92400E', lineHeight: 17 },
 });
