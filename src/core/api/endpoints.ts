@@ -80,8 +80,7 @@ export const ENDPOINTS = {
     SEND_DOCUMENT: '/oversight/send-document',
   },
   LEGAL_DOCS: {
-    TUTELA:           '/legal-docs',
-    OVERSIGHT_REPORT: '/legal-docs/oversight',
+    TUTELA: '/legal-docs',
   },
   CATEGORIES: {
     LIST:   '/category',
