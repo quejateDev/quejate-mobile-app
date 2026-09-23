@@ -27,6 +27,11 @@ export const ENDPOINTS = {
     PRIVACY:  (id: string) => `/pqr/${id}/privacy`,
     COMMENTS: (id: string) => `/pqr/${id}/comments`,
     LIKE:     (id: string) => `/pqr/${id}/like`,
+    /**
+     * GET: `application/pdf` con el certificado de radicación. Solo el autor;
+     * a cualquier otro le responde 404, igual que si la PQRSD no existiera.
+     */
+    CERTIFICATE: (id: string) => `/pqr/${id}/certificate.pdf`,
   },
   ENTITIES: {
     LIST:   '/entities',
@@ -80,7 +85,14 @@ export const ENDPOINTS = {
     SEND_DOCUMENT: '/oversight/send-document',
   },
   LEGAL_DOCS: {
+    /** POST: genera el documento. Responde `{ tutela, id? }` — el `id` es aditivo. */
     TUTELA: '/legal-docs',
+    /** GET: documentos del usuario. Cada fila viene SIN el texto. */
+    LIST:   '/legal-docs',
+    /** GET: la fila de la lista más `content`. */
+    DETAIL: (id: string) => `/legal-docs/${id}`,
+    /** GET: `application/pdf`. No pasa por apiClient, ver legalDocShare.ts. */
+    PDF:    (id: string) => `/legal-docs/${id}/pdf`,
   },
   CATEGORIES: {
     LIST:   '/category',

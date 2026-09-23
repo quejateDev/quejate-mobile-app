@@ -280,6 +280,34 @@ export interface MapPQR {
 }
 
 // =============================================================================
+// Documentos legales
+// =============================================================================
+
+/**
+ * Hoy el backend solo emite TUTELA. OVERSIGHT existe en el contrato pero la app
+ * móvil no genera oficios a entes de control, así que no hay interfaz para él:
+ * la lista se pinta con el `title` que manda el servidor, no con un rótulo
+ * derivado del tipo, para que un tipo nuevo no deje filas en blanco.
+ */
+export type LegalDocType = 'TUTELA' | 'OVERSIGHT';
+
+/** Fila de `GET /legal-docs`. Llega SIN el texto del documento. */
+export interface LegalDocSummary {
+  id: string;
+  type: LegalDocType;
+  title: string;
+  pqrId: string;
+  createdAt: Date;
+  /** El backend guarda seis meses; pasada esta fecha el documento se borra. */
+  expiresAt: Date;
+}
+
+/** `GET /legal-docs/:id`: la fila de la lista más el texto. */
+export interface LegalDoc extends LegalDocSummary {
+  content: string;
+}
+
+// =============================================================================
 // Notification
 // =============================================================================
 
