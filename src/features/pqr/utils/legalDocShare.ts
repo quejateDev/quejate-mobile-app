@@ -39,19 +39,61 @@ function safeName(value: string): string {
   return value.replace(/[^a-zA-Z0-9_-]/g, '-');
 }
 
-async function downloadPdf(path: string, fileName: string): Promise<PdfResult> {
+/**
+ * Nombre del fichero según el `Content-Disposition` de la respuesta.
+ *
+ * El servidor es la fuente autoritativa: tiene un nombre fijo por tipo de
+ * documento (`tutela.pdf`, `oficio_ente_control.pdf`, `certificado_pqrsd.pdf`)
+ * y la app se adapta, en vez de duplicar aquí una tabla que quedaría vieja en
+ * cuanto el backend añada un tipo — y la app no puede parchearse sin tienda.
+ *
+ * Aun así el nombre se sanea: viene de la red y acaba siendo una ruta.
+ */
+function filenameFromHeaders(headers: Record<string, string> | undefined): string | null {
+  if (!headers) return null;
+  const key = Object.keys(headers).find((k) => k.toLowerCase() === 'content-disposition');
+  if (!key) return null;
+
+  const match = /filename\s*=\s*"?([^";]+)"?/i.exec(headers[key] ?? '');
+  const raw = match?.[1]?.trim();
+  if (!raw) return null;
+
+  // Solo el nombre: nada de subir por la ruta con '..' o separadores.
+  const base = raw.split(/[\\/]/).pop() ?? '';
+  const cleaned = base.replace(/[^a-zA-Z0-9_.-]/g, '-').replace(/^\.+/, '');
+  return cleaned.toLowerCase().endsWith('.pdf') ? cleaned : null;
+}
+
+/**
+ * @param path        Ruta del API, relativa a la base.
+ * @param slot        Carpeta propia del documento dentro de la caché. Evita que
+ *                    dos descargas con el mismo nombre del servidor —dos tutelas
+ *                    son las dos `tutela.pdf`— se pisen la una a la otra.
+ * @param fallbackName Nombre a usar si la respuesta no trae `Content-Disposition`.
+ *                    Nunca nombra un tipo concreto: más vale genérico que mentir.
+ */
+async function downloadPdf(
+  path: string,
+  slot: string,
+  fallbackName: string,
+): Promise<PdfResult> {
   const token = await SecureStorage.getSessionToken();
   if (!token) {
     notifySessionExpired();
     return { ok: false, reason: 'session-expired' };
   }
 
-  const target = `${FileSystem.cacheDirectory}${fileName}`;
+  const dir = `${FileSystem.cacheDirectory}legal-docs/${safeName(slot)}/`;
+  const target = `${dir}descarga.pdf`;
 
   try {
-    const { uri, status } = await FileSystem.downloadAsync(`${apiBase()}${path}`, target, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
+
+    const { uri, status, headers } = await FileSystem.downloadAsync(
+      `${apiBase()}${path}`,
+      target,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
 
     if (status !== 200) {
       // downloadAsync escribe en disco lo que devuelva el servidor, también el
@@ -69,15 +111,35 @@ async function downloadPdf(path: string, fileName: string): Promise<PdfResult> {
       return { ok: false, reason: 'failed' };
     }
 
-    return { ok: true, uri };
+    // El nombre definitivo es el que ve quien recibe el PDF por correo o
+    // WhatsApp, así que se renombra después de descargar, cuando ya se conoce.
+    const finalUri = `${dir}${filenameFromHeaders(headers) ?? fallbackName}`;
+    if (finalUri !== uri) {
+      try {
+        await FileSystem.deleteAsync(finalUri, { idempotent: true });
+        await FileSystem.moveAsync({ from: uri, to: finalUri });
+      } catch {
+        // Si el renombrado falla, el PDF descargado sigue siendo válido: se
+        // comparte con el nombre provisional antes que no compartir nada.
+        return { ok: true, uri };
+      }
+    }
+
+    return { ok: true, uri: finalUri };
   } catch {
     return { ok: false, reason: 'failed' };
   }
 }
 
-/** PDF de un documento legal guardado. Necesita el id que devuelve la generación. */
+/**
+ * PDF de un documento legal guardado. Necesita el id que devuelve la generación.
+ *
+ * El nombre lo pone el servidor: una tutela baja como `tutela.pdf` y un oficio
+ * a un ente de control como `oficio_ente_control.pdf`. La app no los distingue
+ * ni falta que le hace.
+ */
 export function downloadLegalDocPdf(id: string): Promise<PdfResult> {
-  return downloadPdf(ENDPOINTS.LEGAL_DOCS.PDF(id), `tutela-${safeName(id)}.pdf`);
+  return downloadPdf(ENDPOINTS.LEGAL_DOCS.PDF(id), `doc-${id}`, 'documento.pdf');
 }
 
 /**
@@ -88,7 +150,8 @@ export function downloadLegalDocPdf(id: string): Promise<PdfResult> {
 export function downloadCertificatePdf(pqrId: string): Promise<PdfResult> {
   return downloadPdf(
     ENDPOINTS.PQR.CERTIFICATE(pqrId),
-    `certificado-${safeName(pqrId)}.pdf`,
+    `certificado-${pqrId}`,
+    'certificado.pdf',
   );
 }
 

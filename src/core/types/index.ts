@@ -296,7 +296,8 @@ export interface LegalDocSummary {
   id: string;
   type: LegalDocType;
   title: string;
-  pqrId: string;
+  /** `null` cuando el documento se generó sin enviar una PQRSD de origen. */
+  pqrId: string | null;
   createdAt: Date;
   /** El backend guarda seis meses; pasada esta fecha el documento se borra. */
   expiresAt: Date;
