@@ -59,7 +59,25 @@ module.exports = {
       // defecto. Con targetSdk 35+, Play marca "Restricted foreground service
       // types" por la combinación boot receiver + servicios de micrófono de
       // expo-audio (sonómetro); bloquearlo elimina esa ruta.
-      blockedPermissions: ['android.permission.RECEIVE_BOOT_COMPLETED'],
+      //
+      // Sin servicios en primer plano: expo-audio declara FOREGROUND_SERVICE y
+      // FOREGROUND_SERVICE_MEDIA_PLAYBACK en su propio manifiesto, para reproducir
+      // en segundo plano y grabar con la pantalla apagada. La app no hace ninguna
+      // de las dos cosas: el sonómetro mide con la pantalla abierta y nada
+      // reproduce audio. Play exige declarar cada tipo con un vídeo que lo
+      // muestre, y sin función que enseñar la única salida es no pedirlos. Los de
+      // micrófono y ubicación no llegan hoy al manifiesto; se bloquean para que
+      // una opción de plugin no los traiga de vuelta sin que nadie lo decida.
+      // 🔴 Con estos permisos bloqueados, activar la grabación en segundo plano
+      // (`allowsBackgroundRecording`) o los controles de pantalla de bloqueo
+      // (`setActiveForLockScreen`) haría fallar la app al arrancar el servicio.
+      blockedPermissions: [
+        'android.permission.RECEIVE_BOOT_COMPLETED',
+        'android.permission.FOREGROUND_SERVICE',
+        'android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK',
+        'android.permission.FOREGROUND_SERVICE_MICROPHONE',
+        'android.permission.FOREGROUND_SERVICE_LOCATION',
+      ],
       config: {
         googleMaps: {
           apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
