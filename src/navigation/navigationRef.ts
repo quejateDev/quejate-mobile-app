@@ -32,6 +32,7 @@ export type AppStackParamList = {
   PQRDetail: { id: string };
   Notificaciones: undefined;
   PublicProfile: { userId: string };
+  PeopleSearch: undefined;
   FormalFollowup: { pqrId: string };
   GenerateTutela: { pqrId: string };
   LawyerList: { pqrId?: string } | undefined;
