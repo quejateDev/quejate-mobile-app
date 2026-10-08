@@ -189,6 +189,23 @@ export interface UserProfile extends User {
   isFollowing: boolean;
 }
 
+/**
+ * Fila de `GET /users/search`. El servidor busca solo por nombre y devuelve
+ * cinco como mucho.
+ *
+ * `image` y `_count` son aditivos: el servidor los añadió después de `id`,
+ * `name` y `role`, y una versión de la app puede encontrarse con cualquiera de
+ * las dos respuestas. Por eso son opcionales y la fila se pinta con y sin ellos.
+ * `_count.PQRS` son las PQRSD que ve un tercero: públicas y no anónimas.
+ */
+export interface UserSearchResult {
+  id: string;
+  name: string | null;
+  role: UserRole;
+  image?: string | null;
+  _count?: { followers: number; following: number; PQRS: number };
+}
+
 // =============================================================================
 // Comment & Like
 // =============================================================================
