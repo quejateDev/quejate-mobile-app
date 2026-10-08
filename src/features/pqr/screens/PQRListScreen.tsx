@@ -202,6 +202,14 @@ export default function PQRListScreen() {
           </View>
           <View style={styles.headerActions}>
             <TouchableOpacity
+              onPress={() => navigation.navigate('PeopleSearch')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel="Buscar personas"
+            >
+              <Ionicons name="people-outline" size={24} color="#fff" />
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={() => navigation.navigate('MapaCiudadano')}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               accessibilityRole="button"
