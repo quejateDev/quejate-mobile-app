@@ -28,10 +28,11 @@ function Isotype({ size = 28, color = '#fff' }: { size?: number; color?: string 
 }
 import { AppStackParamList } from '@navigation/navigationRef';
 import { usePQRList } from '@features/pqr/hooks/usePQRList';
+import { useWallSearch, WALL_SEARCH_MAX_PQRS } from '@features/pqr/hooks/useWallSearch';
+import type { WallSearchStatus } from '@features/pqr/hooks/useWallSearch';
 import { useNotifications } from '@features/notifications/hooks/useNotifications';
 import PQRCard from '@features/pqr/components/PQRCard';
 import { CATEGORY_SHORTCUTS } from '@features/pqr/utils/categoryShortcuts';
-import { normalizeSearchText, wallSearchText } from '@features/pqr/utils/wallSearch';
 import { ErrorState } from '@shared/components/ui/ErrorState';
 import type { PQRS } from '@core/types';
 
@@ -99,6 +100,57 @@ function SkeletonCard() {
   );
 }
 
+/**
+ * Lo que hay que saber de una búsqueda antes de leer sus resultados: que aún no
+ * ha recorrido todo el muro, que no pudo, o que el muro es más largo de lo que
+ * recorre. Va encima de la lista y no al final, para que unos resultados a
+ * medias no se lean como si fueran todos.
+ */
+function SearchNotice({
+  status,
+  limitReached,
+  onRetry,
+}: {
+  status: WallSearchStatus;
+  limitReached: boolean;
+  onRetry: () => void;
+}) {
+  if (status === 'searching') {
+    return (
+      <View style={styles.searchNotice}>
+        <ActivityIndicator size="small" color="#2563EB" />
+        <Text style={styles.searchNoticeText}>Buscando en todo el muro…</Text>
+      </View>
+    );
+  }
+  if (status === 'error') {
+    return (
+      <View style={styles.searchNotice}>
+        <Ionicons name="alert-circle-outline" size={18} color="#DC2626" />
+        <Text style={styles.searchNoticeText}>No se pudo buscar en todo el muro.</Text>
+        <TouchableOpacity
+          onPress={onRetry}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+        >
+          <Text style={styles.searchNoticeAction}>Reintentar</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+  if (limitReached) {
+    return (
+      <View style={styles.searchNotice}>
+        <Ionicons name="information-circle-outline" size={18} color="#6B7280" />
+        <Text style={styles.searchNoticeText}>
+          {`Buscando en las ${WALL_SEARCH_MAX_PQRS} más recientes`}
+        </Text>
+      </View>
+    );
+  }
+  return null;
+}
+
 export default function PQRListScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
@@ -125,10 +177,18 @@ export default function PQRListScreen() {
         .map((p) => [p.id, p]),
     ).values(),
   );
-  const searchTerm = normalizeSearchText(search);
-  const pqrs = searchTerm
-    ? allPqrs.filter((p) => wallSearchText(p).includes(searchTerm))
-    : allPqrs;
+  const wallSearch = useWallSearch(search, allPqrs);
+  const isSearching = wallSearch.status !== 'idle';
+  const pqrs = isSearching ? wallSearch.results : allPqrs;
+
+  // «Sin resultados» solo se afirma con el muro entero delante. Mientras llega,
+  // o si no llegó, lo que pasa lo dice el aviso de encima de la lista.
+  let emptyText: string | null = null;
+  if (isSearching) {
+    if (wallSearch.status === 'complete') emptyText = 'Sin resultados para tu búsqueda';
+  } else if (!isLoading) {
+    emptyText = 'No hay PQRSDs disponibles';
+  }
 
   if (isError) {
     return (
@@ -183,6 +243,12 @@ export default function PQRListScreen() {
       </View>
 
       <Text style={styles.sectionLabel}>Comunidad</Text>
+
+      <SearchNotice
+        status={wallSearch.status}
+        limitReached={wallSearch.limitReached}
+        onRetry={wallSearch.refetch}
+      />
 
       {isLoading && [0, 1, 2].map((i) => <SkeletonCard key={i} />)}
     </View>
@@ -257,11 +323,9 @@ export default function PQRListScreen() {
         )}
         ListHeaderComponent={listHeader}
         ListEmptyComponent={
-          !isLoading ? (
+          emptyText ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>
-                {search ? 'Sin resultados para tu búsqueda' : 'No hay PQRSDs disponibles'}
-              </Text>
+              <Text style={styles.emptyText}>{emptyText}</Text>
             </View>
           ) : null
         }
@@ -271,13 +335,17 @@ export default function PQRListScreen() {
           ) : null
         }
         onEndReached={() => {
-          if (hasNextPage && !isFetchingNextPage && !search) fetchNextPage();
+          if (hasNextPage && !isFetchingNextPage && !isSearching) fetchNextPage();
         }}
         onEndReachedThreshold={0.3}
         refreshControl={
           <RefreshControl
             refreshing={isRefetching && !isFetchingNextPage}
-            onRefresh={refetch}
+            onRefresh={() => {
+              refetch();
+              // Con texto, lo que se ve sale del muro entero: se refresca también.
+              wallSearch.refetch();
+            }}
             tintColor="#fff"
             progressBackgroundColor="#2563EB"
           />
@@ -407,6 +475,15 @@ const styles = StyleSheet.create({
   },
   frecuenteLabel: { fontSize: 13, fontWeight: '700', color: '#111827', lineHeight: 17, marginBottom: 2 },
   frecuenteSublabel: { fontSize: 11, color: '#9CA3AF' },
+  searchNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  searchNoticeText: { flex: 1, fontSize: 13, color: '#374151', lineHeight: 18 },
+  searchNoticeAction: { fontSize: 13, fontWeight: '700', color: '#2563EB' },
   emptyContainer: { alignItems: 'center', paddingVertical: 48 },
   emptyText: { fontSize: 15, color: '#9CA3AF' },
   skeletonCard: {
