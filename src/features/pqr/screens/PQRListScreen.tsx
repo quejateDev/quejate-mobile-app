@@ -31,6 +31,7 @@ import { usePQRList } from '@features/pqr/hooks/usePQRList';
 import { useNotifications } from '@features/notifications/hooks/useNotifications';
 import PQRCard from '@features/pqr/components/PQRCard';
 import { CATEGORY_SHORTCUTS } from '@features/pqr/utils/categoryShortcuts';
+import { normalizeSearchText, wallSearchText } from '@features/pqr/utils/wallSearch';
 import { ErrorState } from '@shared/components/ui/ErrorState';
 import type { PQRS } from '@core/types';
 
@@ -124,13 +125,9 @@ export default function PQRListScreen() {
         .map((p) => [p.id, p]),
     ).values(),
   );
-  const pqrs = search.trim()
-    ? allPqrs.filter(
-        (p) =>
-          p.subject?.toLowerCase().includes(search.toLowerCase()) ||
-          p.description?.toLowerCase().includes(search.toLowerCase()) ||
-          p.entity?.name?.toLowerCase().includes(search.toLowerCase()),
-      )
+  const searchTerm = normalizeSearchText(search);
+  const pqrs = searchTerm
+    ? allPqrs.filter((p) => wallSearchText(p).includes(searchTerm))
     : allPqrs;
 
   if (isError) {
