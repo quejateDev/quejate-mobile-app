@@ -268,6 +268,27 @@ describe('PQRListScreen — búsqueda', () => {
     }
   });
 
+  it('con ñ en la caja no enseña la PQRSD que solo dice «ciudadano»', async () => {
+    serve(
+      wallOf(24, {
+        14: { subject: 'Daño en la tubería' },
+        18: { subject: 'Queja de un ciudadano' },
+      }),
+    );
+    const { getByText, queryByText, type } = await openWall();
+
+    type('daño');
+
+    await waitFor(() => expect(getByText('Daño en la tubería')).toBeTruthy());
+    expect(queryByText('Queja de un ciudadano')).toBeNull();
+
+    // Sin la ñ, la «n» vale por las dos y salen ambas.
+    type('dano');
+
+    expect(getByText('Daño en la tubería')).toBeTruthy();
+    expect(getByText('Queja de un ciudadano')).toBeTruthy();
+  });
+
   it('no encuentra una PQRSD anónima por el nombre de quien la radicó', async () => {
     serve(
       wallOf(24, {

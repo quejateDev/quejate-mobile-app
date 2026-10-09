@@ -338,6 +338,42 @@ describe('useWallSearch', () => {
     }
   });
 
+  it('con ñ en lo escrito no encuentra la PQRSD que solo dice «ciudadano»', async () => {
+    const wall = wallOf(24, {
+      14: { subject: 'Daño en la tubería' },
+      18: { subject: 'Queja de un ciudadano' },
+    });
+    serve(wall);
+    const { result, type } = renderSearch(wall.slice(0, 10));
+
+    type('daño');
+    await waitFor(() => expect(result.current.status).toBe('complete'));
+    expect(result.current.results).toEqual([wall[13]]);
+
+    // Sin la ñ, la «n» vale por las dos.
+    type('dano');
+    expect(result.current.results).toEqual([wall[13], wall[17]]);
+  });
+
+  it('prepara el texto de cada PQRSD una vez por lista, no en cada tecla', async () => {
+    const wall = wallOf(24, { 16: { subject: 'Basura acumulada en la esquina' } });
+    serve(wall);
+    const { result, type } = renderSearch(wall.slice(0, 10));
+    type('b');
+    await waitFor(() => expect(result.current.status).toBe('complete'));
+
+    const normalize = jest.spyOn(String.prototype, 'normalize');
+    type('ba');
+    type('bas');
+    type('basura');
+    const calls = normalize.mock.calls.length;
+    normalize.mockRestore();
+
+    // Tres teclas normalizan lo escrito, no los tres campos de las 24 PQRSD.
+    expect(calls).toBeLessThan(wall.length);
+    expect(result.current.results).toEqual([wall[15]]);
+  });
+
   it('no encuentra una PQRSD por quien la radicó', async () => {
     const wall = wallOf(24, {
       16: {

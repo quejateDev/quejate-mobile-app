@@ -1,4 +1,4 @@
-import { normalizeSearchText, wallSearchText } from '../wallSearch';
+import { normalizeSearchText, searchWall, toSearchable, wallSearchText } from '../wallSearch';
 import type { PQRS } from '@core/types';
 
 const base: PQRS = {
@@ -29,8 +29,21 @@ describe('normalizeSearchText', () => {
     expect(normalizeSearchText('ÁÉÍÓÚ áéíóú')).toBe('aeiou aeiou');
   });
 
-  it('quita también la diéresis y la virgulilla', () => {
-    expect(normalizeSearchText('Señalización del desagüe')).toBe('senalizacion del desague');
+  it('quita también la diéresis, y deja la ñ, que es otra letra', () => {
+    expect(normalizeSearchText('Señalización del desagüe')).toBe('señalizacion del desague');
+  });
+
+  it('deja la ñ venga como venga: de una pieza, como «n» más su virgulilla o en mayúscula', () => {
+    for (const written of ['a\u00f1o', 'an\u0303o', 'A\u00d1O', 'AN\u0303O']) {
+      const normalized = normalizeSearchText(written);
+      expect(normalized).toBe('año');
+      // De una pieza: la «n» y su virgulilla no quedan sueltas.
+      expect(normalized).toHaveLength(3);
+    }
+  });
+
+  it('la virgulilla sobre otra letra cae como cualquier tilde', () => {
+    expect(normalizeSearchText('São João')).toBe('sao joao');
   });
 
   it('da lo mismo con la tilde en una sola letra o suelta detrás de ella', () => {
@@ -118,5 +131,109 @@ describe('wallSearchText', () => {
     expect(text).toContain('fuga de agua');
     expect(text).toContain('potable no llega');
     expect(text).not.toContain(normalizeSearchText('agua potable'));
+  });
+});
+
+/** Los asuntos que encuentra `typed` entre PQRSD con esos asuntos y nada más. */
+function found(typed: string, ...subjects: string[]): string[] {
+  const rows = subjects.map((subject, i) =>
+    toSearchable({
+      ...base,
+      id: `pqr-${i}`,
+      subject,
+      description: undefined,
+      entity: { id: 'entity-1', name: 'Entidad' },
+    }),
+  );
+  return searchWall(rows, normalizeSearchText(typed)).map((p) => p.subject ?? '');
+}
+
+describe('searchWall', () => {
+  it('con ñ en lo escrito, la ñ tiene que estar', () => {
+    expect(found('daño', 'Queja de un ciudadano', 'Daño en la vía')).toEqual(['Daño en la vía']);
+    expect(found('año', 'Aseo urbano', 'Lleva un año así')).toEqual(['Lleva un año así']);
+    expect(found('leña', 'Santa Marta, Magdalena', 'Quema de leña')).toEqual(['Quema de leña']);
+  });
+
+  it('sin ñ en lo escrito, la «n» vale por «n» y por «ñ»', () => {
+    expect(found('senal', 'Señal caída', 'Senal sin tilde')).toEqual([
+      'Señal caída',
+      'Senal sin tilde',
+    ]);
+    expect(found('dano', 'Daño en la vía', 'Queja de un ciudadano')).toEqual([
+      'Daño en la vía',
+      'Queja de un ciudadano',
+    ]);
+    expect(found('ano', 'Aseo urbano', 'Lleva un año así')).toEqual([
+      'Aseo urbano',
+      'Lleva un año así',
+    ]);
+  });
+
+  it('la ñ del texto vale de una pieza, como «n» más su virgulilla y en mayúscula', () => {
+    const subjects = [
+      'Da\u00f1o uno',
+      'Dan\u0303o dos',
+      'DA\u00d1O TRES',
+      'DAN\u0303O CUATRO',
+    ];
+
+    expect(found('daño', ...subjects)).toEqual(subjects);
+  });
+
+  it('y la de lo escrito también', () => {
+    for (const typed of ['da\u00f1o', 'dan\u0303o', 'DA\u00d1O', 'DAN\u0303O']) {
+      expect(found(typed, 'Queja de un ciudadano', 'Daño en la vía')).toEqual(['Daño en la vía']);
+    }
+  });
+
+  it('una coincidencia sin ñ no tapa la que sí la lleva', () => {
+    // «ciudadano» casa sin la ñ y se descarta; el «daño» de después es el bueno.
+    expect(found('daño', 'El ciudadano reporta un daño')).toHaveLength(1);
+    expect(found('año', 'Aseo urbano desde hace un año')).toHaveLength(1);
+    expect(found('daño', 'El ciudadano y el aseo urbano')).toEqual([]);
+  });
+
+  it('con ñ y «n» en lo mismo escrito, la «n» sigue valiendo por las dos', () => {
+    // Quien escribió la ñ de «daño» y no la de «señalización».
+    expect(found('daño en la senalizacion', 'Daño en la señalización')).toHaveLength(1);
+    expect(found('niño', 'Parque para niños', 'Deporte femenino')).toEqual(['Parque para niños']);
+  });
+
+  it('tildes, diéresis, mayúsculas y espacios siguen dando igual en los dos sentidos', () => {
+    expect(found('basura', 'Basúra acumulada', 'BASURA sin recoger')).toHaveLength(2);
+    expect(found('BASÚRA', 'basura acumulada')).toHaveLength(1);
+    expect(found('desague', 'Desagüe tapado')).toHaveLength(1);
+    expect(found('DESAGÜE', 'desague tapado')).toHaveLength(1);
+    expect(found('  alumbrado   publico ', 'Alumbrado  público dañado')).toHaveLength(1);
+    // También con una ñ de por medio.
+    expect(found('SEÑALIZACIÓN', 'señalizacion borrada')).toHaveLength(1);
+    expect(found('señalizacion', 'Señalización borrada')).toHaveLength(1);
+  });
+
+  it('devuelve las PQRSD enteras, en el orden en que venían', () => {
+    const pqrs = ['Daño uno', 'Otra cosa', 'Daño dos'].map((subject, i) => ({
+      ...base,
+      id: `pqr-${i}`,
+      subject,
+      description: undefined,
+    }));
+
+    const results = searchWall(
+      pqrs.map((pqr) => toSearchable(pqr)),
+      'dano',
+    );
+
+    expect(results).toHaveLength(2);
+    expect(results[0]).toBe(pqrs[0]);
+    expect(results[1]).toBe(pqrs[2]);
+  });
+
+  it('los dos textos de una PQRSD casan letra por letra', () => {
+    const row = toSearchable({ ...base, subject: 'Año de la SEÑAL', description: undefined });
+
+    expect(row.text.split('\n')[0]).toBe('año de la señal');
+    expect(row.plain.split('\n')[0]).toBe('ano de la senal');
+    expect(row.plain).toHaveLength(row.text.length);
   });
 });

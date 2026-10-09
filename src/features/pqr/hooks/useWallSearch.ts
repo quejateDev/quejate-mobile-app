@@ -4,7 +4,7 @@ import { apiClient } from '@core/api/client';
 import { ENDPOINTS } from '@core/api/endpoints';
 import type { PQRS } from '@core/types';
 import type { PQRListResponse } from '@features/pqr/hooks/usePQRList';
-import { normalizeSearchText, wallSearchText } from '@features/pqr/utils/wallSearch';
+import { normalizeSearchText, searchWall, toSearchable } from '@features/pqr/utils/wallSearch';
 
 /** El `limit` más alto que acepta `GET /pqr`: por encima responde 400. */
 export const WALL_SEARCH_PAGE_SIZE = 50;
@@ -127,13 +127,10 @@ export function useWallSearch(text: string, loaded: PQRS[]) {
 
   // El texto de cada PQRSD se normaliza una vez por lista, no en cada tecla.
   const searchable = useMemo(
-    () => (isSearching ? pool.map((pqr) => ({ pqr, text: wallSearchText(pqr) })) : []),
+    () => (isSearching ? pool.map((pqr) => toSearchable(pqr)) : []),
     [isSearching, pool],
   );
-  const results = useMemo(
-    () => searchable.filter((row) => row.text.includes(term)).map((row) => row.pqr),
-    [searchable, term],
-  );
+  const results = useMemo(() => searchWall(searchable, term), [searchable, term]);
 
   let status: WallSearchStatus;
   if (!isSearching) status = 'idle';
