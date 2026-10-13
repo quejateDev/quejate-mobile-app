@@ -25,6 +25,19 @@ import type { UserProfile, PQRS } from '@core/types';
 import PQRCard from '@features/pqr/components/PQRCard';
 import { getInitials, ROLE_LABEL } from '@features/users/components/profile/userProfileUtils';
 
+/**
+ * La entrada de caché de las PQRSD que enseña el perfil de `userId`.
+ *
+ * Es solo del perfil: `['pqrs-by-user', userId]` a secas es la lista paginada
+ * de «Mis PQRSD» (useMyPQRs.ts), que guarda otra forma, y con la misma clave
+ * quien abría su propio perfil dejaba esa pestaña sin poder pintar. Va debajo
+ * de ese prefijo porque radicar invalida `['pqrs-by-user', userId]`, y un
+ * comentario, un «me gusta» o un cambio de privacidad, `['pqrs-by-user']`.
+ */
+function profilePqrsQueryKey(userId: string) {
+  return ['pqrs-by-user', userId, 'public-profile'] as const;
+}
+
 export default function PublicProfileScreen() {
   const route = useRoute<RouteProp<AppStackParamList, 'PublicProfile'>>();
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
@@ -40,7 +53,7 @@ export default function PublicProfileScreen() {
   });
 
   const { data: pqrsData, isLoading: pqrsLoading } = useQuery<{ pqrs: PQRS[] }>({
-    queryKey: ['pqrs-by-user', userId],
+    queryKey: profilePqrsQueryKey(userId),
     queryFn: async () => {
       const res = await apiClient.get(ENDPOINTS.PQR.BY_USER(userId), {
         params: { page: 1, limit: 20 },
