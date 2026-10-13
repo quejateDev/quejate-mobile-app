@@ -4,10 +4,16 @@ import { ENDPOINTS } from '@core/api/endpoints';
 import { useAuth } from '@core/auth/useAuth';
 import type { PQRS } from '@core/types';
 
-interface MyPQRsResponse {
+export interface MyPQRsResponse {
   pqrs: PQRS[];
   hasMore: boolean;
   nextPage: number | null;
+  /**
+   * Cuántas PQRSD puede ver quien pregunta, en todas las páginas. Para el dueño
+   * son todas las suyas, también las anónimas y las privadas. `null` si el
+   * servidor no lo manda.
+   */
+  totalCount: number | null;
 }
 
 export function useMyPQRs() {
@@ -27,6 +33,7 @@ export function useMyPQRs() {
             pqrs: (d.pqrs ?? d.data ?? []) as PQRS[],
             hasMore: (d.hasMore as boolean) ?? false,
             nextPage: (d.nextPage as number | null) ?? null,
+            totalCount: typeof d.totalCount === 'number' ? d.totalCount : null,
           };
         }),
     initialPageParam: 1,
