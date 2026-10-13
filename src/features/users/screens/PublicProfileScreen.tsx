@@ -38,6 +38,17 @@ function profilePqrsQueryKey(userId: string) {
   return ['pqrs-by-user', userId, 'public-profile'] as const;
 }
 
+/**
+ * Las PQRSD del perfil. Es una sola página, pero se guarda con la forma
+ * `{ pages: [{ pqrs }] }`, la que entiende `syncListCaches` (usePQRDetail.ts)
+ * cuando copia en las listas la PQRSD fresca del detalle. Con `{ pqrs }` a
+ * secas se la saltaba, y una PQRSD abierta desde el perfil que el detalle
+ * traía ya resuelta seguía como pendiente al volver.
+ */
+interface ProfilePqrs {
+  pages: Array<{ pqrs: PQRS[] }>;
+}
+
 export default function PublicProfileScreen() {
   const route = useRoute<RouteProp<AppStackParamList, 'PublicProfile'>>();
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
@@ -52,14 +63,14 @@ export default function PublicProfileScreen() {
     },
   });
 
-  const { data: pqrsData, isLoading: pqrsLoading } = useQuery<{ pqrs: PQRS[] }>({
+  const { data: pqrsData, isLoading: pqrsLoading } = useQuery<ProfilePqrs>({
     queryKey: profilePqrsQueryKey(userId),
     queryFn: async () => {
       const res = await apiClient.get(ENDPOINTS.PQR.BY_USER(userId), {
         params: { page: 1, limit: 20 },
       });
       const d = res.data as Record<string, unknown>;
-      return { pqrs: (d.pqrs ?? d.data ?? []) as PQRS[] };
+      return { pages: [{ pqrs: (d.pqrs ?? d.data ?? []) as PQRS[] }] };
     },
     enabled: !!userId,
   });
@@ -101,7 +112,7 @@ export default function PublicProfileScreen() {
 
   const initials = getInitials(user.name);
   const roleLabel = ROLE_LABEL[user.role] ?? user.role;
-  const pqrs = pqrsData?.pqrs ?? [];
+  const pqrs = pqrsData?.pages.flatMap((page) => page.pqrs) ?? [];
 
   return (
     <FlatList

@@ -7,6 +7,7 @@ import MyPQRsScreen from '@features/pqr/screens/MyPQRsScreen';
 import { useCreatePQR } from '@features/pqr/hooks/useCreatePQR';
 import type { CreatePQRInput } from '@features/pqr/hooks/useCreatePQR';
 import { useLikePQR } from '@features/pqr/hooks/usePQRActions';
+import { usePQRDetail } from '@features/pqr/hooks/usePQRDetail';
 import { withErrorBoundary } from '@shared/components/ui/withErrorBoundary';
 import { apiClient } from '@core/api/client';
 import { ENDPOINTS } from '@core/api/endpoints';
@@ -244,6 +245,8 @@ function startApp() {
       queryByText: (text: string) => profile().queryByText(text),
       getByText: (text: string) => profile().getByText(text),
       subjects: () => subjectsOf(rows(profile())),
+      /** El estado con el que sale una PQRSD en la lista del perfil. */
+      statusOf: (id: string) => rows(profile()).find((p) => p.id === id)?.status,
     },
   };
 }
@@ -259,6 +262,8 @@ beforeEach(() => {
     for (const [userId, list] of Object.entries(server)) {
       if (url === ENDPOINTS.USERS.DETAIL(userId)) return { data: userProfile(userId, list.length) };
       if (url === ENDPOINTS.PQR.BY_USER(userId)) return listPage(list, config!.params);
+      const detail = list.find((p) => url === ENDPOINTS.PQR.DETAIL(p.id));
+      if (detail) return { data: detail };
     }
     throw new Error(`Petición que la prueba no esperaba: GET ${url}`);
   });
@@ -436,5 +441,25 @@ describe('PublicProfileScreen: el perfil propio y «Mis PQRSD»', () => {
 
     await waitFor(() => expect(app.profile.subjects()[0]).toBe('Recién radicada'));
     expect(app.profile.subjects()).toHaveLength(4);
+  });
+});
+
+describe('PublicProfileScreen: una PQRSD abierta desde el perfil', () => {
+  it('si el detalle la trae ya resuelta, deja de salir como pendiente en el perfil', async () => {
+    server[OTHER] = listOf(3);
+    const app = startApp();
+    await app.profile.open(OTHER);
+    expect(app.profile.statusOf('pqr-002')).toBe('PENDING');
+
+    // Se toca su tarjeta, y el detalle la trae ya resuelta.
+    server[OTHER] = listOf(3, { 2: { status: 'RESOLVED' } });
+    const detail = renderHook(() => usePQRDetail('pqr-002'), { wrapper });
+    await waitFor(() => expect(detail.result.current.data?.status).toBe('RESOLVED'));
+
+    // El perfil sigue montado debajo del detalle y al volver no pide nada: lo
+    // que enseña es lo que tenga en caché.
+    await waitFor(() => expect(app.profile.statusOf('pqr-002')).toBe('RESOLVED'));
+    expect(app.profile.statusOf('pqr-001')).toBe('PENDING');
+    expect(asked(OTHER)).toEqual([PROFILE_PAGE]);
   });
 });
