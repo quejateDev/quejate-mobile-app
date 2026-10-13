@@ -2,6 +2,7 @@ import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import PQRListScreen from '../PQRListScreen';
 import { usePQRList } from '@features/pqr/hooks/usePQRList';
+import { useWallSearch } from '@features/pqr/hooks/useWallSearch';
 import { useNotifications } from '@features/notifications/hooks/useNotifications';
 
 jest.mock('@core/api/client', () => ({ apiClient: { get: jest.fn() } }));
@@ -22,6 +23,11 @@ jest.mock('@features/notifications/hooks/useNotifications', () => ({
 }));
 // La cabecera no depende de las tarjetas; así no se arrastra su reproductor de vídeo.
 jest.mock('@features/pqr/components/PQRCard', () => () => null);
+// Tampoco de la búsqueda, que tiene sus pruebas en PQRListScreen.search.test.tsx.
+jest.mock('@features/pqr/hooks/useWallSearch', () => ({
+  ...jest.requireActual('@features/pqr/hooks/useWallSearch'),
+  useWallSearch: jest.fn(),
+}));
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -34,6 +40,12 @@ beforeEach(() => {
     isError: false,
     refetch: jest.fn(),
     isRefetching: false,
+  });
+  (useWallSearch as jest.Mock).mockReturnValue({
+    status: 'idle',
+    results: [],
+    limitReached: false,
+    refetch: jest.fn(),
   });
   (useNotifications as jest.Mock).mockReturnValue({ data: [] });
 });

@@ -3,7 +3,7 @@ import { apiClient } from '@core/api/client';
 import { ENDPOINTS } from '@core/api/endpoints';
 import type { PQRS, PQRSType } from '@core/types';
 
-interface PQRListResponse {
+export interface PQRListResponse {
   pqrs: PQRS[];
   hasMore: boolean;
   nextPage: number | null;
