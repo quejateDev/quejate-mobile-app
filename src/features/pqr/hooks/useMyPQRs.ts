@@ -4,7 +4,7 @@ import { ENDPOINTS } from '@core/api/endpoints';
 import { useAuth } from '@core/auth/useAuth';
 import type { PQRS } from '@core/types';
 
-interface MyPQRsResponse {
+export interface MyPQRsResponse {
   pqrs: PQRS[];
   hasMore: boolean;
   nextPage: number | null;
