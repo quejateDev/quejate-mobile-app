@@ -70,6 +70,12 @@ export default function MyPQRsScreen() {
   );
   const pqrs = activeStatus ? allPqrs.filter((p) => p.status === activeStatus) : allPqrs;
 
+  // La lista se carga de 10 en 10, así que contar lo cargado dice «10 radicados»
+  // a quien tiene 30. El servidor manda el total con cada página, y vale el de
+  // la última que llegó. Si no lo mandara, se cuenta lo cargado.
+  const lastPage = data?.pages[data.pages.length - 1];
+  const total = lastPage?.totalCount ?? allPqrs.length;
+
   if (!isAuthenticated) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
@@ -125,7 +131,7 @@ export default function MyPQRsScreen() {
             <View style={styles.blueHeader}>
               <Text style={styles.title}>Mis PQRSDs</Text>
               <Text style={styles.subtitle}>
-                {allPqrs.length > 0 ? `${allPqrs.length} radicado${allPqrs.length !== 1 ? 's' : ''}` : 'Sin radicados aún'}
+                {total > 0 ? `${total} radicado${total !== 1 ? 's' : ''}` : 'Sin radicados aún'}
               </Text>
             </View>
             <View style={styles.filterScroll}>{filterBar}</View>
