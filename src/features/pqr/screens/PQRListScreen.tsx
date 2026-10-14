@@ -100,6 +100,23 @@ function SkeletonCard() {
   );
 }
 
+/** Un aviso de que algo no se pudo cargar, con el botón para volver a pedirlo. */
+function RetryNotice({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <View style={styles.searchNotice}>
+      <Ionicons name="alert-circle-outline" size={18} color="#DC2626" />
+      <Text style={styles.searchNoticeText}>{message}</Text>
+      <TouchableOpacity
+        onPress={onRetry}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        accessibilityRole="button"
+      >
+        <Text style={styles.searchNoticeAction}>Reintentar</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 /**
  * Lo que hay que saber de una búsqueda antes de leer sus resultados: que aún no
  * ha recorrido todo el muro, que no pudo, o que el muro es más largo de lo que
@@ -124,19 +141,7 @@ function SearchNotice({
     );
   }
   if (status === 'error') {
-    return (
-      <View style={styles.searchNotice}>
-        <Ionicons name="alert-circle-outline" size={18} color="#DC2626" />
-        <Text style={styles.searchNoticeText}>No se pudo buscar en todo el muro.</Text>
-        <TouchableOpacity
-          onPress={onRetry}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityRole="button"
-        >
-          <Text style={styles.searchNoticeAction}>Reintentar</Text>
-        </TouchableOpacity>
-      </View>
-    );
+    return <RetryNotice message="No se pudo buscar en todo el muro." onRetry={onRetry} />;
   }
   if (limitReached) {
     return (
