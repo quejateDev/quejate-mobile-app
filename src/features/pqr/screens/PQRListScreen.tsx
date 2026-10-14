@@ -170,7 +170,9 @@ export default function PQRListScreen() {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-    isError,
+    isLoadingError,
+    isFetchNextPageError,
+    isRefetchError,
     refetch,
     isRefetching,
   } = usePQRList({});
@@ -195,7 +197,11 @@ export default function PQRListScreen() {
     emptyText = 'No hay PQRSDs disponibles';
   }
 
-  if (isError) {
+  // La pantalla de error solo cuando no hay nada que enseñar. Si lo que falla es
+  // la página siguiente o un refresco, las páginas ya cargadas siguen en `data`
+  // y se quedan a la vista con su aviso. Mientras se busca, los avisos del muro
+  // se callan: lo que se ve sale de la búsqueda, que avisa de lo suyo.
+  if (isLoadingError) {
     return (
       <SafeAreaView style={styles.outerContainer} edges={['top']}>
         <ErrorState
@@ -255,9 +261,24 @@ export default function PQRListScreen() {
         onRetry={wallSearch.refetch}
       />
 
+      {isRefetchError && !isRefetching && !isSearching && (
+        <RetryNotice message="No se pudo actualizar el muro." onRetry={refetch} />
+      )}
+
       {isLoading && [0, 1, 2].map((i) => <SkeletonCard key={i} />)}
     </View>
   );
+
+  let listFooter: React.ReactElement | null = null;
+  if (isFetchingNextPage) {
+    listFooter = <ActivityIndicator style={{ margin: 16 }} color="#2563EB" />;
+  } else if (isFetchNextPageError && !isSearching) {
+    listFooter = (
+      <View style={styles.listFooterNotice}>
+        <RetryNotice message="No se pudieron cargar más PQRSD." onRetry={() => fetchNextPage()} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.outerContainer}>
@@ -334,13 +355,12 @@ export default function PQRListScreen() {
             </View>
           ) : null
         }
-        ListFooterComponent={
-          isFetchingNextPage ? (
-            <ActivityIndicator style={{ margin: 16 }} color="#2563EB" />
-          ) : null
-        }
+        ListFooterComponent={listFooter}
         onEndReached={() => {
-          if (hasNextPage && !isFetchingNextPage && !isSearching) fetchNextPage();
+          // Tras un fallo, la página siguiente se pide con «Reintentar», no al bajar.
+          if (hasNextPage && !isFetchingNextPage && !isFetchNextPageError && !isSearching) {
+            fetchNextPage();
+          }
         }}
         onEndReachedThreshold={0.3}
         refreshControl={
@@ -489,6 +509,7 @@ const styles = StyleSheet.create({
   },
   searchNoticeText: { flex: 1, fontSize: 13, color: '#374151', lineHeight: 18 },
   searchNoticeAction: { fontSize: 13, fontWeight: '700', color: '#2563EB' },
+  listFooterNotice: { paddingTop: 16, paddingBottom: 8 },
   emptyContainer: { alignItems: 'center', paddingVertical: 48 },
   emptyText: { fontSize: 15, color: '#9CA3AF' },
   skeletonCard: {
