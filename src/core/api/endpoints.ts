@@ -93,6 +93,16 @@ export const ENDPOINTS = {
     DETAIL: (id: string) => `/legal-docs/${id}`,
     /** GET: `application/pdf`. No pasa por apiClient, ver legalDocShare.ts. */
     PDF:    (id: string) => `/legal-docs/${id}/pdf`,
+    /**
+     * POST: genera con `{ documentType, ...datos }` y responde `{ document, id? }`.
+     * La app la usa para el oficio al ente de control (`documentType: 'oversight'`).
+     */
+    DOCUMENT: '/legal-docs/document',
+    /**
+     * POST: envía el oficio guardado al buzón del directorio del ente, con
+     * `{ pqrId, oversightEntityId }`. Ver `utils/oversightSend.ts`.
+     */
+    SEND:   (id: string) => `/legal-docs/${id}/send`,
   },
   CATEGORIES: {
     LIST:   '/category',

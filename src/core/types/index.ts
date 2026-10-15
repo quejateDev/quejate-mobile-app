@@ -301,9 +301,8 @@ export interface MapPQR {
 // =============================================================================
 
 /**
- * Hoy el backend solo emite TUTELA. OVERSIGHT existe en el contrato pero la app
- * móvil no genera oficios a entes de control, así que no hay interfaz para él:
- * la lista se pinta con el `title` que manda el servidor, no con un rótulo
+ * TUTELA es la acción de tutela; OVERSIGHT, el oficio a un ente de control.
+ * La lista se pinta con el `title` que manda el servidor, no con un rótulo
  * derivado del tipo, para que un tipo nuevo no deje filas en blanco.
  */
 export type LegalDocType = 'TUTELA' | 'OVERSIGHT';
@@ -402,18 +401,22 @@ export interface Rating {
 // OversightEntity
 // =============================================================================
 
+/**
+ * Fila de `GET /oversight-entity/by-location`, con las claves del `select` del
+ * servidor. Las mayúsculas de `Municipality` y `RegionalDepartment` son las
+ * suyas.
+ */
 export interface OversightEntity {
   id: string;
   name: string;
-  email: string;
-  phone?: string;
-  description?: string;
-  municipalityId?: string;
-  regionalDepartmentId?: string;
-  Municipality?: { id: string; name: string };
-  RegionalDepartment?: { id: string; name: string };
-  createdAt: Date;
-  updatedAt: Date;
+  /** Puede venir vacío: sin buzón se redacta el oficio, pero no se envía. */
+  email: string | null;
+  phone?: string | null;
+  description?: string | null;
+  municipalityId?: string | null;
+  regionalDepartmentId?: string | null;
+  Municipality?: { id: string; name: string } | null;
+  RegionalDepartment?: { id: string; name: string } | null;
 }
 
 // =============================================================================
