@@ -11,6 +11,7 @@ import PublicProfileScreen from '@features/users/screens/PublicProfileScreen';
 import PeopleSearchScreen from '@features/users/screens/PeopleSearchScreen';
 import FormalFollowupScreen from '@features/pqr/screens/FormalFollowupScreen';
 import GenerateTutelaScreen from '@features/pqr/screens/GenerateTutelaScreen';
+import OversightLetterScreen from '@features/pqr/screens/OversightLetterScreen';
 import MyLegalDocsScreen from '@features/pqr/screens/MyLegalDocsScreen';
 import LegalDocDetailScreen from '@features/pqr/screens/LegalDocDetailScreen';
 import LawyerListScreen from '@features/lawyers/screens/LawyerListScreen';
@@ -57,6 +58,7 @@ export default function AppNavigator() {
       <Stack.Screen name="PeopleSearch" component={withErrorBoundary(PeopleSearchScreen)} options={{ ...headerDefaults, headerTitle: 'Buscar personas' }} />
       <Stack.Screen name="FormalFollowup" component={withErrorBoundary(FormalFollowupScreen)} options={{ ...headerDefaults, headerTitle: 'Seguimiento formal' }} />
       <Stack.Screen name="GenerateTutela" component={withErrorBoundary(GenerateTutelaScreen)} options={{ ...headerDefaults, headerTitle: 'Generar tutela' }} />
+      <Stack.Screen name="OversightLetter" component={withErrorBoundary(OversightLetterScreen)} options={{ ...headerDefaults, headerTitle: 'Ente de control' }} />
       <Stack.Screen name="LawyerList" component={withErrorBoundary(LawyerListScreen)} options={{ ...headerDefaults, headerTitle: 'Abogados disponibles' }} />
       <Stack.Screen name="LawyerDetail" component={withErrorBoundary(LawyerDetailScreen)} options={{ ...headerDefaults, headerTitle: 'Perfil de abogado' }} />
       <Stack.Screen name="MyLawyerRequests" component={withErrorBoundary(MyLawyerRequestsScreen)} options={{ ...headerDefaults, headerTitle: 'Mis solicitudes' }} />
