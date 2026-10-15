@@ -51,9 +51,9 @@ beforeEach(() => {
 });
 
 describe('MyLegalDocsScreen', () => {
-  // La app nunca genera un OVERSIGHT, pero la cuenta de pruebas ya tiene uno:
-  // llegan a la lista si se generaron desde la web. La pantalla pinta el
-  // `title` del servidor y no un rótulo derivado del tipo, y esto lo ata.
+  // Los oficios llegan a la lista generados desde la app o desde la web. La
+  // pantalla pinta el `title` del servidor y no un rótulo derivado del tipo,
+  // y esto lo ata.
   it('pinta un documento OVERSIGHT con el título que manda el servidor', async () => {
     mockList([oversight]);
 
@@ -66,7 +66,7 @@ describe('MyLegalDocsScreen', () => {
     );
   });
 
-  it('lista los dos tipos juntos sin descartar el que no genera', async () => {
+  it('lista los dos tipos juntos', async () => {
     mockList([tutela, oversight]);
 
     const { getByText } = render(<MyLegalDocsScreen />);
@@ -95,12 +95,16 @@ describe('MyLegalDocsScreen', () => {
     await waitFor(() => expect(getByText(/seis meses/i)).toBeTruthy());
   });
 
-  it('el estado vacío no promete que la app genere oficios', async () => {
+  it('el estado vacío nombra los dos documentos que genera la app', async () => {
     mockList([]);
 
-    const { getByText, queryByText } = render(<MyLegalDocsScreen />);
+    const { getByText } = render(<MyLegalDocsScreen />);
 
     await waitFor(() => expect(getByText('Aún no tienes documentos')).toBeTruthy());
-    expect(queryByText(/ente de control|oficio/i)).toBeNull();
+    expect(
+      getByText(
+        'Aquí se guardan los documentos legales que generas desde una PQRSD vencida en Seguimiento formal: las acciones de tutela y los oficios a entes de control.',
+      ),
+    ).toBeTruthy();
   });
 });

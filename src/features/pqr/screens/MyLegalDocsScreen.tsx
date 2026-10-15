@@ -79,11 +79,11 @@ export default function MyLegalDocsScreen() {
           ListEmptyComponent={
             <View style={styles.emptyBox}>
               <Text style={styles.emptyTitle}>Aún no tienes documentos</Text>
-              {/* No promete oficios a entes de control: la app no los genera,
-               *  solo los muestra si se generaron desde la web. */}
+              {/* Nombra los dos documentos que la app genera desde Seguimiento
+               *  formal: la tutela y el oficio al ente de control. */}
               <Text style={styles.emptyText}>
-                Aquí se guardan los documentos legales que generas, como las tutelas
-                que creas desde una PQRSD vencida en Seguimiento formal.
+                Aquí se guardan los documentos legales que generas desde una PQRSD vencida en
+                Seguimiento formal: las acciones de tutela y los oficios a entes de control.
               </Text>
             </View>
           }
