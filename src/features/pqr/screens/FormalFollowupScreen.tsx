@@ -6,6 +6,8 @@ import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import type { AppStackParamList } from '@navigation/navigationRef';
+import { usePQRDetail } from '@features/pqr/hooks/usePQRDetail';
+import { resolveOverdue } from '@features/pqr/utils/businessDays';
 
 type Nav = NativeStackNavigationProp<AppStackParamList>;
 type Route = RouteProp<AppStackParamList, 'FormalFollowup'>;
@@ -13,6 +15,9 @@ type Route = RouteProp<AppStackParamList, 'FormalFollowup'>;
 export default function FormalFollowupScreen() {
   const navigation = useNavigation<Nav>();
   const { pqrId } = useRoute<Route>().params;
+  // La PQRSD ya está en caché: se llega aquí desde su detalle.
+  const { data: pqr } = usePQRDetail(pqrId);
+  const showOversight = !!pqr && resolveOverdue(pqr).isOverdue;
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -58,6 +63,27 @@ export default function FormalFollowupScreen() {
           </View>
           <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
         </TouchableOpacity>
+
+        {/* Solo donde se abre la tutela: una PQRSD vencida de un tipo con
+         *  plazo (`resolveOverdue` ya deja fuera la sugerencia). */}
+        {showOversight ? (
+          <TouchableOpacity
+            style={styles.card}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('OversightLetter', { pqrId })}
+            accessibilityRole="button"
+            accessibilityLabel="Enviar a ente de control"
+          >
+            <View style={[styles.iconCircle, { backgroundColor: '#F5F3FF' }]}>
+              <Ionicons name="shield-checkmark" size={24} color="#7C3AED" />
+            </View>
+            <View style={styles.cardBody}>
+              <Text style={styles.cardTitle}>Enviar a ente de control</Text>
+              <Text style={styles.cardSub}>Enviar a ente de control competente</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+          </TouchableOpacity>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
