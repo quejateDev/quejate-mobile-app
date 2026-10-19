@@ -254,6 +254,40 @@ describe('CreatePQRScreen — allowAnonymous', () => {
   });
 });
 
+describe('CreatePQRScreen: qué significa «anónima»', () => {
+  const ANONYMOUS_HELP =
+    'Si la envías como anónima, la entidad no sabrá quién eres y no podrá contestarte por correo. Si responde desde Quéjate, verás la respuesta aquí y te llegará a tu correo; si no, puede publicarla en su página web. Para que la tramite, cuenta hechos concretos (qué pasó, dónde y cuándo) y adjunta pruebas si las tienes.';
+
+  it('con el interruptor apagado no sale', async () => {
+    const utils = render(<CreatePQRScreen />);
+    await navigateToStep2(utils);
+
+    expect(utils.queryByText(ANONYMOUS_HELP)).toBeNull();
+  });
+
+  it('al encenderlo se lee el texto de la web, y al apagarlo se va', async () => {
+    const utils = render(<CreatePQRScreen />);
+    await navigateToStep2(utils);
+
+    fireEvent(utils.getByTestId('anonymous-toggle'), 'valueChange', true);
+    await waitFor(() => expect(utils.getByText(ANONYMOUS_HELP)).toBeTruthy());
+
+    fireEvent(utils.getByTestId('anonymous-toggle'), 'valueChange', false);
+    await waitFor(() => expect(utils.queryByText(ANONYMOUS_HELP)).toBeNull());
+  });
+
+  it('la ventana de información dice lo mismo', async () => {
+    const utils = render(<CreatePQRScreen />);
+    await navigateToStep2(utils);
+
+    fireEvent.press(utils.getByTestId('anonymous-info'));
+
+    expect(utils.getByText('¿Qué significa enviar anónimamente?')).toBeTruthy();
+    expect(utils.getByText(ANONYMOUS_HELP)).toBeTruthy();
+    expect(utils.queryByText(/no podrás recibir respuestas directas/)).toBeNull();
+  });
+});
+
 describe('CreatePQRScreen — requireEvidence', () => {
   it('bloquea el avance al step 4 y muestra error si requireEvidence=true sin adjuntos', async () => {
     (usePQRConfig as jest.Mock).mockReturnValue({

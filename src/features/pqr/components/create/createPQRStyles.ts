@@ -176,6 +176,19 @@ export const styles = StyleSheet.create({
     color: '#9CA3AF',
     marginTop: 2,
   },
+  // Con la ayuda debajo, la línea de separación pasa a la ayuda.
+  toggleRowWithHelp: {
+    borderBottomWidth: 0,
+    paddingBottom: 6,
+  },
+  toggleHelp: {
+    fontSize: 12,
+    color: '#6B7280',
+    lineHeight: 18,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
 
   attachmentButtons: {
     flexDirection: 'row',

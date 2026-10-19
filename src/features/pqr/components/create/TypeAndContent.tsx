@@ -10,7 +10,7 @@ import {
   Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Controller } from 'react-hook-form';
+import { Controller, useWatch } from 'react-hook-form';
 import type { Control, FieldErrors } from 'react-hook-form';
 import { typeMap } from '@core/types';
 import { PQRS_TYPES, type FormData } from './createPQRTypes';
@@ -22,10 +22,18 @@ interface Props {
   allowAnonymous: boolean;
 }
 
+/**
+ * Qué implica enviarla como anónima. Texto aprobado por la dirección, el que
+ * la web enseña al marcar la casilla (`components/forms/new-pqr.tsx`): va tal
+ * cual. Las respuestas que la entidad da desde Quéjate sí le llegan al correo.
+ */
+const ANONYMOUS_HELP =
+  'Si la envías como anónima, la entidad no sabrá quién eres y no podrá contestarte por correo. Si responde desde Quéjate, verás la respuesta aquí y te llegará a tu correo; si no, puede publicarla en su página web. Para que la tramite, cuenta hechos concretos (qué pasó, dónde y cuándo) y adjunta pruebas si las tienes.';
+
 const INFO_CONTENT = {
   anonymous: {
     title: '¿Qué significa enviar anónimamente?',
-    body: 'Cuando envías de forma anónima, la entidad no verá tu nombre ni tu información personal al recibir la PQRSD.\n\nTen en cuenta que algunos procesos requieren identificación para ser tramitados. También significa que no podrás recibir respuestas directas a tu correo.',
+    body: ANONYMOUS_HELP,
   },
   private: {
     title: '¿Qué significa mantener privado?',
@@ -57,6 +65,7 @@ function InfoModal({ type, onClose }: { type: 'anonymous' | 'private'; onClose: 
 
 export function TypeAndContent({ control, errors, allowAnonymous }: Props) {
   const [infoModal, setInfoModal] = useState<'anonymous' | 'private' | null>(null);
+  const isAnonymous = useWatch({ control, name: 'isAnonymous' });
 
   return (
     <View testID="step2-content">
@@ -143,11 +152,12 @@ export function TypeAndContent({ control, errors, allowAnonymous }: Props) {
         )}
       </View>
 
-      <View style={styles.toggleRow}>
+      <View style={[styles.toggleRow, isAnonymous && styles.toggleRowWithHelp]}>
         <View style={styles.toggleInfo}>
           <View style={infoStyles.labelRow}>
             <Text style={styles.toggleLabel}>Enviar anónimamente</Text>
             <TouchableOpacity
+              testID="anonymous-info"
               onPress={() => setInfoModal('anonymous')}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
@@ -173,6 +183,13 @@ export function TypeAndContent({ control, errors, allowAnonymous }: Props) {
           )}
         />
       </View>
+      {/* Como en la web, se lee al encenderlo, sin tener que abrir la ventana
+          de información. Región viva para que un lector de pantalla lo anuncie. */}
+      {isAnonymous ? (
+        <Text style={styles.toggleHelp} accessibilityLiveRegion="polite">
+          {ANONYMOUS_HELP}
+        </Text>
+      ) : null}
 
       <View style={styles.toggleRow}>
         <View style={infoStyles.labelRow}>
