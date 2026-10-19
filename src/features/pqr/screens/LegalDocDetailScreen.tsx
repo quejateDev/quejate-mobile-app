@@ -18,6 +18,7 @@ import { useLegalDoc } from '@features/pqr/hooks/useLegalDocs';
 import { usePdfDownload } from '@features/pqr/hooks/usePdfDownload';
 import { downloadLegalDocPdf } from '@features/pqr/utils/legalDocShare';
 import { formatLegalDocDate } from '@features/pqr/utils/legalDocsCopy';
+import { LegalDocDraftNotice } from '@features/pqr/components/LegalDocDraftNotice';
 
 type Route = RouteProp<AppStackParamList, 'LegalDocDetail'>;
 
@@ -56,6 +57,8 @@ export default function LegalDocDetailScreen() {
           Disponible hasta {formatLegalDocDate(doc.expiresAt)}
         </Text>
       </View>
+      {/* Tutela u oficio, los dos son borradores hechos con IA. */}
+      <LegalDocDraftNotice style={styles.draftNotice} />
 
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={styles.text} selectable>
@@ -105,6 +108,7 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10 },
   title: { fontSize: 17, fontWeight: '700', color: '#111827' },
   expiry: { fontSize: 12, color: '#92400E', marginTop: 4 },
+  draftNotice: { marginTop: 0, marginBottom: 8 },
   scroll: { padding: 16, paddingTop: 4 },
   text: { fontSize: 13, color: '#374151', lineHeight: 20 },
   actions: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingTop: 10 },

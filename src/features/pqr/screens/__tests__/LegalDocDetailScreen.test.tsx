@@ -32,6 +32,9 @@ const oversight: LegalDoc = {
   content: 'Señores Personería de Santa Marta.\n\nAsunto: solicitud de intervención…',
 };
 
+const DRAFT_NOTICE =
+  'Es un borrador redactado con inteligencia artificial: revísalo y corrígelo antes de presentarlo. Quéjate no se hace responsable de su contenido.';
+
 const run = jest.fn();
 
 beforeEach(() => {
@@ -69,5 +72,28 @@ describe('LegalDocDetailScreen con un oficio al ente de control', () => {
     await run.mock.calls[0][1]();
     expect(downloadLegalDocPdf).toHaveBeenCalledWith('doc-2');
     expect(screen.queryByText(/tutela/i)).toBeNull();
+  });
+
+  it('avisa, encima del texto, de que es un borrador hecho con IA', () => {
+    const screen = render(<LegalDocDetailScreen />);
+
+    expect(screen.getByText(DRAFT_NOTICE)).toBeTruthy();
+    const tree = JSON.stringify(screen.toJSON());
+    expect(tree.indexOf(DRAFT_NOTICE)).toBeLessThan(tree.indexOf('Señores Personería'));
+  });
+});
+
+describe('LegalDocDetailScreen con una tutela', () => {
+  it('avisa también de que es un borrador hecho con IA', () => {
+    (useLegalDoc as jest.Mock).mockReturnValue({
+      data: { ...oversight, type: 'TUTELA', title: 'Acción de tutela', content: 'Señor juez…' },
+      isLoading: false,
+      isError: false,
+      refetch: jest.fn(),
+    });
+    const screen = render(<LegalDocDetailScreen />);
+
+    expect(screen.getByText('Señor juez…')).toBeTruthy();
+    expect(screen.getByText(DRAFT_NOTICE)).toBeTruthy();
   });
 });

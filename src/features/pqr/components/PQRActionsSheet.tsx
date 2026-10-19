@@ -102,10 +102,10 @@ export function PQRActionsSheet({ pqr, isOwner, onClose }: Props) {
     const ok = await pdf.run(
       'certificate',
       () => downloadCertificatePdf(pqr.id),
-      'Certificado de radicación',
+      'Constancia de envío',
       {
         notFoundMessage:
-          'No hay certificado disponible para esta PQRSD. Solo su autor puede descargarlo.',
+          'No hay constancia disponible para esta PQRSD. Solo su autor puede descargarla.',
       },
     );
     if (ok) onClose();
@@ -147,8 +147,8 @@ export function PQRActionsSheet({ pqr, isOwner, onClose }: Props) {
 
             <SheetRow
               icon="ribbon-outline"
-              label={pdf.busy === 'certificate' ? 'Descargando…' : 'Descargar certificado'}
-              sublabel="Constancia de radicación en PDF"
+              label={pdf.busy === 'certificate' ? 'Descargando…' : 'Descargar constancia de envío'}
+              sublabel="En PDF"
               onPress={() => void handleCertificate()}
               disabled={downloading || busy}
               trailing={

@@ -57,6 +57,13 @@ export function OverdueModal({
             <Text style={styles.question}>
               ¿Has recibido una respuesta a tu solicitud o deseas realizar un seguimiento?
             </Text>
+            {/* Quéjate no sigue esos avisos de la entidad (decisión del
+                05/10/2026): solo se lo recuerda al ciudadano. Texto aprobado,
+                el de la web (`PQRAlertModal.tsx`): va tal cual. */}
+            <Text style={styles.waitNote}>
+              Si la entidad te pidió completar información, te avisó que la pasó a otra entidad o
+              que necesita más tiempo, espera esa nueva fecha antes de presentar una tutela.
+            </Text>
 
             <TouchableOpacity
               style={styles.optionGreen}
@@ -147,8 +154,14 @@ const styles = StyleSheet.create({
   question: {
     fontSize: 13,
     color: '#374151',
-    marginBottom: 12,
+    marginBottom: 8,
     lineHeight: 19,
+  },
+  waitNote: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 12,
+    lineHeight: 17,
   },
   optionGreen: {
     flexDirection: 'row',

@@ -176,6 +176,19 @@ export const styles = StyleSheet.create({
     color: '#9CA3AF',
     marginTop: 2,
   },
+  // Con la ayuda debajo, la línea de separación pasa a la ayuda.
+  toggleRowWithHelp: {
+    borderBottomWidth: 0,
+    paddingBottom: 6,
+  },
+  toggleHelp: {
+    fontSize: 12,
+    color: '#6B7280',
+    lineHeight: 18,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
 
   attachmentButtons: {
     flexDirection: 'row',
@@ -321,6 +334,37 @@ export const styles = StyleSheet.create({
     color: '#111827',
     flex: 2,
     textAlign: 'right',
+  },
+  facilitatorNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    backgroundColor: '#F8FAFC',
+    padding: 12,
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  facilitatorNoticeIcon: {
+    marginRight: 8,
+    marginTop: 1,
+  },
+  facilitatorNoticeText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#334155',
+    lineHeight: 19,
+  },
+  consentText: {
+    fontSize: 12,
+    color: '#4B5563',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  consentLink: {
+    color: '#2563EB',
+    textDecorationLine: 'underline',
   },
 
   errorContainer: {

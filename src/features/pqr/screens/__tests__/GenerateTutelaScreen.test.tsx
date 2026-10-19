@@ -33,6 +33,9 @@ jest.mock('@features/pqr/utils/legalDocShare', () => ({
 
 const TUTELA_TEXT = 'ACCIÓN DE TUTELA — señor juez…';
 
+const DRAFT_NOTICE =
+  'Es un borrador redactado con inteligencia artificial: revísalo y corrígelo antes de presentarlo. Quéjate no se hace responsable de su contenido.';
+
 const pqr = {
   id: 'pqr-1',
   type: 'COMPLAINT',
@@ -133,6 +136,30 @@ describe('GenerateTutelaScreen', () => {
 
     await waitFor(() => expect(screen.getByText(TUTELA_TEXT)).toBeTruthy());
     expect(screen.queryByText('Guardar o compartir el PDF')).toBeNull();
+  });
+
+  it('con la tutela generada avisa, encima del texto, de que es un borrador hecho con IA', async () => {
+    mockGenerate({ content: TUTELA_TEXT, id: 'doc-1' });
+    const screen = render(<GenerateTutelaScreen />);
+    // En el formulario aún no hay texto que leer.
+    expect(screen.queryByText(DRAFT_NOTICE)).toBeNull();
+
+    generate(screen);
+
+    await waitFor(() => expect(screen.getByText(TUTELA_TEXT)).toBeTruthy());
+    expect(screen.getByText(DRAFT_NOTICE)).toBeTruthy();
+    const tree = JSON.stringify(screen.toJSON());
+    expect(tree.indexOf(DRAFT_NOTICE)).toBeLessThan(tree.indexOf(TUTELA_TEXT));
+  });
+
+  it('también sin id, que el texto se lee igual', async () => {
+    mockGenerate({ content: TUTELA_TEXT, id: null });
+    const screen = render(<GenerateTutelaScreen />);
+
+    generate(screen);
+
+    await waitFor(() => expect(screen.getByText(TUTELA_TEXT)).toBeTruthy());
+    expect(screen.getByText(DRAFT_NOTICE)).toBeTruthy();
   });
 
   it('el texto generado se puede seleccionar para copiarlo', async () => {

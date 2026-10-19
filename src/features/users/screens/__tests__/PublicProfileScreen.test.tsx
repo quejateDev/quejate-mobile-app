@@ -372,7 +372,7 @@ describe('PublicProfileScreen: el perfil propio y «Mis PQRSD»', () => {
     server[ME] = [pqr(0, { id: 'pqr-new', subject: 'Recién radicada' }), ...server[ME]];
     app.myPqrs.pullToRefresh();
     await waitFor(() => expect(app.myPqrs.subjects()[0]).toBe('Recién radicada'));
-    expect(app.myPqrs.getByText('25 radicados')).toBeTruthy();
+    expect(app.myPqrs.getByText('25 enviadas')).toBeTruthy();
 
     // Sigue paginando, y tocar la barra de filtros no la rompe.
     app.myPqrs.reachEnd();
@@ -394,7 +394,7 @@ describe('PublicProfileScreen: el perfil propio y «Mis PQRSD»', () => {
 
     expect(app.myPqrs.queryByText(SCREEN_BROKEN)).toBeNull();
     expect(app.myPqrs.subjects()).toEqual(subjectsOf(server[ME]).slice(0, 10));
-    expect(app.myPqrs.getByText('24 radicados')).toBeTruthy();
+    expect(app.myPqrs.getByText('24 enviadas')).toBeTruthy();
     expect(asked(ME)).toEqual([PROFILE_PAGE, MY_PQRS_FIRST_PAGE]);
 
     server[ME] = listOf(24, { 3: { status: 'RESOLVED', subject: 'Poste ya reparado' } });

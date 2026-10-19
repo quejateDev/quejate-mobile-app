@@ -1,16 +1,42 @@
-import React, { RefObject } from 'react';
+import React, { RefObject, useState } from 'react';
 import { StepHeader } from './StepHeader';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import type { RecaptchaRef } from 'react-native-recaptcha-that-works';
 import type { UseFormGetValues } from 'react-hook-form';
 import { typeMap } from '@core/types';
 import type { CustomField } from '@core/types';
+import { PRIVACY_URL, TERMS_URL } from '@shared/constants/legalUrls';
 import type { LocalAttachment } from '@features/pqr/hooks/useCreatePQR';
+import { WebViewModal } from '@features/users/components/profile/WebViewModal';
 import type { FormData } from './createPQRTypes';
 import { SummaryRow } from './SummaryRow';
 import { styles } from './createPQRStyles';
 
 import type { NamedItem } from './createPQRTypes';
+
+/**
+ * Quéjate se presenta como facilitador antes de enviar. Texto aprobado por la
+ * dirección, el mismo de la web (`components/forms/new-pqr.tsx`): va tal cual.
+ */
+const FACILITATOR_NOTICE =
+  'Quéjate es un facilitador. Te ayuda a escribir tu PQRSD y la envía a la entidad en tu nombre, porque tú lo pides. Quéjate no es la entidad ni una autoridad: no radica tu petición, no la responde y no puede garantizar que te respondan. El número que te da Quéjate es de seguimiento.';
+
+/**
+ * Cómo termina el aviso. En una anónima la entidad no tiene el correo de
+ * quien la envía, así que no se promete nada por ese medio.
+ */
+const OFFICIAL_NUMBER = {
+  anonymous: 'El radicado oficial lo asigna la entidad.',
+  identified:
+    'El radicado oficial lo asigna la entidad, que te lo enviará a tu correo junto con su respuesta.',
+};
+
+/** Las dos páginas que nombra la autorización, como en Perfil → Configuración. */
+const LEGAL_PAGES = {
+  privacy: { url: PRIVACY_URL, title: 'Política de privacidad' },
+  terms: { url: TERMS_URL, title: 'Términos y condiciones' },
+};
 
 interface Props {
   entities: NamedItem[];
@@ -45,6 +71,7 @@ export function Confirmation({
   onSubmit,
   getValues,
 }: Props) {
+  const [legalPage, setLegalPage] = useState<keyof typeof LEGAL_PAGES | null>(null);
   const values = getValues();
   const selectedEntity = entities.find((e) => e.id === values.entityId);
   const selectedEntityDept = entityDepartments.find((d) => d.id === values.entityDepartmentId);
@@ -114,6 +141,47 @@ export function Confirmation({
         </View>
       )}
 
+      <View style={styles.facilitatorNotice}>
+        <Ionicons
+          name="information-circle-outline"
+          size={16}
+          color="#334155"
+          style={styles.facilitatorNoticeIcon}
+        />
+        <Text style={styles.facilitatorNoticeText}>
+          {`${FACILITATOR_NOTICE} ${
+            values.isAnonymous ? OFFICIAL_NUMBER.anonymous : OFFICIAL_NUMBER.identified
+          }`}
+        </Text>
+      </View>
+
+      {/* Texto aprobado de la web (`new-pqr.tsx`), tal cual. Aceptar la
+          respuesta por correo es lo que le permite a la entidad notificar por
+          ese medio (CPACA, art. 56); en una anónima no hay correo que aceptar. */}
+      <Text style={styles.consentText}>
+        {`Al enviar, autorizas a Quéjate a enviar tu PQRSD a ${
+          selectedEntity?.name?.trim() || 'la entidad'
+        }${
+          values.isAnonymous ? '' : ' y aceptas recibir su respuesta en tu correo'
+        }. Tus datos se tratan según la `}
+        <Text
+          style={styles.consentLink}
+          onPress={() => setLegalPage('privacy')}
+          accessibilityRole="link"
+        >
+          Política de Privacidad
+        </Text>
+        {', y al enviar aceptas los '}
+        <Text
+          style={styles.consentLink}
+          onPress={() => setLegalPage('terms')}
+          accessibilityRole="link"
+        >
+          Términos y Condiciones
+        </Text>
+        .
+      </Text>
+
       <TouchableOpacity
         testID="submit-btn"
         style={[styles.button, (!recaptchaToken || isPending) && styles.buttonDisabled]}
@@ -128,6 +196,15 @@ export function Confirmation({
           <Text style={styles.buttonText}>Enviar PQRSD</Text>
         )}
       </TouchableOpacity>
+
+      {legalPage ? (
+        <WebViewModal
+          visible
+          url={LEGAL_PAGES[legalPage].url}
+          title={LEGAL_PAGES[legalPage].title}
+          onClose={() => setLegalPage(null)}
+        />
+      ) : null}
     </View>
   );
 }

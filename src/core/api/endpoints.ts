@@ -28,7 +28,7 @@ export const ENDPOINTS = {
     COMMENTS: (id: string) => `/pqr/${id}/comments`,
     LIKE:     (id: string) => `/pqr/${id}/like`,
     /**
-     * GET: `application/pdf` con el certificado de radicación. Solo el autor;
+     * GET: `application/pdf` con la constancia de envío. Solo el autor;
      * a cualquier otro le responde 404, igual que si la PQRSD no existiera.
      */
     CERTIFICATE: (id: string) => `/pqr/${id}/certificate.pdf`,

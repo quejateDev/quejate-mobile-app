@@ -204,7 +204,9 @@ export function DetailHeader({ pqrId, commentCount }: Props) {
       ) : null}
       {pqr.consecutiveCode ? (
         <View style={styles.metaBlock}>
-          <Text style={styles.metaLabel}>Código</Text>
+          {/* Es el número de Quéjate, de seguimiento. El radicado oficial lo
+              asigna la entidad. */}
+          <Text style={styles.metaLabel}>N.º de seguimiento</Text>
           <Text style={styles.metaValue}>{pqr.consecutiveCode}</Text>
         </View>
       ) : null}

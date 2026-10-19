@@ -47,7 +47,7 @@ jest.mock('@features/pqr/components/PQRCard', () => {
 
 const get = apiClient.get as jest.Mock;
 
-const NONE_YET = 'Aún no has radicado ninguna PQRSD';
+const NONE_YET = 'Aún no has enviado ninguna PQRSD';
 const LOADING_ALL = 'Cargando todas tus PQRSD…';
 const NONE_IN_STATUS = 'No tienes PQRSDs con este estado';
 const FAILED = 'No se pudieron cargar todas tus PQRSD.';
@@ -204,7 +204,7 @@ afterEach(() => {
 });
 
 describe('MyPQRsScreen: contador', () => {
-  it('con 30 y 10 cargadas dice «30 radicados»', async () => {
+  it('con 30 y 10 cargadas dice «30 enviadas»', async () => {
     serve(listOf(30));
     const { getByText, queryByText, subjects } = await openMyPQRs();
 
@@ -212,23 +212,23 @@ describe('MyPQRsScreen: contador', () => {
     expect(subjects()).toHaveLength(10);
     expect(asked()).toEqual([{ page: 1, limit: 10 }]);
 
-    expect(getByText('30 radicados')).toBeTruthy();
-    expect(queryByText('10 radicados')).toBeNull();
+    expect(getByText('30 enviadas')).toBeTruthy();
+    expect(queryByText('10 enviadas')).toBeNull();
   });
 
-  it('con una sola dice «1 radicado», en singular', async () => {
+  it('con una sola dice «1 enviada», en singular', async () => {
     serve(listOf(1));
     const { getByText, queryByText } = await openMyPQRs();
 
-    expect(getByText('1 radicado')).toBeTruthy();
-    expect(queryByText('1 radicados')).toBeNull();
+    expect(getByText('1 enviada')).toBeTruthy();
+    expect(queryByText('1 enviadas')).toBeNull();
   });
 
-  it('sin ninguna dice «Sin radicados aún»', async () => {
+  it('sin ninguna dice «Ninguna enviada aún»', async () => {
     serve([]);
     const { getByText } = await openMyPQRs();
 
-    expect(getByText('Sin radicados aún')).toBeTruthy();
+    expect(getByText('Ninguna enviada aún')).toBeTruthy();
     expect(getByText(NONE_YET)).toBeTruthy();
   });
 
@@ -236,13 +236,13 @@ describe('MyPQRsScreen: contador', () => {
     const list = listOf(30);
     serve(list);
     const { getByText, reachEnd } = await openMyPQRs();
-    expect(getByText('30 radicados')).toBeTruthy();
+    expect(getByText('30 enviadas')).toBeTruthy();
 
     // Radica otra desde la web, y luego baja por la lista.
     serve([pqr(0, { id: 'pqr-new' }), ...list]);
     reachEnd();
 
-    await waitFor(() => expect(getByText('31 radicados')).toBeTruthy());
+    await waitFor(() => expect(getByText('31 enviadas')).toBeTruthy());
   });
 
   it('si el servidor no manda el total, cuenta lo cargado', async () => {
@@ -253,11 +253,11 @@ describe('MyPQRsScreen: contador', () => {
     });
     const { getByText, reachEnd } = await openMyPQRs();
 
-    expect(getByText('10 radicados')).toBeTruthy();
+    expect(getByText('10 enviadas')).toBeTruthy();
 
     reachEnd();
 
-    await waitFor(() => expect(getByText('20 radicados')).toBeTruthy());
+    await waitFor(() => expect(getByText('20 enviadas')).toBeTruthy());
   });
 });
 
@@ -332,7 +332,7 @@ describe('MyPQRsScreen: filtro por estado', () => {
     // Las 30 están delante: no hay «más recientes» de las que hablar.
     expect(queryByText(/más recientes/)).toBeNull();
     // El contador sigue hablando de todas, no de las resueltas.
-    expect(getByText('30 radicados')).toBeTruthy();
+    expect(getByText('30 enviadas')).toBeTruthy();
     // Lo que faltaba se pide de 50 en 50, y cabe en una petición.
     expect(asked()).toEqual([
       { page: 1, limit: 10 },
@@ -542,7 +542,7 @@ describe('MyPQRsScreen: filtro por estado', () => {
     expect(subjects()).toEqual(list.slice(0, 10).map((p) => p.subject));
     expect(queryByText(LOADING_ALL)).toBeNull();
     expect(queryByText(NONE_IN_STATUS)).toBeNull();
-    expect(getByText('30 radicados')).toBeTruthy();
+    expect(getByText('30 enviadas')).toBeTruthy();
 
     reachEnd();
 

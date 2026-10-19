@@ -1,4 +1,5 @@
 import React from 'react';
+import { Alert } from 'react-native';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import CreatePQRScreen from '../CreatePQRScreen';
 
@@ -19,9 +20,14 @@ jest.mock('expo-location', () => ({
 
 jest.mock('react-native-recaptcha-that-works', () => {
   const React = require('react');
-  const { View } = require('react-native');
-  const Recaptcha = React.forwardRef((_: any, __: any) =>
-    React.createElement(View, { testID: 'recaptcha' }),
+  const { TouchableOpacity } = require('react-native');
+  // Pulsarlo equivale a resolver el captcha: llama a onVerify con un token.
+  const Recaptcha = React.forwardRef(
+    ({ onVerify }: { onVerify: (token: string) => void }, __: any) =>
+      React.createElement(TouchableOpacity, {
+        testID: 'recaptcha',
+        onPress: () => onVerify('captcha-token'),
+      }),
   );
   return { __esModule: true, default: Recaptcha };
 });
@@ -63,6 +69,12 @@ jest.mock('@features/pqr/hooks/useAreaPQRConfig', () => ({
 
 jest.mock('@features/pqr/hooks/useCreatePQR', () => ({
   useCreatePQR: jest.fn(),
+}));
+
+// La confirmación abre la política y los términos en un WebView nativo, que
+// en Jest no existe.
+jest.mock('@features/users/components/profile/WebViewModal', () => ({
+  WebViewModal: () => null,
 }));
 
 jest.mock('@features/map/components/MiniMap', () => {
@@ -248,6 +260,40 @@ describe('CreatePQRScreen — allowAnonymous', () => {
   });
 });
 
+describe('CreatePQRScreen: qué significa «anónima»', () => {
+  const ANONYMOUS_HELP =
+    'Si la envías como anónima, la entidad no sabrá quién eres y no podrá contestarte por correo. Si responde desde Quéjate, verás la respuesta aquí y te llegará a tu correo; si no, puede publicarla en su página web. Para que la tramite, cuenta hechos concretos (qué pasó, dónde y cuándo) y adjunta pruebas si las tienes.';
+
+  it('con el interruptor apagado no sale', async () => {
+    const utils = render(<CreatePQRScreen />);
+    await navigateToStep2(utils);
+
+    expect(utils.queryByText(ANONYMOUS_HELP)).toBeNull();
+  });
+
+  it('al encenderlo se lee el texto de la web, y al apagarlo se va', async () => {
+    const utils = render(<CreatePQRScreen />);
+    await navigateToStep2(utils);
+
+    fireEvent(utils.getByTestId('anonymous-toggle'), 'valueChange', true);
+    await waitFor(() => expect(utils.getByText(ANONYMOUS_HELP)).toBeTruthy());
+
+    fireEvent(utils.getByTestId('anonymous-toggle'), 'valueChange', false);
+    await waitFor(() => expect(utils.queryByText(ANONYMOUS_HELP)).toBeNull());
+  });
+
+  it('la ventana de información dice lo mismo', async () => {
+    const utils = render(<CreatePQRScreen />);
+    await navigateToStep2(utils);
+
+    fireEvent.press(utils.getByTestId('anonymous-info'));
+
+    expect(utils.getByText('¿Qué significa enviar anónimamente?')).toBeTruthy();
+    expect(utils.getByText(ANONYMOUS_HELP)).toBeTruthy();
+    expect(utils.queryByText(/no podrás recibir respuestas directas/)).toBeNull();
+  });
+});
+
 describe('CreatePQRScreen — requireEvidence', () => {
   it('bloquea el avance al step 4 y muestra error si requireEvidence=true sin adjuntos', async () => {
     (usePQRConfig as jest.Mock).mockReturnValue({
@@ -354,5 +400,29 @@ describe('CreatePQRScreen — paso 5 (confirmación)', () => {
 
     const submitBtn = utils.getByTestId('submit-btn');
     expect(submitBtn.props.accessibilityState?.disabled ?? submitBtn.props.disabled).toBeTruthy();
+  });
+});
+
+describe('CreatePQRScreen: al enviar', () => {
+  it('da el número de seguimiento y dice que el radicado oficial lo asigna la entidad', async () => {
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    const utils = render(<CreatePQRScreen />);
+    await navigateToStep5(utils);
+
+    fireEvent.press(utils.getByTestId('recaptcha'));
+    await waitFor(() => utils.getByText('✓ Verificación completada'));
+    fireEvent.press(utils.getByTestId('submit-btn'));
+
+    // La API va simulada: createPQR no sale del proceso de Jest.
+    await waitFor(() => expect(alertSpy).toHaveBeenCalled());
+    expect(mockCreatePQR).toHaveBeenCalledWith(
+      expect.objectContaining({ entityId: 'e1', recaptchaToken: 'captcha-token' }),
+    );
+    expect(alertSpy).toHaveBeenCalledWith(
+      '¡PQRSD enviada!',
+      'Tu PQRSD quedó registrada y Quéjate la envió a la entidad. Tu número de seguimiento es:\nPQR-20240101-001\n\nEl radicado oficial lo asigna la entidad.',
+      expect.any(Array),
+    );
+    alertSpy.mockRestore();
   });
 });
