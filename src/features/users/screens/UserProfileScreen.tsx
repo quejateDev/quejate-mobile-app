@@ -19,6 +19,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '@core/auth/useAuth';
 import { ErrorState } from '@shared/components/ui/ErrorState';
+import { PRIVACY_URL, TERMS_URL } from '@shared/constants/legalUrls';
 import type { AppStackParamList } from '@navigation/navigationRef';
 import { useProfileActions } from '@features/users/hooks/useProfileActions';
 import { getInitials, ROLE_LABEL } from '@features/users/components/profile/userProfileUtils';
@@ -31,8 +32,6 @@ import { WebViewModal } from '@features/users/components/profile/WebViewModal';
 import { SupportModal } from '@features/users/components/profile/SupportModal';
 import { StyleSheet } from 'react-native';
 
-const PRIVACY_URL = 'https://quejate.com.co/policy';
-const TERMS_URL = 'https://quejate.com.co/terms';
 const FACEBOOK_URL = 'https://www.facebook.com/profile.php?id=61581217178815';
 const INSTAGRAM_URL = 'https://www.instagram.com/quejate.com.co';
 const APP_VERSION = '1.0.0';
