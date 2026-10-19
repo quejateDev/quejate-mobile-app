@@ -343,6 +343,16 @@ export const styles = StyleSheet.create({
     color: '#334155',
     lineHeight: 19,
   },
+  consentText: {
+    fontSize: 12,
+    color: '#4B5563',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  consentLink: {
+    color: '#2563EB',
+    textDecorationLine: 'underline',
+  },
 
   errorContainer: {
     backgroundColor: '#FEF2F2',

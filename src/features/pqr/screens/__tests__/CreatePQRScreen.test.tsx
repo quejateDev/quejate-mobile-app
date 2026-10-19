@@ -65,6 +65,12 @@ jest.mock('@features/pqr/hooks/useCreatePQR', () => ({
   useCreatePQR: jest.fn(),
 }));
 
+// La confirmación abre la política y los términos en un WebView nativo, que
+// en Jest no existe.
+jest.mock('@features/users/components/profile/WebViewModal', () => ({
+  WebViewModal: () => null,
+}));
+
 jest.mock('@features/map/components/MiniMap', () => {
   const React = require('react');
   const { View, TouchableOpacity, Text } = require('react-native');
