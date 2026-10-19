@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@core/api/client';
 import { ENDPOINTS } from '@core/api/endpoints';
 import type { LegalDoc, LegalDocSummary } from '@core/types';
@@ -44,6 +44,8 @@ const BACKEND_ERROR_TEXT = 'Error generando el contenido';
  * el que luego se pide el PDF. Timeout ~30s.
  */
 export function useGenerateTutela() {
+  const queryClient = useQueryClient();
+
   return useMutation<GeneratedTutela, unknown, GenerateTutelaInput>({
     mutationFn: async (body) => {
       const res = await apiClient.post<TutelaResponse>(ENDPOINTS.LEGAL_DOCS.TUTELA, body, {
@@ -59,6 +61,12 @@ export function useGenerateTutela() {
       }
 
       return { content, id: res.data.id ?? null };
+    },
+    // La tutela guardada entra en «Mis documentos legales»: que la lista no
+    // siga sirviendo la de antes durante el staleTime global, como con el
+    // oficio. Sin id no se guardó nada y la lista no cambia.
+    onSuccess: (tutela) => {
+      if (tutela.id) void queryClient.invalidateQueries({ queryKey: ['legal-docs'] });
     },
   });
 }

@@ -23,15 +23,25 @@ const baseInput: GenerateTutelaInput = {
   pqrDescription: 'No respondieron en el plazo legal.',
 };
 
+let queryClient: QueryClient;
+
 function wrapper({ children }: { children: React.ReactNode }) {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
   return React.createElement(QueryClientProvider, { client: queryClient }, children);
 }
 
+// Temporizadores falsos, como en useOversightLetter.test.ts: con los reales,
+// el gc de TanStack deja Jest esperando cinco minutos al acabar.
 beforeEach(() => {
   jest.clearAllMocks();
+  jest.useFakeTimers();
+  queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+});
+
+afterEach(() => {
+  queryClient.clear();
+  jest.useRealTimers();
 });
 
 describe('useGenerateTutela', () => {
@@ -83,6 +93,36 @@ describe('useGenerateTutela', () => {
         'No se pudo generar la tutela. Intenta de nuevo.',
       );
     });
+  });
+
+  it('una tutela guardada refresca «Mis documentos legales»', async () => {
+    (apiClient.post as jest.Mock).mockResolvedValue({
+      data: { tutela: 'ACCIÓN DE TUTELA', id: 'doc-1' },
+    });
+    const invalidate = jest.spyOn(queryClient, 'invalidateQueries');
+
+    const { result } = renderHook(() => useGenerateTutela(), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync(baseInput);
+    });
+
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['legal-docs'] });
+  });
+
+  it('sin id no refresca nada: no se guardó', async () => {
+    (apiClient.post as jest.Mock).mockResolvedValue({ data: { tutela: 'ACCIÓN DE TUTELA' } });
+    const invalidate = jest.spyOn(queryClient, 'invalidateQueries');
+
+    const { result } = renderHook(() => useGenerateTutela(), { wrapper });
+
+    let tutela: unknown;
+    await act(async () => {
+      tutela = await result.current.mutateAsync(baseInput);
+    });
+
+    expect(tutela).toEqual({ content: 'ACCIÓN DE TUTELA', id: null });
+    expect(invalidate).not.toHaveBeenCalled();
   });
 
   it('rechaza una respuesta sin texto', async () => {
