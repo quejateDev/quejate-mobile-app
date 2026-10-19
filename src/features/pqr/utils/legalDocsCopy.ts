@@ -12,6 +12,16 @@ export const LEGAL_DOC_RETENTION_NOTICE =
   'Guardamos este documento seis meses para que puedas volver a descargarlo. Después se borra.';
 
 /**
+ * La tutela y el oficio son borradores redactados con IA, y la plataforma no
+ * responde por su contenido. Decisión de la dirección. Se enseña donde se lee
+ * el texto: al generarlos y al abrirlos desde el historial.
+ *
+ * Mismo texto que la web (`constants/legalDocsCopy.ts` en `quejate-app`).
+ */
+export const LEGAL_DOC_DRAFT_NOTICE =
+  'Es un borrador redactado con inteligencia artificial: revísalo y corrígelo antes de presentarlo. Quéjate no se hace responsable de su contenido.';
+
+/**
  * El oficio lleva el nombre de quien lo envía, y el correo al ente de control
  * su nombre, su correo y su teléfono (los pone el servidor). Decisión de la
  * dirección del 14/10/2026: se mantienen, para que el ente pueda responder y

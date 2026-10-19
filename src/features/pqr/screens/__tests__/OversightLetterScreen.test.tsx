@@ -40,6 +40,8 @@ const LETTER = 'Señores Personería de Santa Marta. Asunto: solicitud de interv
 const IDENTITY_NOTICE =
   'Al enviar el oficio, el ente de control recibirá tu nombre y tus datos de contacto, para que pueda responderte y actuar frente a la entidad que no respondió tu solicitud.';
 const ANONYMOUS_NOTICE = 'Tu PQRSD es anónima ante la entidad, pero el oficio no lo es.';
+const DRAFT_NOTICE =
+  'Es un borrador redactado con inteligencia artificial: revísalo y corrígelo antes de presentarlo. Quéjate no se hace responsable de su contenido.';
 
 const pqr = {
   id: 'pqr-1',
@@ -235,6 +237,17 @@ describe('OversightLetterScreen: redactar', () => {
 
     expect(screen.getByText(LETTER)).toBeTruthy();
     expect(screen.getByText(LETTER).props.selectable).toBe(true);
+  });
+
+  it('avisa, encima del oficio, de que es un borrador hecho con IA', () => {
+    const screen = render(<OversightLetterScreen />);
+    expect(screen.queryByText(DRAFT_NOTICE)).toBeNull();
+
+    pick(screen, 'Personería de Santa Marta');
+
+    expect(screen.getByText(DRAFT_NOTICE)).toBeTruthy();
+    const tree = JSON.stringify(screen.toJSON());
+    expect(tree.indexOf(DRAFT_NOTICE)).toBeLessThan(tree.indexOf(LETTER));
   });
 
   it('mientras redacta, lo dice', () => {

@@ -25,6 +25,7 @@ import {
   useOversightEntities,
 } from '@features/pqr/hooks/useOversightLetter';
 import { downloadLegalDocPdf } from '@features/pqr/utils/legalDocShare';
+import { LegalDocDraftNotice } from '@features/pqr/components/LegalDocDraftNotice';
 import {
   LEGAL_DOC_RETENTION_NOTICE,
   OVERSIGHT_NOT_SAVED_NOTICE,
@@ -213,6 +214,7 @@ export default function OversightLetterScreen() {
             Oficio para {letter.entity.name}. Revísalo antes de descargarlo o enviarlo.
           </Text>
         </View>
+        <LegalDocDraftNotice />
 
         <ScrollView contentContainerStyle={styles.letterScroll}>
           <Text style={styles.letterText} selectable>

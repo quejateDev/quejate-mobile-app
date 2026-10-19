@@ -27,6 +27,7 @@ import { useGenerateTutela } from '@features/pqr/hooks/useLegalDocs';
 import { downloadLegalDocPdf } from '@features/pqr/utils/legalDocShare';
 import { usePdfDownload } from '@features/pqr/hooks/usePdfDownload';
 import { LEGAL_DOC_RETENTION_NOTICE } from '@features/pqr/utils/legalDocsCopy';
+import { LegalDocDraftNotice } from '@features/pqr/components/LegalDocDraftNotice';
 import type { GeneratedTutela } from '@features/pqr/hooks/useLegalDocs';
 import { FUNDAMENTAL_RIGHTS } from '@features/pqr/utils/fundamentalRights';
 import { resolveOverdue } from '@features/pqr/utils/businessDays';
@@ -155,6 +156,7 @@ export default function GenerateTutelaScreen() {
             Tutela generada. Revísala, ajústala con un abogado si lo necesitas y preséntala ante un juez.
           </Text>
         </View>
+        <LegalDocDraftNotice />
         <ScrollView contentContainerStyle={styles.resultScroll}>
           <Text style={styles.resultText} selectable>
             {result.content}
