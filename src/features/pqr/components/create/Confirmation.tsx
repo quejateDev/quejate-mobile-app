@@ -1,6 +1,7 @@
 import React, { RefObject } from 'react';
 import { StepHeader } from './StepHeader';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import type { RecaptchaRef } from 'react-native-recaptcha-that-works';
 import type { UseFormGetValues } from 'react-hook-form';
 import { typeMap } from '@core/types';
@@ -11,6 +12,23 @@ import { SummaryRow } from './SummaryRow';
 import { styles } from './createPQRStyles';
 
 import type { NamedItem } from './createPQRTypes';
+
+/**
+ * Quéjate se presenta como facilitador antes de enviar. Texto aprobado por la
+ * dirección, el mismo de la web (`components/forms/new-pqr.tsx`): va tal cual.
+ */
+const FACILITATOR_NOTICE =
+  'Quéjate es un facilitador. Te ayuda a escribir tu PQRSD y la envía a la entidad en tu nombre, porque tú lo pides. Quéjate no es la entidad ni una autoridad: no radica tu petición, no la responde y no puede garantizar que te respondan. El número que te da Quéjate es de seguimiento.';
+
+/**
+ * Cómo termina el aviso. En una anónima la entidad no tiene el correo de
+ * quien la envía, así que no se promete nada por ese medio.
+ */
+const OFFICIAL_NUMBER = {
+  anonymous: 'El radicado oficial lo asigna la entidad.',
+  identified:
+    'El radicado oficial lo asigna la entidad, que te lo enviará a tu correo junto con su respuesta.',
+};
 
 interface Props {
   entities: NamedItem[];
@@ -113,6 +131,20 @@ export function Confirmation({
           <Text style={styles.errorText}>{stepError}</Text>
         </View>
       )}
+
+      <View style={styles.facilitatorNotice}>
+        <Ionicons
+          name="information-circle-outline"
+          size={16}
+          color="#334155"
+          style={styles.facilitatorNoticeIcon}
+        />
+        <Text style={styles.facilitatorNoticeText}>
+          {`${FACILITATOR_NOTICE} ${
+            values.isAnonymous ? OFFICIAL_NUMBER.anonymous : OFFICIAL_NUMBER.identified
+          }`}
+        </Text>
+      </View>
 
       <TouchableOpacity
         testID="submit-btn"

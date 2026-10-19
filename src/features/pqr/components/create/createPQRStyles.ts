@@ -322,6 +322,27 @@ export const styles = StyleSheet.create({
     flex: 2,
     textAlign: 'right',
   },
+  facilitatorNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    backgroundColor: '#F8FAFC',
+    padding: 12,
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  facilitatorNoticeIcon: {
+    marginRight: 8,
+    marginTop: 1,
+  },
+  facilitatorNoticeText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#334155',
+    lineHeight: 19,
+  },
 
   errorContainer: {
     backgroundColor: '#FEF2F2',
