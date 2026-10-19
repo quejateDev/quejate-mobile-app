@@ -240,17 +240,28 @@ describe('downloadLegalDocPdf', () => {
 });
 
 describe('downloadCertificatePdf', () => {
-  it('pide el certificado de la PQRSD', async () => {
+  it('pide la constancia de envío de la PQRSD y la guarda como constancia-de-envio.pdf', async () => {
+    // El servidor aún la nombra así en su cabecera; la app no le hace caso.
     mockDownload.mockResolvedValue(downloadedAs('certificado_pqrsd.pdf'));
 
     const res = await downloadCertificatePdf('pqr-1');
 
     expect(res).toEqual({
       ok: true,
-      uri: 'file:///mock-cache/legal-docs/certificado-pqr-1/certificado_pqrsd.pdf',
+      uri: 'file:///mock-cache/legal-docs/constancia-pqr-1/constancia-de-envio.pdf',
     });
     const [url] = mockDownload.mock.calls[0];
     expect(url).toBe('https://api.quejate.com.co/api/pqr/pqr-1/certificate.pdf');
+  });
+
+  it('sin Content-Disposition también es constancia-de-envio.pdf', async () => {
+    mockDownload.mockResolvedValue(downloadedAs(null));
+
+    const res = await downloadCertificatePdf('pqr-1');
+
+    expect(res.ok && res.uri).toBe(
+      'file:///mock-cache/legal-docs/constancia-pqr-1/constancia-de-envio.pdf',
+    );
   });
 
   it('con 404 devuelve not-found: no distingue "no es tuya" de "no existe"', async () => {

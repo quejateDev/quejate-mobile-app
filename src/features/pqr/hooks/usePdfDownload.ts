@@ -20,7 +20,7 @@ export function usePdfDownload() {
    * pueda cerrar su menú o su hoja solo cuando la cosa salió bien.
    *
    * `notFoundMessage` deja afinar el 404: en un documento legal significa que
-   * expiró, y en un certificado que la PQRSD no es tuya o no existe — el
+   * expiró, y en una constancia de envío que la PQRSD no es tuya o no existe — el
    * servidor no distingue esos dos casos a propósito.
    */
   const run = useCallback(

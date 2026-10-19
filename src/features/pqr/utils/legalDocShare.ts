@@ -42,10 +42,11 @@ function safeName(value: string): string {
 /**
  * Nombre del fichero según el `Content-Disposition` de la respuesta.
  *
- * El servidor es la fuente autoritativa: tiene un nombre fijo por tipo de
- * documento (`tutela.pdf`, `oficio_ente_control.pdf`, `certificado_pqrsd.pdf`)
+ * Para los documentos legales el servidor es la fuente autoritativa: tiene un
+ * nombre fijo por tipo de documento (`tutela.pdf`, `oficio_ente_control.pdf`)
  * y la app se adapta, en vez de duplicar aquí una tabla que quedaría vieja en
  * cuanto el backend añada un tipo — y la app no puede parchearse sin tienda.
+ * La constancia de envío es la excepción: ver `downloadCertificatePdf`.
  *
  * Aun así el nombre se sanea: viene de la red y acaba siendo una ruta.
  */
@@ -64,18 +65,27 @@ function filenameFromHeaders(headers: Record<string, string> | undefined): strin
   return cleaned.toLowerCase().endsWith('.pdf') ? cleaned : null;
 }
 
+/** Cómo se llama el fichero descargado, que es lo que ve quien lo recibe. */
+type PdfName =
+  /**
+   * El del `Content-Disposition`, o este si la respuesta no lo trae. Nunca
+   * nombra un tipo concreto: más vale genérico que mentir.
+   */
+  | { fallback: string }
+  /** Este, diga lo que diga el servidor. */
+  | { fixed: string };
+
 /**
- * @param path        Ruta del API, relativa a la base.
- * @param slot        Carpeta propia del documento dentro de la caché. Evita que
- *                    dos descargas con el mismo nombre del servidor —dos tutelas
- *                    son las dos `tutela.pdf`— se pisen la una a la otra.
- * @param fallbackName Nombre a usar si la respuesta no trae `Content-Disposition`.
- *                    Nunca nombra un tipo concreto: más vale genérico que mentir.
+ * @param path   Ruta del API, relativa a la base.
+ * @param slot   Carpeta propia del documento dentro de la caché. Evita que dos
+ *               descargas con el mismo nombre del servidor —dos tutelas son
+ *               las dos `tutela.pdf`— se pisen la una a la otra.
+ * @param naming Cómo se nombra el fichero.
  */
 async function downloadPdf(
   path: string,
   slot: string,
-  fallbackName: string,
+  naming: PdfName,
 ): Promise<PdfResult> {
   const token = await SecureStorage.getSessionToken();
   if (!token) {
@@ -113,7 +123,9 @@ async function downloadPdf(
 
     // El nombre definitivo es el que ve quien recibe el PDF por correo o
     // WhatsApp, así que se renombra después de descargar, cuando ya se conoce.
-    const finalUri = `${dir}${filenameFromHeaders(headers) ?? fallbackName}`;
+    const name =
+      'fixed' in naming ? naming.fixed : filenameFromHeaders(headers) ?? naming.fallback;
+    const finalUri = `${dir}${name}`;
     if (finalUri !== uri) {
       try {
         await FileSystem.deleteAsync(finalUri, { idempotent: true });
@@ -139,20 +151,23 @@ async function downloadPdf(
  * ni falta que le hace.
  */
 export function downloadLegalDocPdf(id: string): Promise<PdfResult> {
-  return downloadPdf(ENDPOINTS.LEGAL_DOCS.PDF(id), `doc-${id}`, 'documento.pdf');
+  return downloadPdf(ENDPOINTS.LEGAL_DOCS.PDF(id), `doc-${id}`, { fallback: 'documento.pdf' });
 }
 
 /**
- * Certificado de radicación de una PQRSD. El backend responde 404 a quien no
- * sea el autor, igual que si la PQRSD no existiera, así que un 'not-found' aquí
- * no distingue «no es tuya» de «no existe» — y no debe intentar distinguirlo.
+ * Constancia de envío de una PQRSD. El backend responde 404 a quien no sea el
+ * autor, igual que si la PQRSD no existiera, así que un 'not-found' aquí no
+ * distingue «no es tuya» de «no existe» — y no debe intentar distinguirlo.
+ *
+ * El nombre lo pone la app y no la cabecera: es un solo documento, sin tipos
+ * que puedan crecer, y su nombre lo fijó la dirección. El servidor todavía lo
+ * nombra con el término de antes, y con él la persona compartiría un fichero
+ * que dice lo contrario que la pantalla.
  */
 export function downloadCertificatePdf(pqrId: string): Promise<PdfResult> {
-  return downloadPdf(
-    ENDPOINTS.PQR.CERTIFICATE(pqrId),
-    `certificado-${pqrId}`,
-    'certificado.pdf',
-  );
+  return downloadPdf(ENDPOINTS.PQR.CERTIFICATE(pqrId), `constancia-${pqrId}`, {
+    fixed: 'constancia-de-envio.pdf',
+  });
 }
 
 /**
