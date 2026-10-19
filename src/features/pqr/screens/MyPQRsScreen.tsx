@@ -122,7 +122,7 @@ export default function MyPQRsScreen() {
   if (isFiltering) {
     if (filter.status === 'complete') emptyText = 'No tienes PQRSDs con este estado';
   } else if (!activeStatus) {
-    emptyText = 'Aún no has radicado ninguna PQRSD';
+    emptyText = 'Aún no has enviado ninguna PQRSD';
   }
 
   // La tab nunca se desmonta, así que al volver del detalle (o de otra tab) la
@@ -143,7 +143,7 @@ export default function MyPQRsScreen() {
     }, [refetch, refetchWholeList]),
   );
 
-  // La lista se carga de 10 en 10, así que contar lo cargado dice «10 radicados»
+  // La lista se carga de 10 en 10, así que contar lo cargado dice «10 enviadas»
   // a quien tiene 30. El servidor manda el total con cada página, y vale el de
   // la última que llegó. Si no lo mandara, se cuenta lo cargado.
   const lastPage = data?.pages[data.pages.length - 1];
@@ -204,7 +204,7 @@ export default function MyPQRsScreen() {
             <View style={styles.blueHeader}>
               <Text style={styles.title}>Mis PQRSDs</Text>
               <Text style={styles.subtitle}>
-                {total > 0 ? `${total} radicado${total !== 1 ? 's' : ''}` : 'Sin radicados aún'}
+                {total > 0 ? `${total} enviada${total !== 1 ? 's' : ''}` : 'Ninguna enviada aún'}
               </Text>
             </View>
             <View style={styles.filterScroll}>{filterBar}</View>
