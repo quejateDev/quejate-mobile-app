@@ -281,9 +281,11 @@ export default function CreatePQRScreen() {
         localAttachments: attachments,
         recaptchaToken,
       });
+      // El número es de seguimiento, de Quéjate: no es el radicado de la
+      // entidad, y el mensaje no puede dar a entender que lo sea.
       Alert.alert(
         '¡PQRSD enviada!',
-        `Tu solicitud fue registrada con el código:\n${result.consecutiveCode}`,
+        `Tu PQRSD quedó registrada y Quéjate la envió a la entidad. Tu número de seguimiento es:\n${result.consecutiveCode}\n\nEl radicado oficial lo asigna la entidad.`,
         [{ text: 'Aceptar', onPress: () => navigation.goBack() }],
       );
     } catch (err: unknown) {

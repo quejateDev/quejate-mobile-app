@@ -1,4 +1,5 @@
 import React from 'react';
+import { Alert } from 'react-native';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import CreatePQRScreen from '../CreatePQRScreen';
 
@@ -19,9 +20,14 @@ jest.mock('expo-location', () => ({
 
 jest.mock('react-native-recaptcha-that-works', () => {
   const React = require('react');
-  const { View } = require('react-native');
-  const Recaptcha = React.forwardRef((_: any, __: any) =>
-    React.createElement(View, { testID: 'recaptcha' }),
+  const { TouchableOpacity } = require('react-native');
+  // Pulsarlo equivale a resolver el captcha: llama a onVerify con un token.
+  const Recaptcha = React.forwardRef(
+    ({ onVerify }: { onVerify: (token: string) => void }, __: any) =>
+      React.createElement(TouchableOpacity, {
+        testID: 'recaptcha',
+        onPress: () => onVerify('captcha-token'),
+      }),
   );
   return { __esModule: true, default: Recaptcha };
 });
@@ -394,5 +400,29 @@ describe('CreatePQRScreen — paso 5 (confirmación)', () => {
 
     const submitBtn = utils.getByTestId('submit-btn');
     expect(submitBtn.props.accessibilityState?.disabled ?? submitBtn.props.disabled).toBeTruthy();
+  });
+});
+
+describe('CreatePQRScreen: al enviar', () => {
+  it('da el número de seguimiento y dice que el radicado oficial lo asigna la entidad', async () => {
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    const utils = render(<CreatePQRScreen />);
+    await navigateToStep5(utils);
+
+    fireEvent.press(utils.getByTestId('recaptcha'));
+    await waitFor(() => utils.getByText('✓ Verificación completada'));
+    fireEvent.press(utils.getByTestId('submit-btn'));
+
+    // La API va simulada: createPQR no sale del proceso de Jest.
+    await waitFor(() => expect(alertSpy).toHaveBeenCalled());
+    expect(mockCreatePQR).toHaveBeenCalledWith(
+      expect.objectContaining({ entityId: 'e1', recaptchaToken: 'captcha-token' }),
+    );
+    expect(alertSpy).toHaveBeenCalledWith(
+      '¡PQRSD enviada!',
+      'Tu PQRSD quedó registrada y Quéjate la envió a la entidad. Tu número de seguimiento es:\nPQR-20240101-001\n\nEl radicado oficial lo asigna la entidad.',
+      expect.any(Array),
+    );
+    alertSpy.mockRestore();
   });
 });
