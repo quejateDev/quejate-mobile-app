@@ -128,6 +128,14 @@ export default function CreatePQRScreen() {
   // Paridad con web: además de los campos de la entidad, cargamos los del ÁREA
   // seleccionada y mostramos la unión (deduplicada por nombre).
   const { areaCustomFields } = useAreaPQRConfig(watchedEntityDeptId || undefined);
+  const allowAnonymous = pqrConfig?.allowAnonymous ?? true;
+
+  // En cuanto se sabe que la entidad no admite anónimas (al cambiar de entidad
+  // o cuando llega su configuración), «anónima» se apaga: si no, el interruptor
+  // se queda encendido y bloqueado, con el texto de anónima debajo.
+  useEffect(() => {
+    if (!allowAnonymous && watchedIsAnonymous) setValue('isAnonymous', false);
+  }, [allowAnonymous, watchedIsAnonymous, setValue]);
 
   useEffect(() => {
     if (hintApplied) return;
@@ -346,7 +354,7 @@ export default function CreatePQRScreen() {
         <TypeAndContent
           control={control}
           errors={errors}
-          allowAnonymous={pqrConfig?.allowAnonymous ?? true}
+          allowAnonymous={allowAnonymous}
         />
       )}
 

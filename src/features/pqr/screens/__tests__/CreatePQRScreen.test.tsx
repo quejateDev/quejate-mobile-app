@@ -115,6 +115,9 @@ const basePqrConfig = {
   customFields: [],
 };
 
+const ANONYMOUS_HELP =
+  'Si la envías como anónima, la entidad no sabrá quién eres y no podrá contestarte por correo. Si responde desde Quéjate, verás la respuesta aquí y te llegará a tu correo; si no, puede publicarla en su página web. Para que la tramite, cuenta hechos concretos (qué pasó, dónde y cuándo) y adjunta pruebas si las tienes.';
+
 const mockCreatePQR = jest.fn();
 
 beforeEach(() => {
@@ -260,10 +263,68 @@ describe('CreatePQRScreen — allowAnonymous', () => {
   });
 });
 
-describe('CreatePQRScreen: qué significa «anónima»', () => {
-  const ANONYMOUS_HELP =
-    'Si la envías como anónima, la entidad no sabrá quién eres y no podrá contestarte por correo. Si responde desde Quéjate, verás la respuesta aquí y te llegará a tu correo; si no, puede publicarla en su página web. Para que la tramite, cuenta hechos concretos (qué pasó, dónde y cuándo) y adjunta pruebas si las tienes.';
+describe('CreatePQRScreen: «anónima» sigue a la entidad', () => {
+  it('al cambiar a una entidad que no las admite se apaga, sin pasar por la red del paso 2', async () => {
+    (useEntities as jest.Mock).mockReturnValue({
+      entities: [
+        { id: 'e1', name: 'Alcaldía de Bogotá' },
+        { id: 'e2', name: 'Personería de Bogotá' },
+      ],
+      isLoading: false,
+    });
+    (usePQRConfig as jest.Mock).mockImplementation((entityId?: string) => ({
+      pqrConfig: { ...basePqrConfig, allowAnonymous: entityId !== 'e2' },
+      entityDepartments: [],
+      isLoading: false,
+    }));
 
+    const utils = render(<CreatePQRScreen />);
+    await navigateToStep2(utils);
+    fireEvent(utils.getByTestId('anonymous-toggle'), 'valueChange', true);
+    await waitFor(() => utils.getByText(ANONYMOUS_HELP));
+
+    fireEvent.press(utils.getByTestId('step-back'));
+    await waitFor(() => utils.getByTestId('step1-content'));
+    fireEvent.press(utils.getByTestId('entity-selector'));
+    await waitFor(() => utils.getByTestId('entity-option-e2'));
+    fireEvent.press(utils.getByTestId('entity-option-e2'));
+
+    // «Siguiente» del paso 1 no toca «anónima»: la que la apagaba era la del
+    // paso 2, y esa no se pulsa.
+    fireEvent.press(utils.getByText('Siguiente'));
+    await waitFor(() => utils.getByTestId('step2-content'));
+
+    const toggle = utils.getByTestId('anonymous-toggle');
+    expect(toggle.props.value).toBe(false);
+    expect(toggle.props.disabled).toBe(true);
+    expect(utils.getByText('Esta entidad no permite envíos anónimos')).toBeTruthy();
+    expect(utils.queryByText(ANONYMOUS_HELP)).toBeNull();
+  });
+
+  it('si la configuración de la entidad llega tarde, también la apaga', async () => {
+    let config: { pqrConfig: typeof basePqrConfig | null; isLoading: boolean } = {
+      pqrConfig: null,
+      isLoading: true,
+    };
+    (usePQRConfig as jest.Mock).mockImplementation(() => ({ ...config, entityDepartments: [] }));
+
+    const utils = render(<CreatePQRScreen />);
+    await navigateToStep2(utils);
+    fireEvent(utils.getByTestId('anonymous-toggle'), 'valueChange', true);
+    await waitFor(() => utils.getByText(ANONYMOUS_HELP));
+
+    // Llega la configuración: la entidad no admite anónimas.
+    config = { pqrConfig: { ...basePqrConfig, allowAnonymous: false }, isLoading: false };
+    utils.rerender(<CreatePQRScreen />);
+
+    await waitFor(() => expect(utils.getByTestId('anonymous-toggle').props.value).toBe(false));
+    expect(utils.getByTestId('anonymous-toggle').props.disabled).toBe(true);
+    expect(utils.getByText('Esta entidad no permite envíos anónimos')).toBeTruthy();
+    expect(utils.queryByText(ANONYMOUS_HELP)).toBeNull();
+  });
+});
+
+describe('CreatePQRScreen: qué significa «anónima»', () => {
   it('con el interruptor apagado no sale', async () => {
     const utils = render(<CreatePQRScreen />);
     await navigateToStep2(utils);
