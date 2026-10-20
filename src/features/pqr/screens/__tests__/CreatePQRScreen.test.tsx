@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert } from 'react-native';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import CreatePQRScreen from '../CreatePQRScreen';
 
 jest.mock('@core/api/client', () => ({
@@ -486,4 +486,65 @@ describe('CreatePQRScreen: al enviar', () => {
     );
     alertSpy.mockRestore();
   });
+
+  const SEND_ERROR = 'Error al enviar la PQRSD. Intenta de nuevo.';
+
+  async function sendFromStep5(utils: RenderResult) {
+    await navigateToStep5(utils);
+    fireEvent.press(utils.getByTestId('recaptcha'));
+    await waitFor(() => utils.getByText('✓ Verificación completada'));
+    // El error se pinta cuando se rechaza la promesa: que ocurra dentro de act.
+    await act(async () => {
+      fireEvent.press(utils.getByTestId('submit-btn'));
+    });
+  }
+
+  it.each([
+    'Esta entidad no recibe PQRSD anónimas',
+    'El campo "Barrio" es requerido',
+    'Debes adjuntar al menos un archivo de evidencia',
+  ])('si el servidor la rechaza con un 400, enseña su motivo: %s', async (reason) => {
+    mockCreatePQR.mockRejectedValue(apiError(400, { error: reason }));
+    const utils = render(<CreatePQRScreen />);
+    await sendFromStep5(utils);
+
+    await waitFor(() => expect(utils.getByText(reason)).toBeTruthy());
+    expect(utils.queryByText(SEND_ERROR)).toBeNull();
+  });
+
+  it.each([
+    ['con un 500', apiError(500, { error: 'Error interno del servidor' })],
+    ['sin conexión', Object.assign(new Error('Network Error'), { isAxiosError: true })],
+    ['con un 400 sin texto', apiError(400, {})],
+  ])('%s enseña el mensaje de siempre', async (_, error) => {
+    mockCreatePQR.mockRejectedValue(error);
+    const utils = render(<CreatePQRScreen />);
+    await sendFromStep5(utils);
+
+    await waitFor(() => expect(utils.getByText(SEND_ERROR)).toBeTruthy());
+  });
+
+  // El servidor da estos en inglés y no dicen nada que la persona pueda
+  // arreglar (la web traduce los dos del captcha).
+  it.each([
+    'reCAPTCHA token is required',
+    'reCAPTCHA verification failed',
+    'Missing PQR data',
+    'No consecutive code found for this entity',
+  ])('un 400 en inglés («%s») no se enseña: sale el mensaje de siempre', async (text) => {
+    mockCreatePQR.mockRejectedValue(apiError(400, { error: text }));
+    const utils = render(<CreatePQRScreen />);
+    await sendFromStep5(utils);
+
+    await waitFor(() => expect(utils.getByText(SEND_ERROR)).toBeTruthy());
+    expect(utils.queryByText(text)).toBeNull();
+  });
 });
+
+/** Un fallo de la API como lo entrega Axios, con la respuesta del servidor. */
+function apiError(status: number, data: unknown) {
+  return Object.assign(new Error(`Request failed with status code ${status}`), {
+    isAxiosError: true,
+    response: { status, data },
+  });
+}
