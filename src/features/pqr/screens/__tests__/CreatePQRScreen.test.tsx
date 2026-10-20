@@ -18,6 +18,9 @@ jest.mock('expo-location', () => ({
   getCurrentPositionAsync: jest.fn(),
 }));
 
+/** El token que da el captcha simulado cada vez que se resuelve. */
+const mockNextCaptchaToken = jest.fn(() => 'captcha-token');
+
 jest.mock('react-native-recaptcha-that-works', () => {
   const React = require('react');
   const { TouchableOpacity } = require('react-native');
@@ -26,7 +29,7 @@ jest.mock('react-native-recaptcha-that-works', () => {
     ({ onVerify }: { onVerify: (token: string) => void }, __: any) =>
       React.createElement(TouchableOpacity, {
         testID: 'recaptcha',
-        onPress: () => onVerify('captcha-token'),
+        onPress: () => onVerify(mockNextCaptchaToken()),
       }),
   );
   return { __esModule: true, default: Recaptcha };
@@ -538,6 +541,35 @@ describe('CreatePQRScreen: al enviar', () => {
 
     await waitFor(() => expect(utils.getByText(SEND_ERROR)).toBeTruthy());
     expect(utils.queryByText(text)).toBeNull();
+  });
+
+  it('si el envío falla, vuelve a pedir el captcha y el reintento manda un token nuevo', async () => {
+    // Google no acepta dos veces el mismo token.
+    mockNextCaptchaToken
+      .mockReturnValueOnce('captcha-token-1')
+      .mockReturnValueOnce('captcha-token-2');
+    mockCreatePQR.mockRejectedValueOnce(apiError(500, { error: 'Error interno del servidor' }));
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    const utils = render(<CreatePQRScreen />);
+    await sendFromStep5(utils);
+
+    await waitFor(() => utils.getByText(SEND_ERROR));
+    expect(utils.queryByText('✓ Verificación completada')).toBeNull();
+    expect(utils.getByTestId('captcha-btn')).toBeTruthy();
+    const submitBtn = utils.getByTestId('submit-btn');
+    expect(submitBtn.props.accessibilityState?.disabled ?? submitBtn.props.disabled).toBeTruthy();
+
+    fireEvent.press(utils.getByTestId('recaptcha'));
+    await waitFor(() => utils.getByText('✓ Verificación completada'));
+    await act(async () => {
+      fireEvent.press(utils.getByTestId('submit-btn'));
+    });
+
+    await waitFor(() => expect(alertSpy).toHaveBeenCalled());
+    expect(mockCreatePQR).toHaveBeenCalledTimes(2);
+    expect(mockCreatePQR.mock.calls[0][0].recaptchaToken).toBe('captcha-token-1');
+    expect(mockCreatePQR.mock.calls[1][0].recaptchaToken).toBe('captcha-token-2');
+    alertSpy.mockRestore();
   });
 });
 

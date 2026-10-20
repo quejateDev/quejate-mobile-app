@@ -309,6 +309,9 @@ export default function CreatePQRScreen() {
         [{ text: 'Aceptar', onPress: () => navigation.goBack() }],
       );
     } catch (err: unknown) {
+      // Google no acepta dos veces el mismo token: se descarta y la
+      // confirmación vuelve a pedir el captcha antes de reintentar.
+      setRecaptchaToken(null);
       const status = getErrorStatus(err);
       if (status === 401) return;
       // Un 400 trae el motivo del servidor (p. ej. «Esta entidad no recibe
