@@ -34,13 +34,25 @@ import { Attachments } from '@features/pqr/components/create/Attachments';
 import { LocationPicker } from '@features/pqr/components/create/LocationPicker';
 import { Confirmation } from '@features/pqr/components/create/Confirmation';
 import { ConfirmDialog } from '@shared/components/ui/ConfirmDialog';
-import { getErrorStatus } from '@shared/utils/httpError';
+import { getErrorStatus, getErrorText } from '@shared/utils/httpError';
 
 type Nav = NativeStackNavigationProp<AppStackParamList, 'CreatePQR'>;
 type RouteProps = NativeStackScreenProps<AppStackParamList, 'CreatePQR'>['route'];
 
 /** Campo personalizado donde se adjunta la lectura del sonómetro. */
 const NOISE_FIELD_NAME = 'Nivel de ruido (dB)';
+
+/**
+ * Los 400 de `POST /pqr` que el servidor da en inglés: el captcha, el cuerpo
+ * que no llega y la entidad sin consecutivo. No dicen nada que la persona
+ * pueda arreglar, así que con ellos sale el mensaje de siempre.
+ */
+const UNTRANSLATED_SEND_ERRORS = new Set([
+  'reCAPTCHA token is required',
+  'reCAPTCHA verification failed',
+  'Missing PQR data',
+  'No consecutive code found for this entity',
+]);
 
 export default function CreatePQRScreen() {
   const navigation = useNavigation<Nav>();
@@ -128,6 +140,14 @@ export default function CreatePQRScreen() {
   // Paridad con web: además de los campos de la entidad, cargamos los del ÁREA
   // seleccionada y mostramos la unión (deduplicada por nombre).
   const { areaCustomFields } = useAreaPQRConfig(watchedEntityDeptId || undefined);
+  const allowAnonymous = pqrConfig?.allowAnonymous ?? true;
+
+  // En cuanto se sabe que la entidad no admite anónimas (al cambiar de entidad
+  // o cuando llega su configuración), «anónima» se apaga: si no, el interruptor
+  // se queda encendido y bloqueado, con el texto de anónima debajo.
+  useEffect(() => {
+    if (!allowAnonymous && watchedIsAnonymous) setValue('isAnonymous', false);
+  }, [allowAnonymous, watchedIsAnonymous, setValue]);
 
   useEffect(() => {
     if (hintApplied) return;
@@ -289,8 +309,19 @@ export default function CreatePQRScreen() {
         [{ text: 'Aceptar', onPress: () => navigation.goBack() }],
       );
     } catch (err: unknown) {
+      // Google no acepta dos veces el mismo token: se descarta y la
+      // confirmación vuelve a pedir el captcha antes de reintentar.
+      setRecaptchaToken(null);
       const status = getErrorStatus(err);
       if (status === 401) return;
+      // Un 400 trae el motivo del servidor (p. ej. «Esta entidad no recibe
+      // PQRSD anónimas»): se enseña, como en la web. Sin conexión o con un
+      // 5xx, el mensaje de siempre.
+      const reason = status === 400 ? getErrorText(err) : undefined;
+      if (reason && !UNTRANSLATED_SEND_ERRORS.has(reason)) {
+        setStepError(reason);
+        return;
+      }
       setStepError('Error al enviar la PQRSD. Intenta de nuevo.');
     }
   }
@@ -346,7 +377,7 @@ export default function CreatePQRScreen() {
         <TypeAndContent
           control={control}
           errors={errors}
-          allowAnonymous={pqrConfig?.allowAnonymous ?? true}
+          allowAnonymous={allowAnonymous}
         />
       )}
 

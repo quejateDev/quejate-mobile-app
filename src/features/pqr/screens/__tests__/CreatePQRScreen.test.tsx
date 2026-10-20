@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert } from 'react-native';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import CreatePQRScreen from '../CreatePQRScreen';
 
 jest.mock('@core/api/client', () => ({
@@ -18,6 +18,9 @@ jest.mock('expo-location', () => ({
   getCurrentPositionAsync: jest.fn(),
 }));
 
+/** El token que da el captcha simulado cada vez que se resuelve. */
+const mockNextCaptchaToken = jest.fn(() => 'captcha-token');
+
 jest.mock('react-native-recaptcha-that-works', () => {
   const React = require('react');
   const { TouchableOpacity } = require('react-native');
@@ -26,7 +29,7 @@ jest.mock('react-native-recaptcha-that-works', () => {
     ({ onVerify }: { onVerify: (token: string) => void }, __: any) =>
       React.createElement(TouchableOpacity, {
         testID: 'recaptcha',
-        onPress: () => onVerify('captcha-token'),
+        onPress: () => onVerify(mockNextCaptchaToken()),
       }),
   );
   return { __esModule: true, default: Recaptcha };
@@ -114,6 +117,9 @@ const basePqrConfig = {
   updatedAt: new Date(),
   customFields: [],
 };
+
+const ANONYMOUS_HELP =
+  'Si la envías como anónima, la entidad no sabrá quién eres y no podrá contestarte por correo. Si responde desde Quéjate, verás la respuesta aquí y te llegará a tu correo; si no, puede publicarla en su página web. Para que la tramite, cuenta hechos concretos (qué pasó, dónde y cuándo) y adjunta pruebas si las tienes.';
 
 const mockCreatePQR = jest.fn();
 
@@ -260,10 +266,68 @@ describe('CreatePQRScreen — allowAnonymous', () => {
   });
 });
 
-describe('CreatePQRScreen: qué significa «anónima»', () => {
-  const ANONYMOUS_HELP =
-    'Si la envías como anónima, la entidad no sabrá quién eres y no podrá contestarte por correo. Si responde desde Quéjate, verás la respuesta aquí y te llegará a tu correo; si no, puede publicarla en su página web. Para que la tramite, cuenta hechos concretos (qué pasó, dónde y cuándo) y adjunta pruebas si las tienes.';
+describe('CreatePQRScreen: «anónima» sigue a la entidad', () => {
+  it('al cambiar a una entidad que no las admite se apaga, sin pasar por la red del paso 2', async () => {
+    (useEntities as jest.Mock).mockReturnValue({
+      entities: [
+        { id: 'e1', name: 'Alcaldía de Bogotá' },
+        { id: 'e2', name: 'Personería de Bogotá' },
+      ],
+      isLoading: false,
+    });
+    (usePQRConfig as jest.Mock).mockImplementation((entityId?: string) => ({
+      pqrConfig: { ...basePqrConfig, allowAnonymous: entityId !== 'e2' },
+      entityDepartments: [],
+      isLoading: false,
+    }));
 
+    const utils = render(<CreatePQRScreen />);
+    await navigateToStep2(utils);
+    fireEvent(utils.getByTestId('anonymous-toggle'), 'valueChange', true);
+    await waitFor(() => utils.getByText(ANONYMOUS_HELP));
+
+    fireEvent.press(utils.getByTestId('step-back'));
+    await waitFor(() => utils.getByTestId('step1-content'));
+    fireEvent.press(utils.getByTestId('entity-selector'));
+    await waitFor(() => utils.getByTestId('entity-option-e2'));
+    fireEvent.press(utils.getByTestId('entity-option-e2'));
+
+    // «Siguiente» del paso 1 no toca «anónima»: la que la apagaba era la del
+    // paso 2, y esa no se pulsa.
+    fireEvent.press(utils.getByText('Siguiente'));
+    await waitFor(() => utils.getByTestId('step2-content'));
+
+    const toggle = utils.getByTestId('anonymous-toggle');
+    expect(toggle.props.value).toBe(false);
+    expect(toggle.props.disabled).toBe(true);
+    expect(utils.getByText('Esta entidad no permite envíos anónimos')).toBeTruthy();
+    expect(utils.queryByText(ANONYMOUS_HELP)).toBeNull();
+  });
+
+  it('si la configuración de la entidad llega tarde, también la apaga', async () => {
+    let config: { pqrConfig: typeof basePqrConfig | null; isLoading: boolean } = {
+      pqrConfig: null,
+      isLoading: true,
+    };
+    (usePQRConfig as jest.Mock).mockImplementation(() => ({ ...config, entityDepartments: [] }));
+
+    const utils = render(<CreatePQRScreen />);
+    await navigateToStep2(utils);
+    fireEvent(utils.getByTestId('anonymous-toggle'), 'valueChange', true);
+    await waitFor(() => utils.getByText(ANONYMOUS_HELP));
+
+    // Llega la configuración: la entidad no admite anónimas.
+    config = { pqrConfig: { ...basePqrConfig, allowAnonymous: false }, isLoading: false };
+    utils.rerender(<CreatePQRScreen />);
+
+    await waitFor(() => expect(utils.getByTestId('anonymous-toggle').props.value).toBe(false));
+    expect(utils.getByTestId('anonymous-toggle').props.disabled).toBe(true);
+    expect(utils.getByText('Esta entidad no permite envíos anónimos')).toBeTruthy();
+    expect(utils.queryByText(ANONYMOUS_HELP)).toBeNull();
+  });
+});
+
+describe('CreatePQRScreen: qué significa «anónima»', () => {
   it('con el interruptor apagado no sale', async () => {
     const utils = render(<CreatePQRScreen />);
     await navigateToStep2(utils);
@@ -425,4 +489,94 @@ describe('CreatePQRScreen: al enviar', () => {
     );
     alertSpy.mockRestore();
   });
+
+  const SEND_ERROR = 'Error al enviar la PQRSD. Intenta de nuevo.';
+
+  async function sendFromStep5(utils: RenderResult) {
+    await navigateToStep5(utils);
+    fireEvent.press(utils.getByTestId('recaptcha'));
+    await waitFor(() => utils.getByText('✓ Verificación completada'));
+    // El error se pinta cuando se rechaza la promesa: que ocurra dentro de act.
+    await act(async () => {
+      fireEvent.press(utils.getByTestId('submit-btn'));
+    });
+  }
+
+  it.each([
+    'Esta entidad no recibe PQRSD anónimas',
+    'El campo "Barrio" es requerido',
+    'Debes adjuntar al menos un archivo de evidencia',
+  ])('si el servidor la rechaza con un 400, enseña su motivo: %s', async (reason) => {
+    mockCreatePQR.mockRejectedValue(apiError(400, { error: reason }));
+    const utils = render(<CreatePQRScreen />);
+    await sendFromStep5(utils);
+
+    await waitFor(() => expect(utils.getByText(reason)).toBeTruthy());
+    expect(utils.queryByText(SEND_ERROR)).toBeNull();
+  });
+
+  it.each([
+    ['con un 500', apiError(500, { error: 'Error interno del servidor' })],
+    ['sin conexión', Object.assign(new Error('Network Error'), { isAxiosError: true })],
+    ['con un 400 sin texto', apiError(400, {})],
+  ])('%s enseña el mensaje de siempre', async (_, error) => {
+    mockCreatePQR.mockRejectedValue(error);
+    const utils = render(<CreatePQRScreen />);
+    await sendFromStep5(utils);
+
+    await waitFor(() => expect(utils.getByText(SEND_ERROR)).toBeTruthy());
+  });
+
+  // El servidor da estos en inglés y no dicen nada que la persona pueda
+  // arreglar (la web traduce los dos del captcha).
+  it.each([
+    'reCAPTCHA token is required',
+    'reCAPTCHA verification failed',
+    'Missing PQR data',
+    'No consecutive code found for this entity',
+  ])('un 400 en inglés («%s») no se enseña: sale el mensaje de siempre', async (text) => {
+    mockCreatePQR.mockRejectedValue(apiError(400, { error: text }));
+    const utils = render(<CreatePQRScreen />);
+    await sendFromStep5(utils);
+
+    await waitFor(() => expect(utils.getByText(SEND_ERROR)).toBeTruthy());
+    expect(utils.queryByText(text)).toBeNull();
+  });
+
+  it('si el envío falla, vuelve a pedir el captcha y el reintento manda un token nuevo', async () => {
+    // Google no acepta dos veces el mismo token.
+    mockNextCaptchaToken
+      .mockReturnValueOnce('captcha-token-1')
+      .mockReturnValueOnce('captcha-token-2');
+    mockCreatePQR.mockRejectedValueOnce(apiError(500, { error: 'Error interno del servidor' }));
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    const utils = render(<CreatePQRScreen />);
+    await sendFromStep5(utils);
+
+    await waitFor(() => utils.getByText(SEND_ERROR));
+    expect(utils.queryByText('✓ Verificación completada')).toBeNull();
+    expect(utils.getByTestId('captcha-btn')).toBeTruthy();
+    const submitBtn = utils.getByTestId('submit-btn');
+    expect(submitBtn.props.accessibilityState?.disabled ?? submitBtn.props.disabled).toBeTruthy();
+
+    fireEvent.press(utils.getByTestId('recaptcha'));
+    await waitFor(() => utils.getByText('✓ Verificación completada'));
+    await act(async () => {
+      fireEvent.press(utils.getByTestId('submit-btn'));
+    });
+
+    await waitFor(() => expect(alertSpy).toHaveBeenCalled());
+    expect(mockCreatePQR).toHaveBeenCalledTimes(2);
+    expect(mockCreatePQR.mock.calls[0][0].recaptchaToken).toBe('captcha-token-1');
+    expect(mockCreatePQR.mock.calls[1][0].recaptchaToken).toBe('captcha-token-2');
+    alertSpy.mockRestore();
+  });
 });
+
+/** Un fallo de la API como lo entrega Axios, con la respuesta del servidor. */
+function apiError(status: number, data: unknown) {
+  return Object.assign(new Error(`Request failed with status code ${status}`), {
+    isAxiosError: true,
+    response: { status, data },
+  });
+}
