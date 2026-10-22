@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
+import Constants from 'expo-constants';
 import { useAuth } from '@core/auth/useAuth';
 import { ErrorState } from '@shared/components/ui/ErrorState';
 import { PRIVACY_URL, TERMS_URL } from '@shared/constants/legalUrls';
@@ -34,7 +35,6 @@ import { StyleSheet } from 'react-native';
 
 const FACEBOOK_URL = 'https://www.facebook.com/profile.php?id=61581217178815';
 const INSTAGRAM_URL = 'https://www.instagram.com/quejate.com.co';
-const APP_VERSION = '1.0.0';
 
 type Nav = NativeStackNavigationProp<AppStackParamList>;
 
@@ -144,6 +144,9 @@ export default function UserProfileScreen() {
   const roleLabel = ROLE_LABEL[sessionUser?.role ?? ''] ?? sessionUser?.role ?? '';
   const followers = profile?.followers ?? [];
   const following = profile?.following ?? [];
+  // La de app.config.js, la misma que enseña Play. Si no llega, no se pinta
+  // nada: un número escrito aquí a mano se queda viejo en la siguiente versión.
+  const appVersion = Constants.expoConfig?.version;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -324,9 +327,11 @@ export default function UserProfileScreen() {
           />
         </View>
 
-        <View style={profileStyles.versionRow}>
-          <Text style={profileStyles.versionText}>Quéjate v{APP_VERSION}</Text>
-        </View>
+        {appVersion ? (
+          <View style={profileStyles.versionRow}>
+            <Text style={profileStyles.versionText}>Quéjate v{appVersion}</Text>
+          </View>
+        ) : null}
       </ScrollView>
 
       <PeopleModal

@@ -13,7 +13,7 @@ const easJson = require('../eas.json') as {
 };
 
 /** Versión visible que hay hoy en Google Play. */
-const PUBLISHED_VERSION = '1.0.0';
+const PUBLISHED_VERSION = '1.1.0';
 
 const SEMVER = /^(\d+)\.(\d+)\.(\d+)$/;
 
