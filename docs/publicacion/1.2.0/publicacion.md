@@ -1,9 +1,10 @@
 # Publicación 1.2.0 en Google Play
 
-Preparada el 22/10/2026 sobre `origin/main` en `d925e6d`. Esta rama solo cambia la versión visible
+Preparada el 22/10/2026 sobre `origin/main` en `d925e6d`. Esta rama cambia la versión visible
 (`app.config.js:20`) y la prueba que la compara con la publicada (`__tests__/appConfig.test.ts:16`),
-y añade estos dos documentos. No toca `eas.json` ni el resto del código. Compilar, subir y enviar a
-revisión lo hace el responsable.
+hace que el pie del perfil lea esa versión en lugar de un número escrito a mano (§2), y añade estos
+dos documentos. No toca `eas.json` ni el resto del código. Compilar, subir y enviar a revisión lo
+hace el responsable.
 
 Lo que cambia en el formulario de «Seguridad de los datos» está aparte, en
 [`seguridad-de-los-datos.md`](./seguridad-de-los-datos.md).
@@ -12,8 +13,8 @@ Lo que cambia en el formulario de «Seguridad de los datos» está aparte, en
 
 - `origin/main` está en `d925e6d` (merge del #35), igual que el `main` local de la máquina de
   trabajo.
-- En esta rama, con la versión ya en `1.2.0`: `npm run typecheck` limpio y `npm test` con 35 suites
-  y 426 pruebas en verde.
+- En esta rama, con la versión ya en `1.2.0`: `npm run typecheck` limpio y `npm test` con 36 suites
+  y 430 pruebas en verde.
 - El árbol está limpio salvo `assets/quejate-banner.png` sin versionar, que ya estaba y la app no
   usa.
 - ⚠️ **El PR #36** (`fix/oversight-in-brand-blue`, el oficio en azul en lugar de morado) sigue
@@ -36,23 +37,20 @@ Lo que cambia en el formulario de «Seguridad de los datos» está aparte, en
   permisos y el mismo manifiesto. La 1.2.0 es código JavaScript sobre la base de la 10, más el
   número de versión de esta rama.
 
-### 🔴 El perfil seguirá diciendo «Quéjate v1.0.0»
+### El pie del perfil lee la versión de la configuración
 
-El pie del perfil no lee la versión de la configuración: la tiene escrita a mano,
-`const APP_VERSION = '1.0.0'` (`src/features/users/screens/UserProfileScreen.tsx:37`), y la pinta
-como `Quéjate v{APP_VERSION}` (`:328`). Está así desde mayo (`d52110d`), así que la 1.1.0 publicada
-ya enseña «v1.0.0», y la 1.2.0 lo seguirá haciendo. La prueba de la versión no lo ve porque solo
-mira `app.config.js`.
+Hasta ahora el pie del perfil tenía la versión escrita a mano, `const APP_VERSION = '1.0.0'`, desde
+mayo (`d52110d`): la 1.1.0 publicada enseña «Quéjate v1.0.0». En esta rama la lee de
+`Constants.expoConfig?.version` (`src/features/users/screens/UserProfileScreen.tsx:149`), que en el
+binario es la configuración de `app.config.js` que EAS mete en la compilación. Es el mismo objeto del
+que `usePushNotifications.ts:37` saca el `projectId` de las notificaciones, que funcionan en la
+versión de tienda. Si no llega ninguna versión, el pie no se pinta (`:330-334`).
 
-No lo he cambiado: el encargo era no tocar el código salvo la versión de `app.config.js`. Hay que
-decidir:
-
-1. **Dejarlo para la 1.2.1.** El ciudadano y soporte seguirán leyendo «v1.0.0».
-2. **Arreglarlo antes de compilar, en su propia rama**: leer la versión de la configuración con
-   `expo-constants` (`Constants.expoConfig?.version`; la app ya lo importa en
-   `src/core/notifications/usePushNotifications.ts:4`) o, como mínimo, cambiar el literal a
-   `'1.2.0'`. Tiene que estar en `main` antes del build, y entonces el commit del registro de EAS es
-   otro.
+La prueba (`src/features/users/screens/__tests__/UserProfileScreen.test.tsx`) tiene que darle a
+`expo-constants` la configuración de `app.config.js`, porque en Jest llega vacía. Comprueba que el
+pie dice `Quéjate v` más la versión de `app.config.js`, y que no dice nada sin configuración, sin
+versión o con la versión vacía. Con el literal de antes fallan las cuatro. Que el binario la traiga
+de verdad solo se ve en el teléfono (§6).
 
 ## 3. Qué entra
 
@@ -113,7 +111,6 @@ salto final; cada viñeta cuenta uno. Por línea: 10, 143, 42, 81, 93 y 98. No l
 ## 5. Antes de compilar: lo que hay que decidir hoy
 
 - [ ] ¿Entra el #36? (§1)
-- [ ] ¿Se arregla el «v1.0.0» del perfil? (§2)
 - [ ] Formulario de «Seguridad de los datos»: las decisiones de
   [`seguridad-de-los-datos.md`](./seguridad-de-los-datos.md) (§7 de ese documento).
 
@@ -171,8 +168,8 @@ sigue en el PR #26, sin aplicar. Esta rama no toca `eas.json`. Así que la subid
 2. Play Console → Quéjate → **Pruebas internas** → Crear versión → sube el AAB. Las notas van en
    «Notas de la versión», en español (es-419).
 3. Instálalo desde Play en un teléfono y recorre: entrar con Google; Perfil → Notificaciones
-   («Activadas en este teléfono»); el muro y «Buscar personas»; una PQRSD vencida hasta la
-   pantalla del oficio, **sin enviarlo**.
+   («Activadas en este teléfono»); el pie del perfil, que debe decir «Quéjate v1.2.0»; el muro y
+   «Buscar personas»; una PQRSD vencida hasta la pantalla del oficio, **sin enviarlo**.
 4. Promueve **esa misma versión** a Producción, con el porcentaje de despliegue que decidas, y
    envíala a revisión.
 
