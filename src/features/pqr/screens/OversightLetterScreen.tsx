@@ -93,7 +93,7 @@ export default function OversightLetterScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['bottom']}>
         <View style={styles.center}>
-          <ActivityIndicator color="#7C3AED" />
+          <ActivityIndicator color="#2563EB" />
         </View>
       </SafeAreaView>
     );
@@ -182,7 +182,7 @@ export default function OversightLetterScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['bottom']}>
         <View style={styles.center}>
-          <ActivityIndicator color="#7C3AED" size="large" />
+          <ActivityIndicator color="#2563EB" size="large" />
           <Text style={styles.stateTitle}>
             Redactando el oficio{draftingFor ? ` para ${draftingFor.name}` : ''}…
           </Text>
@@ -209,7 +209,7 @@ export default function OversightLetterScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['bottom']}>
         <View style={styles.letterBanner}>
-          <Ionicons name="document-text" size={18} color="#6D28D9" style={{ marginRight: 8 }} />
+          <Ionicons name="document-text" size={18} color="#1D4ED8" style={{ marginRight: 8 }} />
           <Text style={styles.letterBannerText}>
             Oficio para {letter.entity.name}. Revísalo antes de descargarlo o enviarlo.
           </Text>
@@ -234,9 +234,9 @@ export default function OversightLetterScreen() {
                 accessibilityRole="button"
               >
                 {pdf.busy !== null ? (
-                  <ActivityIndicator size="small" color="#6D28D9" style={{ marginRight: 6 }} />
+                  <ActivityIndicator size="small" color="#1D4ED8" style={{ marginRight: 6 }} />
                 ) : (
-                  <Ionicons name="download-outline" size={16} color="#6D28D9" style={{ marginRight: 6 }} />
+                  <Ionicons name="download-outline" size={16} color="#1D4ED8" style={{ marginRight: 6 }} />
                 )}
                 <Text style={styles.secondaryBtnText}>Descargar PDF</Text>
               </TouchableOpacity>
@@ -317,7 +317,7 @@ export default function OversightLetterScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['bottom']}>
         <View style={styles.center}>
-          <ActivityIndicator color="#7C3AED" />
+          <ActivityIndicator color="#2563EB" />
         </View>
       </SafeAreaView>
     );
@@ -482,11 +482,11 @@ const styles = StyleSheet.create({
   letterBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F3FF',
+    backgroundColor: '#EFF6FF',
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  letterBannerText: { flex: 1, fontSize: 12, color: '#5B21B6', lineHeight: 17 },
+  letterBannerText: { flex: 1, fontSize: 12, color: '#1E3A8A', lineHeight: 17 },
   letterScroll: { padding: 16 },
   letterText: { fontSize: 14, color: '#111827', lineHeight: 21 },
   letterBottom: {
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#2563EB',
     borderRadius: 12,
     paddingVertical: 13,
   },
@@ -521,13 +521,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F5F3FF',
+    backgroundColor: '#EFF6FF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#DDD6FE',
+    borderColor: '#BFDBFE',
     paddingVertical: 13,
   },
-  secondaryBtnText: { color: '#6D28D9', fontSize: 14, fontWeight: '700' },
+  secondaryBtnText: { color: '#1D4ED8', fontSize: 14, fontWeight: '700' },
   btnDisabled: { opacity: 0.5 },
   notSaved: {
     flexDirection: 'row',
@@ -544,5 +544,5 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingBottom: 12,
   },
-  linkText: { fontSize: 13, fontWeight: '600', color: '#6D28D9' },
+  linkText: { fontSize: 13, fontWeight: '600', color: '#1D4ED8' },
 });
