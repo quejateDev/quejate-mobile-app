@@ -41,14 +41,14 @@ export const styles = StyleSheet.create({
     fontWeight: '500',
   },
   privateBadge: {
-    backgroundColor: '#F5F3FF',
+    backgroundColor: '#EFF6FF',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 99,
   },
   privateBadgeText: {
     fontSize: 12,
-    color: '#7C3AED',
+    color: '#1E3A8A',
     fontWeight: '500',
   },
   dueBadge: {
