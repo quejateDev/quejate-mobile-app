@@ -74,8 +74,9 @@ export default function FormalFollowupScreen() {
             accessibilityRole="button"
             accessibilityLabel="Enviar a ente de control"
           >
-            <View style={[styles.iconCircle, { backgroundColor: '#F5F3FF' }]}>
-              <Ionicons name="shield-checkmark" size={24} color="#7C3AED" />
+            {/* Azul oscuro, para no confundirse con el azul de la tutela. */}
+            <View style={[styles.iconCircle, { backgroundColor: '#DBEAFE' }]}>
+              <Ionicons name="shield-checkmark" size={24} color="#1E3A8A" />
             </View>
             <View style={styles.cardBody}>
               <Text style={styles.cardTitle}>Enviar a ente de control</Text>
