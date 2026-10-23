@@ -24,6 +24,7 @@ import {
 } from '@features/pqr/hooks/usePQRActions';
 import { AttachmentGalleryModal } from './AttachmentGalleryModal';
 import { DocumentViewerModal } from './DocumentViewerModal';
+import { EntityLinkTimeline } from './EntityLinkTimeline';
 import { OverdueModal } from './OverdueModal';
 import { StatusTimeline } from './StatusTimeline';
 import { formatBytes, isMediaAttachment, isVideoAttachment } from './detailUtils';
@@ -348,6 +349,15 @@ export function DetailHeader({ pqrId, commentCount }: Props) {
             />
           )}
         </View>
+      )}
+
+      {/* Solo le llega al autor; sin él (o con un servidor anterior), nada. */}
+      {pqr.entityLink && (
+        <EntityLinkTimeline
+          entityName={pqr.entity?.name ?? 'la entidad'}
+          createdAt={pqr.createdAt}
+          link={pqr.entityLink}
+        />
       )}
 
       {statusHistory.length > 0 && (

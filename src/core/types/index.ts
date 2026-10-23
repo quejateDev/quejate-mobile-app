@@ -237,6 +237,19 @@ export interface PQRStatusHistoryEntry {
   user?: { name: string };
 }
 
+/**
+ * El enlace de la entidad a la PQRSD (R-42), tal como lo trae `GET /pqr/:id`:
+ * el correo a la entidad lleva un enlace que abre la PQRSD sin cuenta y deja
+ * confirmar que la recibió. Las fechas llegan en ISO.
+ */
+export interface PQREntityLink {
+  /** La primera vez que la entidad abrió el enlace en un navegador. */
+  openedAt: string | null;
+  confirmedAt: string | null;
+  /** El radicado que anotó la entidad al confirmar, si anotó uno. */
+  radicado: string | null;
+}
+
 export interface PQRS {
   id: string;
   type: PQRSType;
@@ -270,6 +283,12 @@ export interface PQRS {
   likes: Like[];
   customFieldValues: CustomFieldValue[];
   statusHistory?: PQRStatusHistoryEntry[];
+  /**
+   * Aditivo (R-42): solo le llega al autor, también en una anónima. Es `null`
+   * para cualquier otro y en las PQRSD anteriores al 21/10/2026, y un servidor
+   * anterior no lo manda.
+   */
+  entityLink?: PQREntityLink | null;
   _count?: { likes: number; comments: number };
 }
 

@@ -55,7 +55,7 @@ de verdad solo se ve en el teléfono (§6).
 ## 3. Qué entra
 
 La 10 se compiló desde `a4a93fc` (merge del #27) el 28/09/2026, la última de tienda
-(`eas build:list --platform android`). Desde entonces han entrado los PR #28 a #35:
+(`eas build:list --platform android`). Desde entonces han entrado los PR #28 a #35 y el #38:
 
 | PR | Qué nota el ciudadano | Dónde |
 |---|---|---|
@@ -67,39 +67,48 @@ La 10 se compiló desde `a4a93fc` (merge del #27) el 28/09/2026, la última de t
 | #33 | Oficio al ente de control: tercera tarjeta de «Seguimiento formal» para una PQRSD vencida; se elige el ente, se redacta el borrador, se descarga en PDF o se envía por correo | `FormalFollowupScreen.tsx:81-82`, `OversightLetterScreen.tsx` |
 | #34 | Antes de enviar: el aviso de facilitador y la autorización junto al botón; al marcar «anónima», qué implica; el aviso de borrador con IA en la tutela y el oficio; el recordatorio de esperar la nueva fecha antes de una tutela. Nombres nuevos: «N.º de seguimiento», «constancia de envío» y «enviadas» en Mis PQRSD | `Confirmation.tsx:144-183`, `TypeAndContent.tsx:30`, `OverdueModal.tsx:64-65`, `DetailHeader.tsx:209`, `PQRActionsSheet.tsx:150`, `MyPQRsScreen.tsx:207` |
 | #35 | «Anónima» se apaga sola si la entidad no la admite; si el servidor rechaza el envío, se lee el motivo; tras un envío fallido se vuelve a pedir el captcha | `CreatePQRScreen.tsx:149`, `:311-325` |
+| #38 | En el detalle de su PQRSD, el autor ve «Seguimiento del envío»: enviada a la entidad, cuándo la entidad abrió el enlace del correo y cuándo confirmó que la recibió, con su radicado, en hora de Colombia. Solo en las PQRSD enviadas desde el 21/10 y con el PR #80 del backend desplegado | `DetailHeader.tsx:355`, `EntityLinkTimeline.tsx` |
 
 ## 4. Notas de la versión
 
 Para ciudadanos, en español, dentro del límite de 500 caracteres de Play.
 
-**Para pegar** (472 caracteres):
+**Para pegar** (498 caracteres):
 
 ```text
 Novedades:
-• Si el plazo de tu PQRSD venció, en Seguimiento formal puedes preparar un oficio al ente de control, descargarlo en PDF o enviarlo por correo.
+• Si tu PQRSD venció, en Seguimiento formal prepara un oficio al ente de control, descárgalo en PDF o envíalo por correo.
+• En tus PQRSD nuevas ves cuándo la entidad abrió el enlace y si confirmó que la recibió.
 • Busca personas por nombre desde el muro.
-• Buscar en el muro y filtrar Mis PQRSD ya no se limita a lo cargado en pantalla.
-• Antes de enviar una PQRSD te contamos qué hace Quéjate y qué implica enviarla como anónima.
-• El número que te da Quéjate se llama ahora número de seguimiento, y el PDF, constancia de envío.
+• Buscar en el muro y filtrar Mis PQRSD ya no se limita a lo cargado.
+• Antes de enviar te contamos qué hace Quéjate y qué implica la opción anónima.
+• El código es ahora número de seguimiento, y el certificado, constancia de envío.
 ```
 
-Contadas con `node` sobre el texto de arriba: 472 caracteres con los cinco saltos de línea, sin
-salto final; cada viñeta cuenta uno. Por línea: 10, 143, 42, 81, 93 y 98. No llevan raya.
+Contadas con `node` sobre el texto de arriba: 498 caracteres con los seis saltos de línea, sin
+salto final; cada viñeta cuenta uno. Por línea: 10, 121, 89, 42, 69, 79 y 82. No llevan raya.
+
+Con la línea del seguimiento del envío (#38) salían 562. Para bajar de 500 se acortaron el oficio,
+el muro, la anónima y los nombres sin quitar ninguna novedad: la última línea usa los nombres que
+enseña la 1.1.0 publicada («Código» y «Descargar certificado», en `a4a93fc`).
 
 ### De dónde sale cada línea
 
 | Línea | PR | Por qué se puede decir así |
 |---|---|---|
 | Oficio al ente de control | #33 | La tarjeta solo aparece con la PQRSD vencida (`FormalFollowupScreen.tsx:81-82`); el borrador se descarga en PDF y se envía desde la app (`OversightLetterScreen.tsx:228-260`) |
+| Cuándo la entidad abrió el enlace y si confirmó | #38 | «Seguimiento del envío» en el detalle (`DetailHeader.tsx:355`, `EntityLinkTimeline.tsx`), con `entityLink` de `GET /pqr/:id` (PR #80 del backend). Solo le llega al autor y solo en las PQRSD enviadas desde el 21/10: de ahí «nuevas» |
 | Buscar personas | #28 | Icono «Buscar personas» en la cabecera del muro (`PQRListScreen.tsx:294-299`) |
 | Muro y Mis PQRSD sin el límite de lo cargado | #29, #30 | El muro se pide entero hasta 500 (`useWallSearch.ts:9-20`); Mis PQRSD filtra y cuenta sobre la lista completa |
 | Qué hace Quéjate y qué implica la anónima | #34 | Aviso de facilitador y autorización en la confirmación (`Confirmation.tsx:144-183`); texto de anónima al encender el interruptor (`TypeAndContent.tsx:30`, `:188-192`) |
-| Número de seguimiento y constancia de envío | #34 | `DetailHeader.tsx:209`, `PQRActionsSheet.tsx:150` |
+| Número de seguimiento y constancia de envío | #34 | `DetailHeader.tsx:209`, `PQRActionsSheet.tsx:150`; antes «Código» y «Descargar certificado» (`a4a93fc`, los mismos ficheros) |
 
 ### Lo que las notas no dicen, a propósito
 
 - **Que el ente de control o la entidad vayan a responder o a actuar.** La app envía el oficio; lo
   que haga el ente no depende de ella.
+- **Que la entidad vaya a abrir el enlace o a confirmar, ni que el seguimiento salga en todas las
+  PQRSD.** La sección lo avisa debajo, y solo existe en las enviadas desde el 21/10 y para su autor.
 - **Que el oficio siempre se pueda enviar.** Solo si el ente tiene correo en el directorio; si no,
   la app lo dice y deja descargarlo (`OversightLetterScreen.tsx:392-399`). «Puedes … o enviarlo»
   no promete el envío en todos los casos.
@@ -111,6 +120,9 @@ salto final; cada viñeta cuenta uno. Por línea: 10, 143, 42, 81, 93 y 98. No l
 ## 5. Antes de compilar: lo que hay que decidir hoy
 
 - [ ] ¿Entra el #36? (§1)
+- [ ] ¿Está desplegado el PR #80 del backend? Sin él, `GET /pqr/:id` no manda `entityLink`: la app
+  no falla, pero la sección del #38 no sale y la segunda línea de las notas promete algo que no se
+  ve.
 - [ ] Formulario de «Seguridad de los datos»: las decisiones de
   [`seguridad-de-los-datos.md`](./seguridad-de-los-datos.md) (§7 de ese documento).
 
@@ -169,7 +181,8 @@ sigue en el PR #26, sin aplicar. Esta rama no toca `eas.json`. Así que la subid
    «Notas de la versión», en español (es-419).
 3. Instálalo desde Play en un teléfono y recorre: entrar con Google; Perfil → Notificaciones
    («Activadas en este teléfono»); el pie del perfil, que debe decir «Quéjate v1.2.0»; el muro y
-   «Buscar personas»; una PQRSD vencida hasta la pantalla del oficio, **sin enviarlo**.
+   «Buscar personas»; una PQRSD vencida hasta la pantalla del oficio, **sin enviarlo**; el detalle
+   de la PQRSD de prueba a «Quéjate», con «Seguimiento del envío» igual que en la web.
 4. Promueve **esa misma versión** a Producción, con el porcentaje de despliegue que decidas, y
    envíala a revisión.
 
