@@ -1,5 +1,9 @@
 # Publicación 1.2.0 en Google Play
 
+> **Publicada en producción el 26/10/2026.** Lo que pasó al publicarla y no estaba previsto aquí
+> está en el §8. Cómo se publica la siguiente, paso a paso, en
+> [`../como-publicar.md`](../como-publicar.md).
+
 Preparada el 22/10/2026 sobre `origin/main` en `d925e6d`. Esta rama cambia la versión visible
 (`app.config.js:20`) y la prueba que la compara con la publicada (`__tests__/appConfig.test.ts:16`),
 hace que el pie del perfil lea esa versión en lugar de un número escrito a mano (§2), y añade estos
@@ -204,3 +208,47 @@ entidad real, y un oficio, a un ente de control real.
   Quéjate no es una entidad del gobierno y las fuentes oficiales, que fueron la causa de los dos
   rechazos por «Misleading Claims». Las notas de la versión no los necesitan porque no citan
   normas ni plazos.
+
+## 8. Lo que pasó al publicarla (26/10/2026)
+
+Anotado después de publicar, a partir de lo que contó el responsable. No he visto la consola.
+
+### 8.1 Play pidió una declaración de servicios en primer plano
+
+El §7 daba por hecho que no habría declaraciones nuevas, y para el binario de la 1.2.0 era cierto:
+no pide servicios en primer plano, porque `FOREGROUND_SERVICE*` está en `blockedPermissions` de
+`app.config.js` desde el commit `1b34f68` (28/09).
+
+Aun así, Play Console pidió una **declaración de permisos de servicio en primer plano**. La exigía
+la pista de prueba cerrada **«Alpha»**, que seguía sirviendo el `versionCode` 4 (la 1.0.0, de antes
+del bloqueo). Play revisa los binarios de todas las pistas activas, no solo el que se publica.
+
+- **La salida:** pausar la pista «Alpha» o publicar en ella la versión actual.
+- **No hay que declarar** «Reproducción de contenido multimedia» ni «Otro»: la app no tiene ninguna
+  función que los use.
+
+⚠️ No consta cuál de las dos salidas se tomó. Antes de la próxima versión, mira en Play Console si
+«Alpha» está pausada o qué `versionCode` sirve.
+
+### 8.2 «Seguridad de los datos», como se respondió
+
+Las decisiones que el §7 de [`seguridad-de-los-datos.md`](./seguridad-de-los-datos.md) dejaba
+abiertas se respondieron así:
+
+- el documento de identidad, en «Otra información», obligatorio (§2.3 y §2.4 de ese documento);
+- la dirección, opcional (§2.4);
+- lo que se manda a la entidad no cuenta como «compartido» (§2.5, sin la línea conservadora);
+- «Historial de búsqueda en la app», declarado: opcional, para la funcionalidad de la app (§4);
+- OpenAI y la información de salud, como en la 1.1.0 (§7.5);
+- Google Analytics no se declara (§5.2): el PR #194 de `quejate-app` quitó Google Tag Manager de
+  `/policy` y `/terms`, las páginas que la app abre dentro del WebView. ⚠️ He leído el cambio en
+  `quejate-app`, no he comprobado que esté desplegado.
+
+Ese documento se deja como estaba, con las decisiones abiertas: es el razonamiento previo, y este
+apartado es lo que se respondió.
+
+### 8.3 Lo que falta anotar
+
+- ⚠️ El `versionCode` y el commit del binario publicado. Si nada se compiló después del 22/10, el
+  `versionCode` es el 11 (§2). Se ven en el registro del build en EAS (§6) y en el explorador de app
+  bundles de Play Console.
