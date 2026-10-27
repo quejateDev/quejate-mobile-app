@@ -7,10 +7,11 @@ en `eas.json` (`submit.production.android`).
 Cada orden lleva al lado de dónde sale:
 
 - ✅ **Comprobada:** existe en `package.json`, o la ayuda del `eas-cli` instalado (18.4.0) la
-  describe así, o la he ejecutado sin sesión.
+  describe así, o la he ejecutado. Todo sin sesión, salvo dos lecturas de EAS del 27/10
+  (`eas build:list` y `eas build:version:get`), que no compilan ni cambian nada.
 - ⚠️ **Sin comprobar:** sale de la documentación de Expo o de Google, o de lo que se hizo en
   versiones anteriores, pero no la he podido ejecutar (necesita una sesión real de Expo o de Play
-  Console, y este documento se escribió sin usar ninguna).
+  Console, y este documento no ha usado ninguna para nada más).
 
 Los documentos de cada versión publicada están en `docs/publicacion/<versión>/`. El de la 1.2.0
 ([`1.2.0/publicacion.md`](./1.2.0/publicacion.md)) es el ejemplo más completo de cómo se preparó
@@ -156,15 +157,18 @@ se escribe a mano:
 
 **Dónde se ve:**
 
-- Antes de compilar: `eas build:version:get --platform android`. ✅ `eas build:version:get --help`
-  («get the latest version from EAS servers»); ⚠️ necesita sesión, no la he ejecutado. El 22/10,
-  antes de compilar la 1.2.0, devolvía **10**.
+- Antes de compilar: `eas build:version:get --platform android`. ✅ Ejecutada el 27/10 (con sesión;
+  solo lee): devuelve **13**, así que el próximo binario de tienda será el 14. El 22/10,
+  antes de compilar la 1.2.0, devolvía 10.
 - Durante la compilación: en el registro, fase `CONFIGURE_ANDROID_VERSION`, la línea
   `Version code: N` (así lo anotó la 1.2.0, §6 de su documento).
 - En Play Console: **Explorador de app bundles** lista cada binario subido con su `versionCode`.
 
-⚠️ No he comprobado qué `versionCode` recibió la 1.2.0. Si nadie compiló nada entre el 22/10 y la
-publicación, fue el 11. Anótalo en su documento cuando lo mires.
+La 1.2.0 publicada es el **13** (Play Console, 27/10), no el 11 que se esperaba: entre el 22 y el
+23/10 se compilaron tres binarios de tienda, el 11 y el 12 desde el mismo commit y el 13 desde el
+siguiente (§8.3 de [su documento](./1.2.0/publicacion.md)). Saltarse números no es un problema:
+Play solo exige que cada `versionCode` sea mayor que los anteriores. Lo que sí importa es promocionar
+el binario que se ha probado, y anotar cuál fue.
 
 ⚠️ EAS solo cuenta lo que compila él. Si alguna vez se sube a Play un binario hecho por otra vía,
 hay que fijar el número remoto por encima con `eas build:version:set --platform android` (✅
@@ -299,7 +303,9 @@ PR #26).
 **Cómo quedó el formulario con la 1.2.0** (lo que se respondió el 26/10, según el responsable):
 
 - el documento de identidad que piden las entidades, en «Otra información», obligatorio;
-- la dirección, opcional;
+- la dirección, opcional. Comprobado el 26/10 contra producción: de las 210 entidades, 11 tienen
+  formulario, y el único campo obligatorio es «Documento de identidad»; ninguna pide la dirección
+  como obligatoria. **Si una entidad la vuelve obligatoria, hay que cambiar esa respuesta en Play**;
 - lo que se manda a la entidad que eligió el ciudadano no cuenta como «compartido»;
 - «Historial de búsqueda en la app», declarado: opcional, para la funcionalidad de la app;
 - OpenAI y la información de salud, como en la 1.1.0 (⚠️ el repositorio no recoge qué se respondió
@@ -307,8 +313,8 @@ PR #26).
   compartido);
 - Google Analytics no se declara: desde el PR #194 de `quejate-app`, la web no carga Google Tag
   Manager en `/policy` ni en `/terms`, que son las páginas que la app abre dentro de un WebView
-  (`src/shared/constants/legalUrls.ts`). Si la app empieza a abrir otra página de la web dentro de
-  ella, vuelve a mirarlo.
+  (`src/shared/constants/legalUrls.ts`). El cambio está en producción desde el 22/10, comprobado
+  ese día. Si la app empieza a abrir otra página de la web dentro de ella, vuelve a mirarlo.
 
 ### 8.2 Las declaraciones de permisos
 
@@ -374,12 +380,97 @@ Commits de las versiones de tienda que constan:
 |---|---|---|---|
 | 1.0.0 | 4 | ⚠️ no consta | El responsable: es la que servía la pista «Alpha» |
 | 1.1.0 | 10 | `a4a93fc` (merge del #27), compilada el 28/09 | `1.2.0/publicacion.md`, §3 |
-| 1.2.0 | ⚠️ 11 si nada se compiló entre medias | ⚠️ no consta; `main` estaba en `7f4174c` el 26/10 | `1.2.0/publicacion.md`, §2 |
+| 1.2.0 | 13 | `7f4174c` (merge del #38), compilada el 23/10 | Play Console (27/10) y `eas build:list`; `1.2.0/publicacion.md`, §8.3 |
 
 Para la próxima, anota en su documento el `versionCode` y el commit que dice el registro del build:
 sin eso, saber qué código tiene un teléfono es adivinar.
 
-## 10. Lista corta
+## 10. Los avisos que Play Console tiene abiertos (27/10/2026)
+
+El 27/10, Play Console muestra tres avisos para el `versionCode` 13 (la 1.2.0). Los anotó el
+responsable; yo no los he visto en la consola. Ninguno impidió publicarla, pero el primero tiene
+plazo. **No hay nada hecho todavía:** `app.config.js` y el código siguen como estaban. Lo que sigue
+explica de dónde sale cada aviso y qué supone arreglarlo.
+
+### 10.1 «DEX code optimization is below our threshold» (con plazo)
+
+- **Qué dice:** la ofuscación del código está al 2 %. Play pide arreglarlo **antes de febrero de
+  2027**; si no, puede afectar a la visibilidad de la app y a la publicación de versiones nuevas.
+- **Por qué pasa:** la compilación de release no activa R8, el optimizador y ofuscador de Android.
+  El proyecto nativo no está en el repositorio (`android/` está en `.gitignore` y en `.easignore`),
+  así que EAS lo genera en cada build desde la plantilla de la SDK 54. En esa plantilla,
+  `minifyEnabled` lee la propiedad `android.enableMinifyInReleaseBuilds` y vale `false` si nadie la
+  pone. Fuente: la plantilla `expo-template-bare-minimum` 54.0.54, `android/app/build.gradle:69` y
+  `:118`.
+- **La opción que lo activa** en Expo SDK 54 es `enableMinifyInReleaseBuilds`, dentro de `android`
+  en el plugin `expo-build-properties`. La documentación dice: «Enable R8 in release builds to
+  obfuscate Java code and reduce app size.» Fuentes: la
+  [documentación de `expo-build-properties` para la SDK 54](https://docs.expo.dev/versions/v54.0.0/sdk/build-properties/)
+  y el tipo de la versión que instala esta SDK (`~1.0.10`, según
+  `node_modules/expo/bundledNativeModules.json`): `build/pluginConfig.d.ts:51`. El plugin la escribe
+  en `gradle.properties` como `android.enableMinifyInReleaseBuilds` (`build/android.js:62`), que es
+  la propiedad que lee la plantilla. La documentación propone usarla junto con
+  `enableShrinkResourcesInReleaseBuilds`, que quita los recursos que no se usan.
+- **Cómo se activaría** (⚠️ no lo he hecho ni compilado): `npx expo install expo-build-properties`
+  (hoy no está en `package.json`) y, en `plugins` de `app.config.js`:
+
+  ```js
+  ['expo-build-properties', { android: { enableMinifyInReleaseBuilds: true } }],
+  ```
+
+- 🔴 **Después hay que probar la app entera**, no solo lo nuevo. R8 quita y renombra las clases que
+  cree que nadie usa, y eso rompe las librerías que las buscan por reflexión. El fallo no sale al
+  compilar: sale al usar esa función, y solo en el binario de release. Si una librería se rompe, las
+  reglas para conservar sus clases van en `extraProguardRules`, del mismo plugin. Prueba, con un
+  binario instalado desde «Pruebas internas» (§6.2) y **sin enviar nada**: entrar y salir con
+  Google, las notificaciones, crear una PQRSD con foto, vídeo y ubicación hasta la confirmación, el
+  mapa, el sonómetro, la tutela y el oficio hasta el borrador, y descargar y compartir los PDF.
+- ⚠️ Con el código ofuscado, los informes de fallos de Play solo se leen si Play tiene el fichero
+  de desofuscación de esa versión. No he comprobado si llega solo con el AAB de EAS: míralo en Play
+  Console antes de fiarte de esos informes.
+
+### 10.2 «Your app uses deprecated APIs or parameters for edge-to-edge»
+
+- `app.config.js:38` tiene `edgeToEdgeEnabled: true`: la app ya se dibuja de borde a borde. El
+  aviso va de otra cosa: el binario llama a APIs que Android 15 marcó como obsoletas para colorear
+  las barras del sistema (`Window.setStatusBarColor`, `Window.setNavigationBarColor`) o a los modos
+  de recorte `LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES` y `_DEFAULT`. Suele venir de librerías que
+  aún las usan, no del código de la app: `src/` no tiene código nativo.
+- **Candidatos** en el código Android de las librerías instaladas (búsqueda en `node_modules` del
+  27/10):
+
+  | Librería | Versión | Dónde |
+  |---|---|---|
+  | React Native | 0.81.5 | `ReactAndroid/.../modules/statusbar/StatusBarModule.kt:73` y `:78` (color de la barra de estado); `ReactAndroid/.../views/view/WindowUtil.kt:78`, `:96` y `:132` (modos de recorte) |
+  | react-native-screens | 4.16.0 | `android/.../rnscreens/ScreenWindowTraits.kt:116` (barra de estado) y `:224` (barra de navegación) |
+  | expo-image-picker | 17.0.11 | `android/.../imagepicker/ExpoCropImageUtils.kt:84` (la pantalla de recortar) |
+
+- ⚠️ **Por averiguar:** cuáles de esos señala Play de verdad. Las dependencias que llegan ya
+  compiladas (androidx, Material Components, Google Sign-In, o
+  `com.vanniktech:android-image-cropper` 4.6.0, que trae expo-image-picker) no se pueden buscar así
+  y también pueden estar detrás. Si el detalle del aviso en Play Console nombra clases,
+  compáralas con la tabla. Lo esperable es que se arregle al actualizar esas librerías (en la
+  práctica, con una SDK de Expo nueva), no tocando la app.
+
+### 10.3 «Remove resizability and orientation restrictions» (pantallas grandes)
+
+- `app.config.js:21` fija `orientation: 'portrait'`: la app pide ir siempre en vertical.
+- **En tabletas con Android 16 eso ya no se cumple.** La 1.2.0 se compila para el API 36 (Android
+  16): la SDK 54 toma el `targetSdk` de `node_modules/react-native/gradle/libs.versions.toml:4`
+  (⚠️ deducido del código instalado, no leído del binario). Para esas apps, Android 16 ignora
+  `screenOrientation` y las restricciones de tamaño en pantallas de 600 dp o más de ancho mínimo
+  (tabletas, plegables abiertos): la app llena la pantalla y gira. En los teléfonos sigue en
+  vertical. Fuente: [cambios de comportamiento de Android 16](https://developer.android.com/about/versions/16/behavior-changes-16),
+  «Adaptive layouts».
+- **Quitar `orientation: 'portrait'`** haría girar la app también en los teléfonos. Obliga a revisar
+  todas las pantallas en tableta y en horizontal: los formularios con el teclado abierto, el mapa,
+  la cámara, el sonómetro, las listas y los modales. ⚠️ No consta que nadie haya mirado la app en
+  una tableta ni en horizontal, y por lo de arriba, en una tableta con Android 16 ya puede verse así.
+- Android deja aplazarlo con la propiedad `android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY`,
+  pero va en sentido contrario a lo que pide el aviso, y la misma página avisa de que deja de valer
+  cuando la app apunte al API 37.
+
+## 11. Lista corta
 
 - [ ] Rama desde `main`: `version` en `app.config.js` y `PUBLISHED_VERSION` en
   `__tests__/appConfig.test.ts`.
@@ -393,5 +484,7 @@ sin eso, saber qué código tiene un teléfono es adivinar.
   nuevo sin enviar nada.
 - [ ] «Seguridad de los datos» y declaraciones al día. Si Play pide una declaración que no encaja,
   mira qué sirve cada pista (§8.3).
+- [ ] Los avisos de Play Console (§10): si sigue alguno abierto y si su plazo vence antes de la
+  siguiente versión. El de la optimización del código vence en febrero de 2027.
 - [ ] Promocionar esa misma versión a producción y enviar a revisión.
 - [ ] Anotar en el documento de la versión la fecha, el `versionCode` y el commit.
