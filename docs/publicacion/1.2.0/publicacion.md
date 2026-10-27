@@ -236,19 +236,44 @@ Las decisiones que el §7 de [`seguridad-de-los-datos.md`](./seguridad-de-los-da
 abiertas se respondieron así:
 
 - el documento de identidad, en «Otra información», obligatorio (§2.3 y §2.4 de ese documento);
-- la dirección, opcional (§2.4);
+- la dirección, opcional (§2.4). Comprobado el 26/10 contra producción: de las 210 entidades, 11
+  tienen formulario, y el único campo obligatorio es «Documento de identidad»; ninguna pide la
+  dirección como obligatoria. Si una entidad la vuelve obligatoria, hay que cambiar esta respuesta
+  en Play;
 - lo que se manda a la entidad no cuenta como «compartido» (§2.5, sin la línea conservadora);
 - «Historial de búsqueda en la app», declarado: opcional, para la funcionalidad de la app (§4);
 - OpenAI y la información de salud, como en la 1.1.0 (§7.5);
 - Google Analytics no se declara (§5.2): el PR #194 de `quejate-app` quitó Google Tag Manager de
-  `/policy` y `/terms`, las páginas que la app abre dentro del WebView. ⚠️ He leído el cambio en
-  `quejate-app`, no he comprobado que esté desplegado.
+  `/policy` y `/terms`, las páginas que la app abre dentro del WebView. Está en producción desde el
+  22/10, comprobado ese día: ya no hay Tag Manager en ninguna de las dos.
 
 Ese documento se deja como estaba, con las decisiones abiertas: es el razonamiento previo, y este
 apartado es lo que se respondió.
 
-### 8.3 Lo que falta anotar
+### 8.3 El binario publicado: el `versionCode` 13
 
-- ⚠️ El `versionCode` y el commit del binario publicado. Si nada se compiló después del 22/10, el
-  `versionCode` es el 11 (§2). Se ven en el registro del build en EAS (§6) y en el explorador de app
-  bundles de Play Console.
+La versión publicada es el `versionCode` **13**, según Play Console (27/10). Este apartado suponía
+el 11 si no se compilaba nada después del 22/10, pero se compilaron dos binarios más. Los tres de
+tienda de la 1.2.0, según `eas build:list --platform android` (leído el 27/10):
+
+| `versionCode` | Commit | Compilado (hora de Colombia) |
+|---|---|---|
+| 11 | `8fb214c` (merge del #37) | 22/10, 10:35 |
+| 12 | `8fb214c` (merge del #37) | 22/10, 13:29 |
+| 13 | `7f4174c` (merge del #38) | 23/10, 09:14 |
+
+Los tres son `1.2.0`, del perfil `production` y con el árbol limpio.
+
+- **El 11 y el 12 salieron del mismo commit.** EAS no dice por qué se compiló dos veces, ni si
+  alguno se subió a Play: eso solo lo enseña el explorador de app bundles de Play Console.
+- **El 13 es el único que lleva el #38** («Seguimiento del envío»). El 11 y el 12 no lo tienen: no
+  hay que promocionar ninguno de los dos.
+- El contador remoto de EAS está en 13 (`eas build:version:get --platform android`, 27/10): el
+  próximo binario de tienda será el 14.
+
+### 8.4 Los avisos de Play Console para la 13
+
+El 27/10, Play Console muestra tres avisos para esta versión: la optimización del código DEX (con
+plazo hasta febrero de 2027), APIs obsoletas de edge-to-edge y las restricciones de orientación en
+pantallas grandes. Están explicados en el §10 de [`../como-publicar.md`](../como-publicar.md),
+escrito para quien publique la próxima.
