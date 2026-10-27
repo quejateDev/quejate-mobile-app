@@ -1,5 +1,12 @@
 # Publicación 1.1.0 en Google Play
 
+> **Nota del 27/10/2026.** La 1.1.0 que llegó a producción fue el `versionCode` **10**, compilado el
+> 28/09 desde `a4a93fc` (merge del #27), no el 8 que prevé este documento (§2 y §7). El 8 y el 9 se
+> compilaron ese mismo día desde `9298575`. El 9 llevaba el fichero de Firebase de producción ya
+> corregido en EAS, con el que funcionan las notificaciones, y el 10 añade el bloqueo de los permisos
+> de servicio en primer plano del #27, que Play exigía. Fuente: `eas build:list --platform android`
+> (27/10).
+
 Preparada el 26/09/2026 sobre `origin/main` en `9298575`. Es solo documentación: no cambia código, ni
 `app.config.js`, ni `eas.json`. La subida a Play la hace el responsable a mano en la consola, que es
 donde se fija el porcentaje de despliegue.
