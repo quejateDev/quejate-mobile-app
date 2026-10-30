@@ -635,8 +635,10 @@ nativo, y el permiso tendrá que ir con `android:usesPermissionFlags="onlyForLoc
   «all apps requesting precise location», sin nombrar ningún API, pero sus fechas hablan de las apps
   «in scope» sin definirlas, y la
   [tabla de plazos de Google](https://support.google.com/googleplay/android-developer/table/12921780?hl=en)
-  tampoco nombra ningún API. Sus preguntas frecuentes sí nombran el API al hablar de cuándo se exige
-  el botón: «We anticipate enforcement for apps targeting Android 17+ to begin in late January 2027».
+  tampoco nombra ningún API.
+  Las preguntas frecuentes de la página de alcance mínimo sí nombran el API al hablar de cuándo se
+  exige el botón:
+  «We anticipate enforcement for apps targeting Android 17+ to begin in late January 2027».
   Otra pregunta aclara que las apps ya publicadas no quedan exentas si apuntan a Android 17+. Las dos
   hablan del botón: no dicen si la declaración se limita a esas apps. Desde noviembre de 2026, busca
   en **Contenido de la app** si la consola la pide para esta app. Hasta verlo, trabaja como si la
