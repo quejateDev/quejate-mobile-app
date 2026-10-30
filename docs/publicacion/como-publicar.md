@@ -319,8 +319,9 @@ PR #26).
 ### 8.2 Las declaraciones de permisos
 
 Play pide una declaración (a veces con un vídeo) por cada permiso sensible del manifiesto: servicios
-en primer plano, ubicación en segundo plano, fotos y vídeos, etc. Hoy el manifiesto no pide ninguno
-de los que la obligan:
+en primer plano, ubicación en segundo plano, fotos y vídeos, etc. **Desde el 27/01/2027 eso incluye
+la ubicación exacta, y el manifiesto sí la pide:** `ACCESS_FINE_LOCATION` está en
+`app.config.js:47`. Qué hay que hacer está en el §10.4. De los demás, el manifiesto no pide ninguno:
 
 - `app.config.js`, `android.blockedPermissions`, quita los servicios en primer plano
   (`FOREGROUND_SERVICE*`) y `RECEIVE_BOOT_COMPLETED`, que traen `expo-audio` y
@@ -385,12 +386,68 @@ Commits de las versiones de tienda que constan:
 Para la próxima, anota en su documento el `versionCode` y el commit que dice el registro del build:
 sin eso, saber qué código tiene un teléfono es adivinar.
 
-## 10. Los avisos que Play Console tiene abiertos (27/10/2026)
+## 10. Los avisos de Play Console y los plazos de Google (30/10/2026)
 
 El 27/10, Play Console muestra tres avisos para el `versionCode` 13 (la 1.2.0). Los anotó el
 responsable; yo no los he visto en la consola. Ninguno impidió publicarla, pero el primero tiene
-plazo. **No hay nada hecho todavía:** `app.config.js` y el código siguen como estaban. Lo que sigue
-explica de dónde sale cada aviso y qué supone arreglarlo.
+plazo. **No hay nada hecho todavía:** `app.config.js` y el código siguen como estaban. Los apartados
+10.1 a 10.3 explican de dónde sale cada aviso y qué supone arreglarlo.
+
+Los apartados 10.4 y 10.5 salen de otro sitio: el
+[aviso general de cambios de política del 29/10/2026](https://support.google.com/googleplay/android-developer/answer/18100766?hl=en),
+que es para todas las apps, no para esta versión. Lo leí el 30/10 en la ayuda de Play, junto con las
+páginas que enlaza.
+
+**El resto de ese aviso no aplica a esta app:** red local, contactos, AppFunctions, suscripciones,
+acceso a todos los archivos, accesibilidad, anuncios de familias, criptomonedas, SMS y registro de
+llamadas, pagos, Japón, coches y Android XR. La app no pide ninguno de esos permisos, no vende nada,
+no es un juego y no tiene versión para coches ni para XR.
+
+✅ Comprobado el 30/10 sobre `fe9c8dd`. El manifiesto final sale de juntar varias capas, así que se
+miraron todas, buscando `ACCESS_LOCAL_NETWORK`, `NEARBY_WIFI_DEVICES`, `READ_CONTACTS`,
+`WRITE_CONTACTS`, `EXECUTE_APP_FUNCTIONS`, `com.android.vending.BILLING`,
+`MANAGE_EXTERNAL_STORAGE`, `BIND_ACCESSIBILITY_SERVICE`, `com.google.android.gms.permission.AD_ID`,
+`READ_SMS`, `SEND_SMS`, `RECEIVE_SMS`, `READ_CALL_LOG`, `WRITE_CALL_LOG`, `androidx.car.app`,
+`android.hardware.xr` y `androidx.xr`. No apareció ninguno:
+
+- **`app.config.js`, `package.json` y `src/`.** Tampoco hay librerías de pagos, anuncios ni
+  criptomonedas en `package-lock.json`.
+- **El manifiesto que genera Expo.** Se generó con `npx expo prebuild --platform android
+  --no-install` en una copia sin `.env`, que es el paso que EAS hace en cada build. (El `android/` de
+  la máquina de trabajo es de mayo y no sirve.) Pide diez permisos: los dos de ubicación, `CAMERA`,
+  `INTERNET`, `MODIFY_AUDIO_SETTINGS`, `READ_EXTERNAL_STORAGE`, `RECORD_AUDIO`,
+  `SYSTEM_ALERT_WINDOW`, `VIBRATE` y `WRITE_EXTERNAL_STORAGE`.
+- **Las librerías.** Los `AndroidManifest.xml` de `node_modules` solo añaden `ACCESS_NETWORK_STATE` y
+  `POST_NOTIFICATIONS`. Tampoco hay ninguno en los 145 AAR de la caché de Gradle de la máquina de
+  trabajo, entre ellos `firebase-messaging` y Play Services.
+
+⚠️ Falta el manifiesto del AAB publicado, que necesita sesión: la caché de Gradle es de compilaciones
+locales anteriores, no de la 13. Repite la comprobación si entra una librería con código nativo.
+
+**Lo que aparece y no es de esa lista.** `READ_EXTERNAL_STORAGE` y `WRITE_EXTERNAL_STORAGE` los traen
+la plantilla de Expo, el plugin de `expo-file-system` y varias librerías; `SYSTEM_ALERT_WINDOW`, la
+plantilla. Ninguno es el acceso a todos los archivos, que es `MANAGE_EXTERNAL_STORAGE`. Pero el
+comentario de `app.config.js:51` se equivoca: dice que no se declara `READ_EXTERNAL_STORAGE`, y el
+manifiesto generado lo lleva porque nadie lo bloquea.
+
+**Lo que tampoco está en esa lista y sí hay que mirar:**
+
+- **Memoria (febrero de 2027).** El aviso habla de «memoria y optimización del código», y el §10.1
+  solo cubre lo segundo. Según la
+  [página de esos requisitos](https://support.google.com/googleplay/android-developer/answer/17492799?hl=en),
+  habrá umbrales de memoria por tipo de teléfono, medidos con los últimos 28 días. Se ven en Play
+  Console, en **Android vitals**. ⚠️ No he visto los datos de la app.
+- **Optimización (febrero de 2027).** Esa página pone el mínimo en un 25 % de ofuscación, otro de
+  optimización y otro de reducción, y solo para apps con más de 10 MB de código DEX. ⚠️ No sé cuánto
+  tiene la 13: se ve en el **Explorador de app bundles**. Míralo antes de activar R8 (§10.1), que
+  obliga a probar la app entera.
+- **Restaurar la sesión (abril de 2027).** Está en esa página, aunque el aviso no lo nombra: las apps
+  con inicio de sesión tendrán que restaurarlo sin pedir nada al pasar a un teléfono nuevo
+  (*zero-tap sign-in restoration*, con la API Restore Credentials). La app tiene inicio de sesión y
+  ni `src/` ni `@react-native-google-signin` usan esa API. ⚠️ Nadie ha mirado qué supone, y Google
+  dice que publicará más detalles.
+- **«Comportamiento engañoso» y Play Age Signals.** No piden nada a esta app. El primero aclara que
+  no se puede manipular la revisión de Play; el segundo es una API que la app no usa.
 
 ### 10.1 «DEX code optimization is below our threshold» (con plazo)
 
@@ -470,6 +527,141 @@ explica de dónde sale cada aviso y qué supone arreglarlo.
   pero va en sentido contrario a lo que pide el aviso, y la misma página avisa de que deja de valer
   cuando la app apunte al API 37.
 
+### 10.4 La ubicación exacta (antes del 27/01/2027)
+
+**Qué pide Google**, según el aviso y la
+[página de alcance mínimo de la ubicación](https://support.google.com/googleplay/android-developer/answer/17033915?hl=en):
+
+- **Alcance mínimo:** cada app tiene que usar solo la ubicación que necesita su función.
+- **Botón de ubicación de Android:** obligatorio en los usos puntuales para las apps con API 37 o
+  superior (Android 17). Como ejemplos, la página pone buscar cerca, compartir la posición una vez,
+  añadir un lugar a lo que publica la persona y rellenar una dirección.
+- **Declaración en Play Console:** las apps con `ACCESS_FINE_LOCATION` tienen que justificar por qué
+  no les basta la ubicación aproximada ni ese botón. La página dice que estará disponible en
+  noviembre de 2026.
+- **Fechas:** la política es obligatoria el **27/01/2027**. La página anuncia una prórroga de 30 días
+  que se pide en Play Console.
+
+**Qué hace la app hoy** (✅ leído el 30/10 sobre `fe9c8dd`). `app.config.js:47-48` declara
+`ACCESS_FINE_LOCATION` y `ACCESS_COARSE_LOCATION`, solo en primer plano: la prueba «no activa ninguna
+opción de plugin que necesite un servicio en primer plano» (`__tests__/appConfig.test.ts:75`) falla
+si alguien activa el segundo plano. Se compila para el API 36 (§10.3), así que el botón todavía no se
+le exige. La posición se lee en tres sitios:
+
+| Dónde | Cuándo se lee | Para qué | ¿Necesita la exacta? |
+|---|---|---|---|
+| `src/features/map/components/MiniMap.tsx:67-69` (dentro de `LocationPicker.tsx:142`) | Cuando la persona pulsa «Mi ubicación» | Poner en el mapa el lugar del problema | Es el único caso con argumento |
+| `src/features/entities/hooks/useEntityLocationFilter.ts:43-46` | **Sola, al abrir la pestaña Entidades** (`:70-76`), y con «Filtrar por mi ubicación» (`EntityListScreen.tsx:225`) | Detectar el departamento y el municipio | No |
+| `src/features/pqr/components/create/EntitySelector.tsx:117-119` | **Sola, al entrar a radicar** sin entidad ni categoría elegidas (`:146-153`, `CreatePQRScreen.tsx:368-372`), y con su botón (`:253`) | Detectar el departamento y el municipio | No |
+
+`src/features/pqr/components/detail/DetailHeader.tsx:60` también usa `expo-location`, pero no lee el
+teléfono: convierte en dirección las coordenadas de una PQRSD.
+
+Tres datos que hay que tener delante al responder:
+
+- **La app nunca pide más que `Balanced`.** `MiniMap` no indica precisión y ese es el valor por
+  defecto en Android (`expo-location` 19.0.8, `LocationArguments.kt:22`). Android lo
+  [describe](https://developer.android.com/develop/sensors-and-location/location/change-location-settings)
+  como la precisión de una cuadra, unos 100 m. La aproximada tiene un margen de
+  [unos 3 km²](https://developer.android.com/develop/sensors-and-location/location/permissions).
+- **La ubicación es opcional.** El punto se puede poner tocando el mapa, sin ningún permiso
+  (`MiniMap.tsx:61-64`), y una PQRSD se radica también sin él.
+- **La app ya funciona con la aproximada.** Si la persona la elige en el diálogo de Android,
+  `expo-location` da el permiso por concedido (`LocationModule.kt:314-331`) y el pin cae con ese
+  margen, sin avisarle. ⚠️ Leído en el código, no probado en un teléfono.
+
+**Qué responder en la declaración.** Según esa página, hace dos preguntas (⚠️ no he visto el
+formulario):
+
+1. *Qué funciones necesitan `ACCESS_FINE_LOCATION`.* Elige **«Location tagging by user»** (añadir un
+   lugar a lo que crea la persona) y nombra solo «Mi ubicación», al crear una PQRSD.
+2. *Por qué no bastan `ACCESS_COARSE_LOCATION` ni el botón, y por qué hace falta la exacta de forma
+   continuada.* Un borrador que se ajusta a lo que hace la app:
+
+   > Quéjate permite señalar en el mapa el lugar de un problema para que la entidad competente pueda
+   > encontrarlo. El botón «Mi ubicación» lee la posición una sola vez, con la app abierta y cuando
+   > la persona lo pulsa. La ubicación aproximada, con un margen de unos 3 km², no distingue la
+   > calle ni la cuadra. La app se compila hoy para el API 36 y todavía no usa el botón de ubicación
+   > de Android, que Google exige desde el API 37. No hay seguimiento continuo ni ubicación en
+   > segundo plano. La ubicación es opcional: la persona también puede marcar el punto tocando el
+   > mapa.
+
+Antes de enviarla:
+
+- 🔴 **Esa respuesta es débil, y conviene saberlo.** Las preguntas frecuentes de la página dicen que
+  `ACCESS_FINE_LOCATION` solo vale para una función central y continua, como la navegación paso a
+  paso, y ponen añadir un lugar como caso del botón. «Mi ubicación» es una lectura puntual: no hay
+  nada «continuado» que justificar, y Google puede rechazarla.
+- 🔴 **No digas que la app solo lee la ubicación cuando la persona lo pide.** Dos de los tres sitios
+  la leen solos. Ya lo señala el §1.3 de
+  [`1.1.0/seguridad-de-los-datos.md`](./1.1.0/seguridad-de-los-datos.md), con la frase de la política
+  de privacidad con la que choca.
+- **No justifiques la exacta con el departamento o el municipio.** Los ejemplos de ubicación
+  aproximada que da Google son de este nivel: lo que pasa en una ciudad o en una zona.
+- **Tiene que decir lo mismo que «Seguridad de los datos».** El §5.2 de ese documento propone la
+  ubicación precisa para el punto de la PQRSD y la aproximada para el departamento y el municipio.
+
+**Si Google no la acepta,** o si se decide no pedirla, la salida es quitar la exacta. Envía la
+declaración en cuanto se abra, para que quede tiempo de publicar ese binario antes de la fecha.
+
+- Hay que añadir `android.permission.ACCESS_FINE_LOCATION` a `blockedPermissions` y borrar
+  `app.config.js:47`. Borrar la línea no basta: `expo-location` lo pide en su propio manifiesto y en
+  su plugin.
+- «Mi ubicación» dejaría el pin con el margen de la aproximada, y la persona tendría que corregirlo
+  tocando el mapa.
+- Necesita un binario nuevo (§1) y repasar «Seguridad de los datos» (§8.1). Si un binario viejo con
+  el permiso sigue activo en alguna pista, puede seguir contando (§8.3).
+- ⚠️ No lo he compilado ni probado en un teléfono.
+
+**Cuando la app pase al API 37,** el botón será obligatorio para «Mi ubicación». Míralo al subir de
+SDK de Expo: el `targetSdk` sale de `node_modules/react-native/gradle/libs.versions.toml:4`.
+`expo-location` 19.0.8 no trae ese botón, así que hará falta una versión que lo traiga o código
+nativo, y el permiso tendrá que ir con `android:usesPermissionFlags="onlyForLocationButton"`.
+⚠️ No he mirado cómo se pone esa marca desde Expo.
+
+**Qué no se pudo comprobar:**
+
+- 🔴 **El aviso no aclara si la declaración se exige ya a una app con API 36.** Hay que mirarlo en
+  Play Console, y no hay que darlo por seguro en ningún sentido. La página de alcance mínimo habla de
+  «all apps requesting precise location», sin nombrar ningún API, pero sus fechas hablan de las apps
+  «in scope» sin definirlas, y la
+  [tabla de plazos de Google](https://support.google.com/googleplay/android-developer/table/12921780?hl=en)
+  tampoco nombra ningún API. Desde noviembre de 2026, busca en **Contenido de la app** si la consola
+  la pide para esta app. Hasta verlo, trabaja como si la pidiera: si no, puede tocar publicar un
+  binario con prisa.
+- ⚠️ Cómo es el formulario de verdad: si pide vídeo y cuánto tarda la revisión.
+- ⚠️ Qué le pasa a una app con API 36 que llegue al 27/01/2027 sin declaración. La página solo dice
+  que las apps «in scope» quedan expuestas a medidas de Google.
+- ⚠️ El `targetSdk` del binario publicado: el API 36 está deducido del código instalado (§10.3).
+
+### 10.5 El estado de comerciante (desde noviembre de 2026)
+
+- **Qué pide Google.** Toda cuenta de desarrollador activa tiene que declarar si es comerciante o no
+  (*trader* o *non-trader*) según las leyes del Espacio Económico Europeo y del Reino Unido, se
+  distribuya o no allí. El aviso dice que hay que hacerlo desde noviembre de 2026, y la
+  [página de ayuda](https://support.google.com/googleplay/android-developer/answer/17594752?hl=en)
+  da el límite de las cuentas existentes: **el 01/02/2027**.
+- **Si no se hace:** esa página avisa de bloqueo de actualizaciones y de retirada de Play en todo el
+  mundo.
+- **Es un dato de la cuenta, no de la app.** No se toca el código ni hace falta compilar. Lo hace
+  **el dueño de la cuenta**, en Play Console: *Manage account > Account details > About you*
+  (⚠️ ruta de la ayuda en inglés; no la he visto en la consola). El §2 dice que no consta quién es:
+  sin esa persona, esto no se puede hacer.
+- **Qué responder lo decide el dueño, no quien publica.** No consta en el repositorio y no es una
+  decisión técnica. Lo que dice la página:
+  - Comerciante es quien actúa por su oficio o negocio. Da como criterios el ánimo de lucro, el
+    volumen, llevar las apps como una empresa y tener personalidad jurídica (por ejemplo, un
+    D-U-N-S).
+  - Quien no distribuye en el Espacio Económico Europeo ni en el Reino Unido puede declararse
+    *non-trader*. ⚠️ Una nota de junio de 2026 dice que la app salió solo en Colombia, pero ningún
+    documento del repositorio lo recoge: míralo en Play Console.
+  - Declararse *non-trader* sin serlo puede acabar en la suspensión de la cuenta.
+  - Google no asesora en esto y recomienda a un profesional si hay dudas.
+- **Si se declara comerciante, hay más pasos, también sin código:** confirmar el estado de la app en
+  *Monitor and improve > Policy and programs > App content*, comprometerse a cumplir las leyes
+  aplicables y dar el enlace a los términos de la app. Desde el 01/03/2027, Play enseña los datos de
+  contacto, y en una cuenta personal, también el teléfono y la dirección.
+
 ## 11. Lista corta
 
 - [ ] Rama desde `main`: `version` en `app.config.js` y `PUBLISHED_VERSION` en
@@ -485,6 +677,8 @@ explica de dónde sale cada aviso y qué supone arreglarlo.
 - [ ] «Seguridad de los datos» y declaraciones al día. Si Play pide una declaración que no encaja,
   mira qué sirve cada pista (§8.3).
 - [ ] Los avisos de Play Console (§10): si sigue alguno abierto y si su plazo vence antes de la
-  siguiente versión. El de la optimización del código vence en febrero de 2027.
+  siguiente versión. Fechas: el estado de comerciante se declara desde noviembre de 2026 y hasta el
+  01/02/2027, y lo hace el dueño de la cuenta (§10.5); la ubicación exacta, antes del 27/01/2027
+  (§10.4); la optimización del código vence en febrero de 2027 (§10.1).
 - [ ] Promocionar esa misma versión a producción y enviar a revisión.
 - [ ] Anotar en el documento de la versión la fecha, el `versionCode` y el commit.
