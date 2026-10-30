@@ -41,11 +41,18 @@ quién pedir acceso.
 |---|---|---|
 | **Expo (EAS)** | Compilar el binario y guardar sus variables y su clave de firma | Organización `quejateapp`, proyecto `quejate-app` (`app.config.js`: `owner` y `slug`; el `projectId` está en `extra.eas.projectId`). Tu usuario de Expo tiene que ser miembro de esa organización con permiso para compilar |
 | **Google Play Console** | Subir el binario, probarlo, publicarlo y rellenar los formularios de la ficha | La app con el paquete `co.quejate.app` (`app.config.js`: `android.package`). Tu usuario tiene que estar invitado con permiso para crear versiones en las pistas de prueba y en producción |
-| **GitHub** | El código | Organización `quejateDev`, repositorio `quejate-mobile-app` |
+| **GitHub** | El código | Cuenta personal `quejateDev`, repositorio `quejate-mobile-app`. Los accesos se dan y se quitan con esa cuenta |
 
-⚠️ **No consta en el repositorio quién es el propietario** de la cuenta de desarrollador de Play
-Console ni de la organización de Expo. Averígualo antes de necesitarlo: sin ese acceso no se puede
-publicar nada.
+⚠️ **Quién es el dueño de cada cuenta, a 30/10/2026:**
+
+- **Google Play Console:** la cuenta de administración de Quéjate, según el responsable. El correo
+  no se escribe aquí porque el repositorio es público: se ve en Play Console, en **Usuarios y
+  permisos**.
+- **Organización de Expo `quejateapp`:** no consta quién es el dueño. `eas whoami` muestra el usuario
+  con sesión, su correo y su rol en cada cuenta (✅ leído en el código de `eas-cli`; ⚠️ no ejecutado).
+  También se ve en **Members**, dentro de **Organization settings**, en el panel de EAS.
+
+Averigua lo que falte antes de necesitarlo: sin ese acceso no se puede publicar nada.
 
 Qué **no** hace falta para publicar como se publicó la 1.2.0:
 
@@ -626,9 +633,12 @@ nativo, y el permiso tendrá que ir con `android:usesPermissionFlags="onlyForLoc
   «all apps requesting precise location», sin nombrar ningún API, pero sus fechas hablan de las apps
   «in scope» sin definirlas, y la
   [tabla de plazos de Google](https://support.google.com/googleplay/android-developer/table/12921780?hl=en)
-  tampoco nombra ningún API. Desde noviembre de 2026, busca en **Contenido de la app** si la consola
-  la pide para esta app. Hasta verlo, trabaja como si la pidiera: si no, puede tocar publicar un
-  binario con prisa.
+  tampoco nombra ningún API. Sus preguntas frecuentes sí nombran el API al hablar de cuándo se exige
+  el botón: «We anticipate enforcement for apps targeting Android 17+ to begin in late January 2027».
+  Otra pregunta aclara que las apps ya publicadas no quedan exentas si apuntan a Android 17+. Las dos
+  hablan del botón: no dicen si la declaración se limita a esas apps. Desde noviembre de 2026, busca
+  en **Contenido de la app** si la consola la pide para esta app. Hasta verlo, trabaja como si la
+  pidiera: si no, puede tocar publicar un binario con prisa.
 - ⚠️ Cómo es el formulario de verdad: si pide vídeo y cuánto tarda la revisión.
 - ⚠️ Qué le pasa a una app con API 36 que llegue al 27/01/2027 sin declaración. La página solo dice
   que las apps «in scope» quedan expuestas a medidas de Google.
@@ -645,8 +655,8 @@ nativo, y el permiso tendrá que ir con `android:usesPermissionFlags="onlyForLoc
   mundo.
 - **Es un dato de la cuenta, no de la app.** No se toca el código ni hace falta compilar. Lo hace
   **el dueño de la cuenta**, en Play Console: *Manage account > Account details > About you*
-  (⚠️ ruta de la ayuda en inglés; no la he visto en la consola). El §2 dice que no consta quién es:
-  sin esa persona, esto no se puede hacer.
+  (⚠️ ruta de la ayuda en inglés; no la he visto en la consola). El §2 dice cuál es esa cuenta: sin
+  acceso a ella, esto no se puede hacer.
 - **Qué responder lo decide el dueño, no quien publica.** No consta en el repositorio y no es una
   decisión técnica. Lo que dice la página:
   - Comerciante es quien actúa por su oficio o negocio. Da como criterios el ánimo de lucro, el
