@@ -39,7 +39,7 @@ quién pedir acceso.
 
 | Cuenta | Para qué | Cómo se reconoce |
 |---|---|---|
-| **Expo (EAS)** | Compilar el binario y guardar sus variables y su clave de firma | Organización `quejateapp`, proyecto `quejate-app` (`app.config.js`: `owner` y `slug`; el `projectId` está en `extra.eas.projectId`). Tu usuario de Expo tiene que ser miembro de esa organización con permiso para compilar |
+| **Expo (EAS)** | Compilar el binario y guardar sus variables y su clave de firma | Cuenta personal `quejateapp`, proyecto `quejate-app` (`app.config.js`: `owner` y `slug`; el `projectId` está en `extra.eas.projectId`). Una cuenta personal no tiene miembros: para compilar hay que entrar con ella |
 | **Google Play Console** | Subir el binario, probarlo, publicarlo y rellenar los formularios de la ficha | La app con el paquete `co.quejate.app` (`app.config.js`: `android.package`). Tu usuario tiene que estar invitado con permiso para crear versiones en las pistas de prueba y en producción |
 | **GitHub** | El código | Cuenta personal `quejateDev`, repositorio `quejate-mobile-app`. Los accesos se dan y se quitan con esa cuenta |
 
@@ -48,11 +48,13 @@ quién pedir acceso.
 - **Google Play Console:** la cuenta de administración de Quéjate, según el responsable. El correo
   no se escribe aquí porque el repositorio es público: se ve en Play Console, en **Usuarios y
   permisos**.
-- **Organización de Expo `quejateapp`:** no consta quién es el dueño. `eas whoami` muestra el usuario
-  con sesión, su correo y su rol en cada cuenta (✅ leído en el código de `eas-cli`; ⚠️ no ejecutado).
-  También se ve en **Members**, dentro de **Organization settings**, en el panel de EAS.
+- **Expo:** la cuenta personal `quejateapp`, no una organización: `eas whoami` la muestra sin
+  ninguna otra cuenta (✅ lo comprobó el responsable). Su dueño es quien entra con ella. Su correo
+  tampoco se escribe aquí, y `eas whoami` lo muestra. Expo pide no compartir las credenciales de una
+  cuenta personal: para dar acceso a otra persona, hay que convertirla en organización desde
+  **User settings** (⚠️ según su documentación; no probado).
 
-Averigua lo que falte antes de necesitarlo: sin ese acceso no se puede publicar nada.
+Consigue esos accesos antes de necesitarlos: sin ese acceso no se puede publicar nada.
 
 Qué **no** hace falta para publicar como se publicó la 1.2.0:
 
